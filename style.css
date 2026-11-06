@@ -177,3 +177,4 @@ ul.plain{margin:0;padding-left:18px;display:grid;gap:6px}
 #splash{position:fixed;inset:0;z-index:9999;background:#0E6B58;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .3s}
 #splash .logo{background:#fff;width:132px;height:84px}
 #splash b{color:#fff;font-size:1.6rem;letter-spacing:.02em}
+#view{padding-bottom:110px}

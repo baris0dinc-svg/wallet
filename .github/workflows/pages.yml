@@ -29,13 +29,14 @@ jobs:
           import json, os
           txt = open(os.path.join(os.environ["RUNNER_TEMP"], "raw.json"), encoding="utf-8", errors="replace").read()
           print("BOYUT:", len(txt))
-          try:
-              j = json.loads(txt)
-          except json.JSONDecodeError as e:
-              print("JSON HATASI:", e)
-              print("BAGLAM:", repr(txt[max(0, e.pos - 300):e.pos + 200]))
-              print("SON:", repr(txt[-200:]))
-              raise
+          def parse(t):
+              for cand in (t, t.rstrip() + "}", t[:t.rfind("},\"") + 1] + "}"):
+                  try:
+                      return json.loads(cand)
+                  except json.JSONDecodeError:
+                      pass
+              raise ValueError("JSON onarilamadi")
+          j = parse(txt)
           items = {k: v for k, v in j.items() if isinstance(v, dict)}
           if items:
               out = {"updated": str(j.get("Update_Date", "")), "items": items}

@@ -504,6 +504,7 @@ function setGuv(){
 }
 function setVeri(){
   return sec('İşlemleri dışa aktar','<button class="btn ghost" data-act="csv">İşlemleri CSV olarak kaydet</button><button class="btn ghost" data-act="csv-copy">CSV metnini kopyala</button><div class="err" id="f-err"></div>','CSV; Excel ve tablo uygulamalarında açılır. '+S.tx.length+' işlem.')
+   +sec('İşlemleri içe aktar','<div class="field"><label for="im-file">CSV dosyası</label><input id="im-file" type="file" accept=".csv,.txt,text/csv,text/plain"></div><div class="field"><label for="im-txt">Ya da CSV metni</label><textarea id="im-txt" placeholder="Tarih;Tür;Kategori;Tutar;Hesap;Karşı hesap;Not"></textarea></div><div class="err" id="f-err4"></div><button class="btn ghost" data-act="im-go">İçe aktar</button>','Wallet’ın kendi CSV’si ya da banka ekstresi (Tarih, Tutar, Açıklama sütunları). Aynı kayıtlar tekrar eklenmez. Bilinmeyen hesap ve kategoriler otomatik açılır.')
    +sec('Yedek','<div class="field"><label for="bk-pw">Yedek şifresi</label><input id="bk-pw" type="password" autocomplete="new-password" placeholder="Boş bırakırsan şifresiz yedek"></div><button class="btn" data-act="bk-make">Yedek hazırla</button><div id="bk-box" class="stack" style="gap:10px" hidden><textarea id="bk-out" readonly aria-label="Yedek metni"></textarea><button class="btn ghost" data-act="bk-copy">Yedeği kopyala</button><button class="btn ghost" data-act="bk-save">Dosya olarak kaydet</button></div><div class="err" id="f-err3"></div>','Şifreli yedek AES-256 ile korunur. Şifreyi unutursan yedek açılmaz, şifre hiçbir yerde saklanmaz.')
    +sec('Yedekten yükle','<div class="field"><label for="rs-file">Yedek dosyası</label><input id="rs-file" type="file" accept=".json,.txt,application/json,text/plain"></div><div class="field"><label for="rs-txt">Ya da yedek metni</label><textarea id="rs-txt" placeholder="Kopyaladığın yedeği buraya yapıştır"></textarea></div><div class="field"><label for="rs-pw">Şifre (yedek şifreliyse)</label><input id="rs-pw" type="password" autocomplete="off"></div><div class="err" id="f-err2"></div><button class="btn ghost" data-act="rs-go">Yedeği yükle</button>','Yükleme mevcut verilerin yerine geçer. PIN ayarın korunur.')
    +notesExport()+setDemo();
@@ -822,6 +823,66 @@ ACT['rs-go']=function(){
   }else{try{apply(o);}catch(e){msg('Yedek okunamadı.',false,'f-err2');}}
 };
 
+
+/* CSV içe aktarma */
+function csvParse(txt){
+  txt=String(txt||'').replace(/^﻿/,'');
+  var first=txt.split(/\r?\n/)[0]||'',dl=';',best=0;
+  [';',',','\t'].forEach(function(d){var n=first.split(d).length;if(n>best){best=n;dl=d;}});
+  var rows=[],row=[],cur='',q=false,i,ch;
+  for(i=0;i<txt.length;i++){ch=txt[i];
+    if(q){if(ch==='"'){if(txt[i+1]==='"'){cur+='"';i++;}else q=false;}else cur+=ch;}
+    else if(ch==='"')q=true;
+    else if(ch===dl){row.push(cur);cur='';}
+    else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&txt[i+1]==='\n')i++;row.push(cur);cur='';if(row.some(function(x){return x.trim()!=='';}))rows.push(row);row=[];}
+    else cur+=ch;}
+  row.push(cur);if(row.some(function(x){return x.trim()!=='';}))rows.push(row);
+  return rows;}
+function csvDate(s){s=String(s||'').trim();var m;
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)))return m[1]+'-'+pad(+m[2])+'-'+pad(+m[3]);
+  if((m=s.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/)))return m[3]+'-'+pad(+m[2])+'-'+pad(+m[1]);
+  return '';}
+function csvKey(h){h=String(h).toLocaleLowerCase('tr-TR').replace(/İ/g,'i').trim();
+  if(/^(tarih|date)/.test(h))return 'date';
+  if(/^(tür|tur|type|işlem türü)$/.test(h))return 'type';
+  if(/^(kategori|category)/.test(h))return 'cat';
+  if(/^(tutar|miktar|amount|işlem tutarı)/.test(h))return 'amt';
+  if(/^(karşı hesap|karsi hesap|to)/.test(h))return 'to';
+  if(/^(hesap|account)/.test(h))return 'acct';
+  if(/^(not|açıklama|aciklama|description|note)/.test(h))return 'note';
+  return '';}
+function txSig(t){return [t.date,t.type,t.cat||'',r2(t.amt).toFixed(2),t.acct,t.to||'',t.note||''].join('|');}
+function csvImport(text){
+  var rows=csvParse(text);if(rows.length<2)return {err:'Başlık satırı ve en az bir kayıt gerekli.'};
+  var map={};rows[0].forEach(function(h,i){var k=csvKey(h);if(k&&map[k]==null)map[k]=i;});
+  if(map.date==null||map.amt==null)return {err:'“Tarih” ve “Tutar” sütunları bulunamadı.'};
+  var seen={};S.tx.forEach(function(t){var k=txSig(t);seen[k]=(seen[k]||0)+1;});
+  var add=[],dup=0,bad=0,newA=[],newC=[],defA=ACCS()[0];
+  rows.slice(1).forEach(function(r){
+    var g=function(k){return map[k]==null?'':String(r[map[k]]||'').trim();};
+    var date=csvDate(g('date')),raw=num(g('amt')),tv=g('type').toLocaleLowerCase('tr-TR').replace(/İ/g,'i'),type;
+    if(!date||!raw){bad++;return;}
+    if(/gelir|income|inc/.test(tv))type='inc';else if(/gider|expense|exp/.test(tv))type='exp';else if(/transfer|trf/.test(tv))type='trf';
+    else type=raw<0?'exp':'inc';
+    var amt=r2(Math.abs(raw)),acct=g('acct')||defA,to=g('to');
+    if(type==='trf'&&(!to||to===acct)){bad++;return;}
+    var cat=type==='trf'?'':(g('cat')||(type==='inc'?INCC()[0]:'Diğer'));
+    var t={id:uid(),type:type,amt:amt,acct:acct,date:date};if(cat)t.cat=cat;if(to&&type==='trf')t.to=to;var nt=g('note');if(nt)t.note=nt;
+    var k=txSig(t);if(seen[k]>0){seen[k]--;dup++;return;}
+    add.push(t);});
+  add.forEach(function(t){
+    [t.acct,t.to].forEach(function(a){if(a&&badName(a)){return;}if(a&&ACCS().indexOf(a)<0&&newA.indexOf(a)<0)newA.push(a);});
+    if(t.cat){var l=t.type==='inc'?INCC():EXPC();if(l.indexOf(t.cat)<0&&newC.indexOf(t.type+'|'+t.cat)<0)newC.push(t.type+'|'+t.cat);}});
+  newA.forEach(function(a){S.accounts.push(a);S.opening[a]=0;});
+  newC.forEach(function(c){var p=c.split('|');S.cats[p[0]==='inc'?'inc':'exp'].push(p.slice(1).join('|'));});
+  S.tx=S.tx.concat(add);
+  return {added:add.length,dup:dup,bad:bad,accts:newA.length,cats:newC.length};}
+ACT['im-go']=function(){
+  var raw=val('im-txt').trim();if(!raw){msg('CSV dosyasını seç ya da metni yapıştır.',false,'f-err4');return;}
+  var r=csvImport(raw);if(r.err){msg(r.err,false,'f-err4');return;}
+  save();render();
+  msg(r.added+' işlem eklendi'+(r.dup?', '+r.dup+' tekrar atlandı':'')+(r.bad?', '+r.bad+' satır okunamadı':'')+(r.accts?'. '+r.accts+' yeni hesap':'')+(r.cats?'. '+r.cats+' yeni kategori':'')+'.',r.added>0||r.dup>0,'f-err4');};
+
 /* demo */
 ACT['sample-load']=function(){
   var d=seed(),acc=ACCS();
@@ -902,6 +963,7 @@ document.addEventListener('change',function(e){
   }
   else if(d.accOpen!==undefined){S.opening[d.accOpen]=num(t.value);S.sampleExtras=false;save();render();}
   else if(t.id==='f-cat'){t.dataset.manual='1';}
+  else if(t.id==='im-file'){var f2=t.files&&t.files[0];if(f2){var fr2=new FileReader();fr2.onload=function(){var ta=document.getElementById('im-txt');if(ta)ta.value=String(fr2.result||'');};fr2.readAsText(f2);}}
   else if(t.id==='rs-file'){var f=t.files&&t.files[0];if(f){var fr=new FileReader();fr.onload=function(){var ta=document.getElementById('rs-txt');if(ta)ta.value=String(fr.result||'');};fr.readAsText(f);}}
 });
 document.addEventListener('input',function(e){

@@ -72,7 +72,8 @@ function pdate(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
 function color(name){var h=0,s=String(name);for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return 'hsl('+(h%360)+' 45% 52%)';}
 function sgn(n){return (n>=0?'+':'−')+TRY0.format(Math.abs(n));}
 function byId(list,id){return list.filter(function(x){return x.id===id;})[0];}
-function fx1(n){return n>0?NUM2.format(n):'—';}
+var FX2=new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
+function fx1(n){return n>0?FX2.format(n):'—';}
 function today0(){var d=new Date();return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
 function daysBetween(a,b){return Math.round((pdate(b)-pdate(a))/864e5);}
 function getP(path){return path.split('.').reduce(function(o,k){return o==null?o:o[k];},S);}
@@ -101,7 +102,7 @@ function seed(){
     t(pm2,19,'exp',3100,'Giyim','Mevsimlik alışveriş','Kredi kartı'), t(pm2,25,'exp',1700,'Ulaşım','Yakıt','Nakit')
   ];
   return {tx:tx,budgets:{'Market':6000,'Yeme-İçme':3000,'Ulaşım':2000,'Eğlence':1500,'Fatura':2500},
-    opening:{'Nakit':3500,'Banka':28000,'Kredi kartı':0},sampleExtras:true,fx:{USD:41.5,EUR:0,XAU:0},fxSample:true,
+    opening:{'Nakit':9000,'Banka':28000,'Kredi kartı':0},sampleExtras:true,fx:{USD:41.5,EUR:0,XAU:0},fxSample:true,
     goals:[{id:uid(),name:'Acil durum fonu',target:120000,saved:45000,date:addMonth(cur,10)+'-01',sample:true},{id:uid(),name:'Yaz tatili',target:60000,saved:12000,date:addMonth(cur,7)+'-01',sample:true}],
     recurring:[{id:uid(),name:'Spor salonu',amt:900,day:5,cat:'Eğlence',acct:'Kredi kartı',paid:{},sample:true},{id:uid(),name:'İnternet',amt:450,day:15,cat:'Fatura',acct:'Banka',paid:{},sample:true},{id:uid(),name:'Dijital abonelik',amt:229,day:22,cat:'Eğlence',acct:'Kredi kartı',paid:{},sample:true}],
     holdings:[
@@ -346,8 +347,8 @@ function duzenliBody(){
     else if(ui.month===cur){var diff=daysBetween(t0,dueDate(r,cur));st=diff<0?'<span class="pill late">'+(-diff)+' gün gecikti</span>':(diff===0?'<span class="pill late">Bugün</span>':'<span class="pill">'+diff+' gün sonra</span>');}
     else if(ui.month<cur)st='<span class="pill late">Ödenmedi</span>';
     else st='<span class="pill">Bekliyor</span>';
-    return '<div class="item"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-r" data-id="'+r.id+'"><span class="dot" style="background:'+color(r.cat)+'"></span><span class="mid"><div class="t">'+esc(r.name)+'</div><div class="small muted">Her ayın '+r.day+'. günü · '+esc(r.cat)+'</div></span></button><div style="display:grid;gap:6px;justify-items:end"><span class="num">'+TRY0.format(r.amt)+'</span>'+st+'<button class="btn small ghost" data-act="'+(paid?'rundo':'rpay')+'" data-id="'+r.id+'">'+(paid?'Geri al':'Ödendi yaz')+'</button></div></div>';}).join('')+'</div></div>';
-  return h+'<p class="small muted">"Ödendi yaz" dediğinde gösterdiğin dönemin işlemi otomatik eklenir.</p>';
+    return '<div class="item"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-r" data-id="'+r.id+'"><span class="dot" style="background:'+color(r.cat)+'"></span><span class="mid"><div class="t">'+esc(r.name)+'</div><div class="small muted">Her ayın '+r.day+'. günü · '+esc(r.cat)+'</div></span></button><div style="display:grid;gap:6px;justify-items:end"><span class="num">'+TRY0.format(r.amt)+'</span>'+st+'<button class="btn small ghost" data-act="'+(paid?'rundo':'rpay')+'" data-id="'+r.id+'">'+(paid?'Geri al':'Ödendi')+'</button></div></div>';}).join('')+'</div></div>';
+  return h+'<p class="small muted">“Ödendi” düğmesi, gösterdiğin dönem için işlemi otomatik ekler.</p>';
 }
 
 /* ---------- Portföy ---------- */
@@ -359,15 +360,15 @@ function debtsCard(){
 }
 function vPortfoy(){
   var pf=pfTotals(),pl=pf.v-pf.c,plp=pf.c?pl/pf.c*100:0,h=bannerHtml();
-  h+='<div class="card hero"><div class="lbl">Portföy değeri</div><p class="big">'+TRY0.format(pf.v)+'</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">'+TRY0.format(pf.c)+'</span></div><div><div class="lbl">Kâr / zarar</div><span class="num">'+sgn(pl)+' ('+(plp>=0?'+':'−')+NUM2.format(Math.abs(plp))+'%)</span></div></div></div>';
+  h+='<div class="card hero"><div class="lbl">Portföy değeri</div><p class="big">'+TRY0.format(pf.v)+'</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">'+TRY0.format(pf.c)+'</span></div><div><div class="lbl">Kâr / zarar</div><span class="num">'+sgn(pl)+'</span><div class="small '+(plp>=0?'inc':'exp')+'">'+(plp>=0?'+':'−')+'%'+NUM2.format(Math.abs(plp))+'</div></div></div></div>';
   if(pf.v>0){var by={};S.holdings.forEach(function(x){by[x.type]=(by[x.type]||0)+hVal(x);});var ks=Object.keys(by).sort(function(a,b){return by[b]-by[a];});
     h+='<div class="card"><h2>Dağılım</h2><div class="stackbar">'+ks.map(function(k){return '<i style="width:'+(by[k]/pf.v*100)+'%;background:'+color(k)+'"></i>';}).join('')+'</div><div class="legend">'+ks.map(function(k){return '<span style="--c:'+color(k)+'">'+esc(k)+' %'+NUM2.format(by[k]/pf.v*100)+'</span>';}).join('')+'</div></div>';}
-  h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div class="small muted" style="min-width:0">USD '+fx1(S.fx.USD)+' · EUR '+fx1(S.fx.EUR)+' · Gram altın '+fx1(S.fx.XAU)+(S.mkt&&S.mkt.BIST?' · BIST 100 '+fx1(S.mkt.BIST.price)+(S.mkt.BIST.chg!=null?' ('+(S.mkt.BIST.chg>=0?'+':'')+NUM2.format(S.mkt.BIST.chg)+'%)':''):'')+'</div><button class="btn small ghost" data-act="open-set" data-id="kurlar">Kurları düzenle</button></div>';
+  h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div class="small muted" style="min-width:0">USD '+fx1(S.fx.USD)+' · EUR '+fx1(S.fx.EUR)+' · Gram altın '+fx1(S.fx.XAU)+(S.mkt&&S.mkt.BIST?' · BIST 100 '+fx1(S.mkt.BIST.price)+(S.mkt.BIST.chg!=null?' ('+(S.mkt.BIST.chg>=0?'+':'−')+'%'+NUM2.format(Math.abs(S.mkt.BIST.chg))+')':''):'')+'</div><button class="btn small ghost" data-act="open-set" data-id="kurlar">Kurları düzenle</button></div>';
   h+='<button class="btn" data-act="new-h">Varlık ekle</button>';
   if(!S.holdings.length)return h+'<div class="empty">Henüz varlık yok. Hisse, altın, döviz, fon, kripto, gayrimenkul ya da araç ekleyebilirsin.</div>'+debtsCard();
   h+=S.holdings.map(function(x){var p=hVal(x)-hCost(x),pp=hCost(x)?p/hCost(x)*100:0,linked=x.ccy&&+S.fx[x.ccy]>0;
     return '<div class="card"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="'+x.id+'"><span class="dot" style="background:'+color(x.type)+'"></span><span class="mid"><div class="t" style="font-weight:600">'+esc(x.name)+'</div><div class="small muted">'+esc(x.type)+' · '+NUM2.format(x.qty)+' adet · ort. '+TRY2.format(x.cost)+'</div></span></button><span class="num" style="font-size:1.0625rem">'+TRY0.format(hVal(x))+'</span></div>'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px"><span class="num small '+(p>=0?'inc':'exp')+'">'+sgn(p)+' ('+(pp>=0?'+':'−')+NUM2.format(Math.abs(pp))+'%)</span>'+(linked?'<span class="small muted">'+FXL[x.ccy]+' kuru: '+TRY2.format(hPrice(x))+'</span>':'<div style="width:46%"><input inputmode="decimal" data-price="'+x.id+'" value="'+x.price+'" aria-label="'+esc(x.name)+' güncel fiyat"></div>')+'</div></div>';}).join('');
+      +'<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px"><span class="num small '+(p>=0?'inc':'exp')+'">'+sgn(p)+' ('+(pp>=0?'+':'−')+'%'+NUM2.format(Math.abs(pp))+')</span>'+(linked?'<span class="small muted">'+FXL[x.ccy]+' kuru: '+TRY2.format(hPrice(x))+'</span>':'<div style="width:46%"><input inputmode="decimal" data-price="'+x.id+'" value="'+x.price+'" aria-label="'+esc(x.name)+' güncel fiyat"></div>')+'</div></div>';}).join('');
   return h+debtsCard()+'<p class="small muted">Fiyatlar elle girilir. Güncel fiyatı kutuya yazınca değer ve kâr/zarar yenilenir.</p>';
 }
 
@@ -487,23 +488,22 @@ function setGor(){
    +sec('Gizlilik',tgl('hide','Bakiyeleri gizle','Cüzdan ve Portföy’de tutarlar ••••, üst köşedeki göz düğmesiyle geçici gösterilir'));
 }
 function notesExport(){
-  return sec('Dışa aktar','<div class="small muted">'+S.notes.length+' not</div><button class="btn ghost" data-act="notes-copy">Tüm notları kopyala</button><button class="btn ghost" data-act="notes-save">Metin dosyası olarak kaydet</button><div class="err" id="f-err"></div>');
+  return sec('Notları dışa aktar','<div class="small muted">'+S.notes.length+' not</div><button class="btn ghost" data-act="notes-copy">Tüm notları kopyala</button><button class="btn ghost" data-act="notes-save">Metin dosyası olarak kaydet</button><div class="err" id="f-err"></div>');
 }
 function setGuv(){
   var h='';
   if(!S.pin){
-    h+=sec('PIN kilidi','<div class="field"><label for="pin1">Yeni PIN (4 rakam)</label><input id="pin1" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div><div class="field"><label for="pin2">PIN tekrar</label><input id="pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div><div class="err" id="f-err"></div><button class="btn" data-act="pin-set">PIN kilidini aç</button>','PIN, uygulamayı açarken sorulur.');
+    h+=sec('PIN kilidi','<div class="field"><label for="pin1">Yeni PIN (4 rakam)</label><input id="pin1" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div><div class="field"><label for="pin2">PIN tekrar</label><input id="pin2" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div><div class="err" id="f-err"></div><button class="btn" data-act="pin-set">PIN kilidini etkinleştir</button>','PIN, uygulamayı açarken sorulur.');
   }else{
     h+=sec('PIN kilidi','<span class="pill ok" style="align-self:flex-start">Açık</span><div class="lbl">Otomatik kilit</div>'+segv('pin.auto',[[0,'Hemen'],[1,'1 dk'],[5,'5 dk'],[15,'15 dk']],'Otomatik kilit')+'<button class="btn ghost" data-act="lock-now">Şimdi kilitle</button>','Otomatik kilit, uygulamadan çıkıp geri döndüğünde çalışır.')
      +sec('PIN’i değiştir','<div class="field"><label for="pold">Mevcut PIN</label><input id="pold" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div><div class="two"><div class="field"><label for="pnew1">Yeni PIN</label><input id="pnew1" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div><div class="field"><label for="pnew2">Tekrar</label><input id="pnew2" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div></div><div class="err" id="f-err"></div><button class="btn ghost" data-act="pin-change">PIN’i değiştir</button>')
      +sec('PIN’i kaldır','<div class="field"><label for="prem">Mevcut PIN</label><input id="prem" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></div><div class="err" id="f-err2"></div><button class="btn danger" data-act="pin-remove">Kilidi kaldır</button>');
   }
-  h+=sec('Parmak izi / yüz tanıma','<div class="small">Bu sürümde kullanılamıyor.</div>','Web sayfaları bu görünümde cihazın biyometrik kilidine erişemez.');
   h+='<p class="small muted">PIN yalnızca ekranı kilitler. Veriler tarayıcıda şifresiz saklanır. PIN unutulursa kilit ancak tüm veriler silinerek kaldırılır, bu yüzden düzenli yedek al.</p>';
   return h;
 }
 function setVeri(){
-  return sec('Dışa aktar','<button class="btn ghost" data-act="csv">İşlemleri CSV olarak kaydet</button><button class="btn ghost" data-act="csv-copy">CSV metnini kopyala</button><div class="err" id="f-err"></div>','CSV; Excel ve tablo uygulamalarında açılır. '+S.tx.length+' işlem.')
+  return sec('İşlemleri dışa aktar','<button class="btn ghost" data-act="csv">İşlemleri CSV olarak kaydet</button><button class="btn ghost" data-act="csv-copy">CSV metnini kopyala</button><div class="err" id="f-err"></div>','CSV; Excel ve tablo uygulamalarında açılır. '+S.tx.length+' işlem.')
    +sec('Yedek','<div class="field"><label for="bk-pw">Yedek şifresi</label><input id="bk-pw" type="password" autocomplete="new-password" placeholder="Boş bırakırsan şifresiz yedek"></div><button class="btn" data-act="bk-make">Yedek hazırla</button><div id="bk-box" class="stack" style="gap:10px" hidden><textarea id="bk-out" readonly aria-label="Yedek metni"></textarea><button class="btn ghost" data-act="bk-copy">Yedeği kopyala</button><button class="btn ghost" data-act="bk-save">Dosya olarak kaydet</button></div><div class="err" id="f-err3"></div>','Şifreli yedek AES-256 ile korunur. Şifreyi unutursan yedek açılmaz, şifre hiçbir yerde saklanmaz.')
    +sec('Yedekten yükle','<div class="field"><label for="rs-file">Yedek dosyası</label><input id="rs-file" type="file" accept=".json,.txt,application/json,text/plain"></div><div class="field"><label for="rs-txt">Ya da yedek metni</label><textarea id="rs-txt" placeholder="Kopyaladığın yedeği buraya yapıştır"></textarea></div><div class="field"><label for="rs-pw">Şifre (yedek şifreliyse)</label><input id="rs-pw" type="password" autocomplete="off"></div><div class="err" id="f-err2"></div><button class="btn ghost" data-act="rs-go">Yedeği yükle</button>','Yükleme mevcut verilerin yerine geçer. PIN ayarın korunur.')
    +notesExport()+setDemo();

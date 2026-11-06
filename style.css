@@ -178,3 +178,5 @@ ul.plain{margin:0;padding-left:18px;display:grid;gap:6px}
 #splash .logo{background:#fff;width:132px;height:84px}
 #splash b{color:#fff;font-size:1.6rem;letter-spacing:.02em}
 #view{padding-bottom:110px}
+.mav{width:36px;height:36px;border-radius:10px;flex:none;position:relative;display:grid;place-items:center;color:#fff;font-weight:700;font-size:.75rem;overflow:hidden}
+.mav img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;padding:5px;box-sizing:border-box}

@@ -116,7 +116,7 @@ function seed(){
 }
 function norm(d){
   d.tx=d.tx||[];d.budgets=d.budgets||{};d.opening=d.opening||{};d.holdings=d.holdings||[];d.notes=d.notes||[];
-  d.fx=d.fx||{};d.fx.USD=d.fx.USD||0;d.fx.EUR=d.fx.EUR||0;d.fx.XAU=d.fx.XAU||0;d.fxAuto=d.fxAuto!==false;d.mkt=d.mkt||{};d.notif=!!d.notif;d.notifDay=d.notifDay||'';d.last=d.last||{};d.setupHide=!!d.setupHide;
+  d.fx=d.fx||{};d.fx.USD=d.fx.USD||0;d.fx.EUR=d.fx.EUR||0;d.fx.XAU=d.fx.XAU||0;d.fxAuto=d.fxAuto!==false;d.mkt=d.mkt||{};d.notif=!!d.notif;d.notifDay=d.notifDay||'';d.last=d.last||{};d.logos=d.logos!==false;d.setupHide=!!d.setupHide;
   d.goals=d.goals||[];d.recurring=d.recurring||[];d.debts=d.debts||[];
   d.accounts=(d.accounts&&d.accounts.length)?d.accounts:D_ACC.slice();
   d.cats=d.cats||{};d.cats.exp=d.cats.exp||D_EXP.slice();d.cats.inc=d.cats.inc||D_INC.slice();
@@ -242,10 +242,59 @@ function trendCard(){
   return '<div class="card"><h2 style="margin:0 0 8px">Son 6 dönem</h2><svg viewBox="0 0 '+W+' '+(H+20)+'" width="100%" role="img" aria-label="Son 6 dönem gelir ve gider grafiği">'+svg+'</svg><div class="small muted" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px"><span><b style="color:var(--inc)">■</b> Gelir</span><span><b style="color:var(--exp)">■</b> Gider</span><span>Ortalama gider '+TRY0.format(av)+'</span></div></div>';
 }
 function monthNav(){return '<div class="mnav"><button class="icon-btn" data-act="mprev" aria-label="Önceki dönem">'+ic('l')+'</button><span style="text-align:center">'+esc(plabel(ui.month))+(S.payday>1?'<div class="small muted" style="font-weight:500;text-transform:none">'+esc(prange(ui.month))+'</div>':'')+'</span><button class="icon-btn" data-act="mnext" aria-label="Sonraki dönem">'+ic('r')+'</button></div>';}
+var BRANDS=[
+  ["BİM","bim","bim.com.tr","#E30613"],
+  ["A101","a101|a 101","a101.com.tr","#00A0DF"],
+  ["ŞOK","sok","sokmarket.com.tr","#FFC20E"],
+  ["Migros","migros","migros.com.tr","#F58220"],
+  ["CarrefourSA","carrefour|carrefoursa","carrefoursa.com","#0B4EA2"],
+  ["İGDAŞ","igdas","igdas.istanbul","#0072BC"],
+  ["İSKİ","iski","iski.istanbul","#0A7BC4"],
+  ["Enerjisa","enerjisa","enerjisa.com.tr","#E2001A"],
+  ["Turkcell","turkcell","turkcell.com.tr","#003B71"],
+  ["Vodafone","vodafone","vodafone.com.tr","#E60000"],
+  ["Türk Telekom","turk telekom|turktelekom","turktelekom.com.tr","#00A3E0"],
+  ["Netflix","netflix","netflix.com","#E50914"],
+  ["Spotify","spotify","spotify.com","#1DB954"],
+  ["YouTube","youtube","youtube.com","#FF0000"],
+  ["Trendyol","trendyol","trendyol.com","#F27A1A"],
+  ["Hepsiburada","hepsiburada","hepsiburada.com","#FF6000"],
+  ["Yemeksepeti","yemeksepeti","yemeksepeti.com","#FA0050"],
+  ["Getir","getir","getir.com","#5D3EBC"],
+  ["Shell","shell","shell.com.tr","#DD1D21"],
+  ["Opet","opet","opet.com.tr","#00549F"],
+  ["BP","bp","bp.com","#009900"],
+  ["Petrol Ofisi","petrol ofisi|po","petrolofisi.com.tr","#E30613"],
+  ["Starbucks","starbucks","starbucks.com.tr","#00704A"],
+  ["Amazon","amazon","amazon.com.tr","#FF9900"],
+  ["n11","n11","n11.com","#7B2CBF"],
+  ["LC Waikiki","lc waikiki|lcw","lcw.com","#E30613"],
+  ["Teknosa","teknosa","teknosa.com","#0057B8"],
+  ["MediaMarkt","mediamarkt|media markt","mediamarkt.com.tr","#DF0000"],
+  ["IKEA","ikea","ikea.com.tr","#0058A3"],
+  ["Apple","apple|icloud","apple.com","#555555"],
+  ["Google","google","google.com","#4285F4"],
+  ["Disney+","disney","disneyplus.com","#113CCF"],
+  ["BluTV","blutv","blutv.com","#0099FF"],
+  ["Exxen","exxen","exxen.com","#FFB400"],
+  ["Burger King","burger king","burgerking.com.tr","#D62300"],
+  ["McDonald's","mcdonalds|mc donalds","mcdonalds.com.tr","#DA291C"],
+  ["Dominos","dominos","dominos.com.tr","#006491"]
+];
+function nrm(x){return String(x||'').replace(/İ/g,'i').replace(/I/g,'i').toLowerCase().replace(/\u0307/g,'').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,' ').trim();}
+var BRX=BRANDS.map(function(b){return new RegExp('(^| )('+b[1].split('|').map(function(x){return nrm(x);}).join('|')+')( |$)');});
+function brandOf(note){if(!note)return null;var n=nrm(note);for(var i=0;i<BRANDS.length;i++){if(BRX[i].test(n))return BRANDS[i];}return null;}
+function avatar(t){
+  var b=S.logos?brandOf(t.note):null;
+  if(!b)return '<span class="dot" style="background:'+color(t.cat)+'"></span>';
+  var ini=esc(b[0].replace(/[^A-Za-zÇĞİÖŞÜçğıöşü0-9+]/g,'').slice(0,2).toUpperCase());
+  var hx=b[3],lum=(parseInt(hx.slice(1,3),16)*299+parseInt(hx.slice(3,5),16)*587+parseInt(hx.slice(5,7),16)*114)/1000;
+  return '<span class="mav" style="background:'+hx+';color:'+(lum>150?'#222':'#fff')+'" aria-hidden="true">'+ini+'<img alt="" loading="lazy" referrerpolicy="no-referrer" src="https://www.google.com/s2/favicons?domain='+b[2]+'&sz=64" onerror="this.remove()"></span>';
+}
 function txRow(t){
   if(t.type==='trf')return '<button class="item" data-act="edit-tx" data-id="'+t.id+'"><span class="dot" style="background:var(--ink2)"></span><span class="mid"><div class="t">Transfer'+(t.note?' · '+esc(t.note):'')+'</div><div class="small muted">'+esc(t.acct)+' → '+esc(t.to)+'</div></span><span class="num">'+TRY2.format(t.amt)+'</span></button>';
   var inc=t.type==='inc';
-  return '<button class="item" data-act="edit-tx" data-id="'+t.id+'"><span class="dot" style="background:'+color(t.cat)+'"></span><span class="mid"><div class="t">'+esc(t.cat)+(t.note?' · '+esc(t.note):'')+'</div><div class="small muted">'+esc(t.acct)+'</div></span><span class="num '+(inc?'inc':'exp')+'">'+(inc?'+':'−')+TRY2.format(t.amt)+'</span></button>';
+  return '<button class="item" data-act="edit-tx" data-id="'+t.id+'">'+avatar(t)+'<span class="mid"><div class="t">'+esc(t.cat)+(t.note?' · '+esc(t.note):'')+'</div><div class="small muted">'+esc(t.acct)+'</div></span><span class="num '+(inc?'inc':'exp')+'">'+(inc?'+':'−')+TRY2.format(t.amt)+'</span></button>';
 }
 function fireCard(){
   var m=fireModel();
@@ -470,7 +519,8 @@ function setBild(){
     'Bildirimler uygulama açıkken veya açıldığında gelir. Kapalıyken arka planda bildirim göndermek için bir sunucu gerekir; bu sürümde yok.');
 }
 function setGor(){
-  return sec('Tema',segv('theme',[['auto','Sistem'],['light','Açık'],['dark','Koyu']],'Tema'))
+  return sec('Marka logoları',tgl('logos','İşlemlerde marka logosu','Notta BİM, İGDAŞ gibi bir marka yazınca logosu görünür'),'Logolar, marka sitelerinin simgesi Google’ın simge servisinden internetten yüklenir; yalnızca marka alan adı gönderilir, tutar ve notun gönderilmez. Çevrimdışıysan marka renkli kısaltma görünür. Kapatırsan hiçbir şey indirilmez.')
+   +sec('Tema',segv('theme',[['auto','Sistem'],['light','Açık'],['dark','Koyu']],'Tema'))
    +sec('Yazı boyutu',segv('fs',[[0.9,'Küçük'],[1,'Normal'],[1.15,'Büyük'],[1.3,'Çok büyük']],'Yazı boyutu'))
    +sec('Gizlilik',tgl('hide','Bakiyeleri gizle','Cüzdan ve Portföy’de tutarlar ••••, üst köşedeki göz düğmesiyle geçici gösterilir'));
 }
@@ -642,7 +692,7 @@ function txSheet(id,force){
    +'<div class="two"><div class="field" id="row-cat"'+(trf?' hidden':'')+'><label for="f-cat">Kategori</label><select id="f-cat">'+opts(cats,t?t.cat:lastSel(txType,'cat',cats))+'</select></div><div class="field"><label for="f-acct" id="lb-acct">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="f-acct">'+opts(acc,t?t.acct:lastSel(txType,'acct',acc))+'</select></div></div>'
    +'<div class="field" id="row-to"'+(trf?'':' hidden')+'><label for="f-to">Giriş hesabı</label><select id="f-to">'+opts(acc,(t&&t.to)||acc[1])+'</select></div>'
    +'<div class="field"><label for="f-date">Tarih</label><input id="f-date" type="date" value="'+(t?t.date:isoDate(new Date()))+'"></div>'
-   +'<div class="field"><label for="f-note">Not</label><input id="f-note" placeholder="İsteğe bağlı" value="'+esc(t?t.note:'')+'"></div><div class="err" id="f-err"></div>'
+   +'<div class="field"><label for="f-note">Not</label><input id="f-note" list="merchants" autocomplete="off" placeholder="Örn. BİM, İGDAŞ (logosu görünür)" value="'+esc(t?t.note:'')+'"><datalist id="merchants">'+BRANDS.map(function(b){return '<option value="'+esc(b[0])+'">';}).join('')+'</datalist></div><div class="err" id="f-err"></div>'
    +'<button class="btn" data-act="save-tx" data-id="'+(t?t.id:'')+'">Kaydet</button>'+(t?delBtn('del-tx',t.id):''));
   if(!t)setTimeout(function(){var e=document.getElementById('f-amt');if(e)e.focus();},50);
 }

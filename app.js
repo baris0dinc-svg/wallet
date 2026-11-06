@@ -540,6 +540,7 @@ function csvAll(){var rows=[['Tarih','Tür','Kategori','Tutar','Hesap','Karşı 
   S.tx.slice().sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(t){rows.push([t.date,tn[t.type]||t.type,t.cat||'',String(t.amt).replace('.',','),t.acct,t.to||'',t.note||'']);});
   return '﻿'+rows.map(function(r){return r.map(csvCell).join(';');}).join('\r\n');}
 function saveFile(name,data,okText,id){
+  if(!dl&&window.AndroidBridge){var rr='err';try{rr=window.AndroidBridge.save(name,String(data));}catch(e){}msg(rr==='ok'?(okText||'Kaydedildi.')+' İndirilenler klasörüne bakın.':'Dosya kaydedilemedi. Kopyala düğmesini dene.',rr==='ok',id);return;}
   if(!dl){try{var bl=new Blob([data],{type:'text/plain;charset=utf-8'}),u=URL.createObjectURL(bl),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u);},1000);msg(okText||'Kaydedildi.',true,id);}catch(e){msg('Dosya kaydedilemedi. Kopyala düğmesini dene.',false,id);}return;}
   dl.save({filename:name,data:data}).then(function(){msg(okText||'Kaydedildi.',true,id);},function(err){msg(err&&err.code==='declined'?'Kaydetme iptal edildi.':'Dosya kaydedilemedi. Kopyala düğmesini dene.',false,id);});
 }

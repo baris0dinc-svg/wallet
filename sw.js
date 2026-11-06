@@ -1,5 +1,5 @@
 /* Çevrimdışı çalışma: önce önbellek, ağdan gelen yeni sürümü arka planda günceller. */
-const CACHE = 'wallet-v19';
+const CACHE = 'wallet-v20';
 const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => {
   // cache:'reload' → tarayıcı önbelleğindeki eski kopyayı değil, sunucudaki yeni dosyayı al

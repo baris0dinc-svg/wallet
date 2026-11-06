@@ -152,13 +152,13 @@ body.locked .wrap,body.locked .fab,body.locked #sheet-root{display:none}
 
 .slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain}
 .slides::-webkit-scrollbar{display:none}
-.slide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;gap:10px;min-height:196px}
+.slide{flex:0 0 100%;min-width:0;scroll-snap-align:start;scroll-snap-stop:always;display:flex;flex-direction:column;gap:10px}
 .slide .btn{align-self:flex-start;margin-top:auto}
 .sdots{display:flex;justify-content:center;gap:6px;margin-top:12px}
 .sdots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
 .sdots i.on{background:var(--accent);width:16px}
 .dwrap{display:flex;align-items:center;gap:16px}
-.donut{width:112px;height:112px;flex:none}
+.donut{width:100px;height:100px;flex:none}
 .lgs{flex:1;min-width:0;display:grid;gap:7px}
 .lg{display:flex;align-items:center;gap:8px;font-size:.8125rem}
 
@@ -189,9 +189,17 @@ body.locked .wrap,body.locked .fab,body.locked #sheet-root{display:none}
 /* başlıktaki sağ üst düğmeler (göz, ayarlar) */
 .hbtns{display:flex;align-items:center;gap:2px;margin-right:-8px}
 /* bölüm şeridi: kaydırılabilir, başlığın altında yapışkan */
-.secbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hh,56px));z-index:8;display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;
-  background:var(--bg);margin:0 -16px;padding:6px 16px 8px;scroll-padding-inline:16px}
-.secbar::-webkit-scrollbar{display:none}
-.secbar .chip{white-space:nowrap;flex:none}
+.secbar{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--hh,56px));z-index:8;background:var(--bg);margin:0 -16px;padding:4px 0 8px}
+.secin{position:relative;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 16px;scroll-padding-inline:16px}
+.secin::-webkit-scrollbar{display:none}
+.secin .chip{white-space:nowrap;flex:none;padding:7px 13px;font-size:.84375rem}
+/* kenarda devamı var ipucu */
+.secbar::before,.secbar::after{content:"";position:absolute;top:0;bottom:0;width:40px;pointer-events:none;opacity:0;transition:opacity .15s}
+.secbar::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
+.secbar::after{right:0;background:linear-gradient(to left,var(--bg) 20%,transparent)}
+.secbar.more-l::before,.secbar.more-r::after{opacity:1}
+/* dönem kartı: ay seçici ve özet tek kartta */
+.mnav.flat{border:0;background:none;padding:0;margin:-10px -8px 0}
 #secbody{min-height:calc(100vh - var(--hh,56px) - 60px)}
 #secanchor{margin-bottom:-14px}
+.banner.col{flex-direction:column;align-items:stretch;gap:8px}

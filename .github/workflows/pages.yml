@@ -24,7 +24,7 @@ jobs:
         continue-on-error: true
         run: |
           set -x
-          curl -fsS --retry 3 --max-time 30 https://finans.truncgil.com/v4/today.json -o "$RUNNER_TEMP/raw.json"
+          curl -fsS --http1.1 --retry 5 --retry-all-errors --retry-delay 3 --max-time 40 -A "Mozilla/5.0 (compatible; WalletPWA)" -H "Accept: application/json" https://finans.truncgil.com/v4/today.json -o "$RUNNER_TEMP/raw.json"
           python3 - <<'PY'
           import json, os
           j = json.load(open(os.path.join(os.environ["RUNNER_TEMP"], "raw.json"), encoding="utf-8"))

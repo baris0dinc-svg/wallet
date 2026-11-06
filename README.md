@@ -7,4 +7,4 @@ Kişisel finans uygulaması: gelir-gider, bütçe, hedefler, düzenli ödemeler,
 - Dosyalar: `index.html`, `style.css`, `app.js`, `sw.js`, `manifest.webmanifest`, `icons/`.
 - Yayın: `main`'e push edilince `.github/workflows/pages.yml` GitHub Pages'e yayınlar.
 - Önbellek sürümü: `sw.js` içindeki `CACHE` adını, dosyalar değişince artırın.
-- Kur verisi henüz canlı değil (elle girilir). Android taslağı için `android/` klasörüne bakın.
+- Canlı kur: `pages.yml` her 15 dakikada Truncgil verisini `rates.json` olarak yayına ekler; uygulama bunu okur. Alan adları (GRA, XU100) canlı yanıta göre doğrulanmalıdır.

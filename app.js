@@ -116,7 +116,7 @@ function seed(){
 }
 function norm(d){
   d.tx=d.tx||[];d.budgets=d.budgets||{};d.opening=d.opening||{};d.holdings=d.holdings||[];d.notes=d.notes||[];
-  d.fx=d.fx||{};d.fx.USD=d.fx.USD||0;d.fx.EUR=d.fx.EUR||0;d.fx.XAU=d.fx.XAU||0;
+  d.fx=d.fx||{};d.fx.USD=d.fx.USD||0;d.fx.EUR=d.fx.EUR||0;d.fx.XAU=d.fx.XAU||0;d.fxAuto=d.fxAuto!==false;d.mkt=d.mkt||{};d.notif=!!d.notif;d.notifDay=d.notifDay||'';
   d.goals=d.goals||[];d.recurring=d.recurring||[];d.debts=d.debts||[];
   d.accounts=(d.accounts&&d.accounts.length)?d.accounts:D_ACC.slice();
   d.cats=d.cats||{};d.cats.exp=d.cats.exp||D_EXP.slice();d.cats.inc=d.cats.inc||D_INC.slice();
@@ -212,15 +212,32 @@ function fireDate(n){if(!isFinite(n)||n>1200)return '';var d=new Date();d.setMon
 
 /* ---------- ortak parçalar ---------- */
 function bannerHtml(){return hasSample()?'<div class="banner"><span>Örnek veriler gösteriliyor. Kendi verini girmeden önce sil.</span><button class="btn small ghost" data-act="sample-clear">Örnekleri sil</button></div>':'';}
-function alertsHtml(){
+function alertItems(){
   var A=S.alerts,items=[],cur=curP();
   if(A.budget){var sp=spentByCat(cur);EXPC().forEach(function(c){var lim=+S.budgets[c];if(lim>0){var s=sp[c]||0,r=s/lim*100;
     if(r>=100)items.push(['exp',c+' bütçesi aşıldı, '+TRY0.format(s-lim)+' fazla']);
     else if(r>=A.thr)items.push(['warn',c+': bütçenin %'+Math.round(r)+' kullanıldı']);}});}
   if(A.rec){var t0=isoDate(today0());S.recurring.forEach(function(r){if(recPaid(r,cur))return;var diff=daysBetween(t0,dueDate(r,cur));
     if(diff<=A.days)items.push([diff<0?'exp':'warn',r.name+' '+(diff<0?(-diff)+' gün gecikti':(diff===0?'bugün':diff+' gün sonra'))+' · '+TRY0.format(r.amt)]);});}
+  return items;
+}
+function alertsHtml(){
+  var items=alertItems();
   if(!items.length)return '';
   return '<div class="card"><h2>Uyarılar</h2><div class="list">'+items.slice(0,5).map(function(x){return '<div class="item"><span class="dot" style="background:var(--'+x[0]+')"></span><span class="mid"><div>'+esc(x[1])+'</div></span></div>';}).join('')+'</div></div>';
+}
+function trendCard(){
+  var cur=curP(),ks=[],i;for(i=5;i>=0;i--)ks.push(addMonth(cur,-i));
+  var rows=ks.map(function(k){var m=monthTx(k);return {k:k,inc:sum(m,'inc'),exp:sum(m,'exp')};});
+  var mx=Math.max.apply(null,rows.map(function(r){return Math.max(r.inc,r.exp);}));
+  if(!(mx>0))return '';
+  var W=300,H=110,bw=14,gap=(W-rows.length*bw*2)/(rows.length+1),svg='',x=gap;
+  rows.forEach(function(r){var hi=Math.round(r.inc/mx*H),he=Math.round(r.exp/mx*H);
+    svg+='<rect x="'+x+'" y="'+(H-hi)+'" width="'+bw+'" height="'+hi+'" rx="3" fill="var(--inc)"/>';
+    svg+='<rect x="'+(x+bw+2)+'" y="'+(H-he)+'" width="'+bw+'" height="'+he+'" rx="3" fill="var(--exp)"/>';
+    svg+='<text x="'+(x+bw)+'" y="'+(H+14)+'" text-anchor="middle" font-size="9" fill="var(--ink2)">'+esc(mlabel(r.k).slice(0,3))+'</text>';x+=bw*2+gap;});
+  var tot=rows.reduce(function(a,r){return a+r.exp;},0),nz=rows.filter(function(r){return r.exp>0;}).length,av=nz?tot/nz:0;
+  return '<div class="card"><h2 style="margin:0 0 8px">Son 6 dönem</h2><svg viewBox="0 0 '+W+' '+(H+20)+'" width="100%" role="img" aria-label="Son 6 dönem gelir ve gider grafiği">'+svg+'</svg><div class="small muted" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px"><span><b style="color:var(--inc)">■</b> Gelir</span><span><b style="color:var(--exp)">■</b> Gider</span><span>Ortalama gider '+TRY0.format(av)+'</span></div></div>';
 }
 function monthNav(){return '<div class="mnav"><button class="icon-btn" data-act="mprev" aria-label="Önceki dönem">'+ic('l')+'</button><span style="text-align:center">'+esc(plabel(ui.month))+(S.payday>1?'<div class="small muted" style="font-weight:500;text-transform:none">'+esc(prange(ui.month))+'</div>':'')+'</span><button class="icon-btn" data-act="mnext" aria-label="Sonraki dönem">'+ic('r')+'</button></div>';}
 function txRow(t){
@@ -260,7 +277,7 @@ function vCuzdan(){
   var h=bannerHtml();
   if(S.name)h+='<p class="small muted" style="margin:0 2px">Merhaba, <b>'+esc(S.name)+'</b></p>';
   h+=heroSlides(wealth());
-  h+=alertsHtml()+fireCard()+monthNav();
+  h+=alertsHtml()+fireCard()+trendCard()+monthNav();
   h+='<div class="card"><div class="row3" style="margin-top:0"><div><div class="lbl">Gelir</div><span class="num inc">'+TRY0.format(inc)+'</span></div><div><div class="lbl">Gider</div><span class="num exp">'+TRY0.format(exp)+'</span></div><div><div class="lbl">Fark</div><span class="num '+(net<0?'exp':'')+'">'+sgn(net)+'</span></div></div></div>';
   var isCur=ui.month===curP(),prev=addMonth(ui.month,-1),el=isCur?daysBetween(pStart(ui.month),isoDate(today0())):9999;
   var pe=monthTx(prev).filter(function(t){return t.type==='exp'&&daysBetween(pStart(prev),t.date)<=el;}).reduce(function(x,t){return x+t.amt;},0);
@@ -331,7 +348,7 @@ function vPortfoy(){
   h+='<div class="card hero"><div class="lbl">Portföy değeri</div><p class="big">'+TRY0.format(pf.v)+'</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">'+TRY0.format(pf.c)+'</span></div><div><div class="lbl">Kâr / zarar</div><span class="num">'+sgn(pl)+' ('+(plp>=0?'+':'−')+NUM2.format(Math.abs(plp))+'%)</span></div></div></div>';
   if(pf.v>0){var by={};S.holdings.forEach(function(x){by[x.type]=(by[x.type]||0)+hVal(x);});var ks=Object.keys(by).sort(function(a,b){return by[b]-by[a];});
     h+='<div class="card"><h2>Dağılım</h2><div class="stackbar">'+ks.map(function(k){return '<i style="width:'+(by[k]/pf.v*100)+'%;background:'+color(k)+'"></i>';}).join('')+'</div><div class="legend">'+ks.map(function(k){return '<span style="--c:'+color(k)+'">'+esc(k)+' %'+NUM2.format(by[k]/pf.v*100)+'</span>';}).join('')+'</div></div>';}
-  h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div class="small muted" style="min-width:0">USD '+fx1(S.fx.USD)+' · EUR '+fx1(S.fx.EUR)+' · Gram altın '+fx1(S.fx.XAU)+'</div><button class="btn small ghost" data-act="open-set" data-id="kurlar">Kurları düzenle</button></div>';
+  h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px"><div class="small muted" style="min-width:0">USD '+fx1(S.fx.USD)+' · EUR '+fx1(S.fx.EUR)+' · Gram altın '+fx1(S.fx.XAU)+(S.mkt&&S.mkt.BIST?' · BIST 100 '+fx1(S.mkt.BIST.price)+(S.mkt.BIST.chg!=null?' ('+(S.mkt.BIST.chg>=0?'+':'')+NUM2.format(S.mkt.BIST.chg)+'%)':''):'')+'</div><button class="btn small ghost" data-act="open-set" data-id="kurlar">Kurları düzenle</button></div>';
   h+='<button class="btn" data-act="new-h">Varlık ekle</button>';
   if(!S.holdings.length)return h+'<div class="empty">Henüz varlık yok. Hisse, altın, döviz, fon, kripto, gayrimenkul ya da araç ekleyebilirsin.</div>'+debtsCard();
   h+=S.holdings.map(function(x){var p=hVal(x)-hCost(x),pp=hCost(x)?p/hCost(x)*100:0,linked=x.ccy&&+S.fx[x.ccy]>0;
@@ -438,13 +455,17 @@ function setKat(){
    +sec('Otomatik kurallar',rl+'<div class="two" style="grid-template-columns:1fr 1fr"><div class="field"><label for="rl-kw">İşlem notunda geçen kelime</label><input id="rl-kw" placeholder="Örn. migros"></div><div class="field"><label for="rl-cat">Kategori</label><select id="rl-cat">'+opts(all)+'</select></div></div><div class="err" id="f-err"></div><button class="btn" data-act="rule-add">Kural ekle</button>','İşlem eklerken nota bu kelimeyi yazarsan kategori kendiliğinden seçilir.');
 }
 function setKur(){
-  return sec('Kurlar (₺)','<div class="two">'+fld('USD/TL','fx-USD','fx.USD','num','0')+fld('EUR/TL','fx-EUR','fx.EUR','num','0')+'</div>'+fld('Gram altın (₺)','fx-XAU','fx.XAU','num','0')+(S.fxTs?'<div class="small muted">Son güncelleme: '+esc(new Date(S.fxTs).toLocaleString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}))+'</div>':''),'Bu kurlar elle girilir. Portföyde “Fiyat kaynağı” olarak bir kur seçtiğin varlıklar kur değişince otomatik güncellenir.')
-   +sec('Canlı veri','<div class="small">Bu sürümde canlı döviz, altın, kripto ve borsa verisi yok.</div>','Yayınlanan sayfalar dış veri kaynaklarına bağlanamaz. Güncel fiyatları bankandan ya da aracı kurumundan bakıp gir.');
+  var when=S.fxTs?'<div class="small muted">Son güncelleme: '+esc(new Date(S.fxTs).toLocaleString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}))+(S.fxProv?' · kaynak saati '+esc(S.fxProv):'')+'</div>':'';
+  return sec('Canlı kurlar',tgl('fxAuto','Kurları otomatik güncelle','Uygulama açılınca USD, EUR ve gram altın kuru kendiliğinden gelir')+'<button class="btn ghost" data-act="rates-now">Şimdi güncelle</button><div class="err" id="f-rates"></div>','Veri, yayın sunucusunda yaklaşık 15 dakikada bir yenilenir; anlık borsa verisi değildir ve gecikmeli olabilir. Kaynak: Truncgil Finans.')
+   +sec('Kurlar (₺)','<div class="two">'+fld('USD/TL','fx-USD','fx.USD','num','0')+fld('EUR/TL','fx-EUR','fx.EUR','num','0')+'</div>'+fld('Gram altın (₺)','fx-XAU','fx.XAU','num','0')+when,'Otomatik güncelleme açıkken elle girdiğin değerler bir sonraki yenilemede değişir. Portföyde “Fiyat kaynağı” olarak bir kur seçtiğin varlıklar kur değişince otomatik güncellenir.');
 }
 function setBild(){
+  var perm=('Notification' in window)?Notification.permission:'yok';
   return sec('Uygulama içi uyarılar',tgl('alerts.budget','Bütçe aşımı uyarıları','Limite yaklaşınca ya da aşınca Cüzdan sayfasında gösterilir')+'<div class="lbl">Uyarı eşiği</div>'+segv('alerts.thr',[[70,'%70'],[80,'%80'],[90,'%90']],'Uyarı eşiği')
     +tgl('alerts.rec','Ödeme hatırlatmaları','Yaklaşan ve geciken düzenli ödemeler')+'<div class="lbl">Kaç gün önceden</div>'+segv('alerts.days',[[1,'1 gün'],[3,'3 gün'],[7,'7 gün']],'Gün'),
-    'Bu uygulama telefona bildirim gönderemez. Uyarılar uygulamayı açtığında Cüzdan sayfasında görünür.');
+    'Uyarılar Cüzdan sayfasında görünür.')
+   +sec('Telefon bildirimi',tgl('notif','Bildirim gönder','Uygulamayı açtığında, günde bir kez özet bildirim')+(perm==='granted'?'<div class="small muted">Bildirim izni verildi.</div>':perm==='denied'?'<div class="small muted">İzin reddedilmiş. Tarayıcı site ayarlarından açabilirsin.</div>':perm==='yok'?'<div class="small muted">Bu tarayıcı bildirimi desteklemiyor.</div>':'<button class="btn ghost" data-act="notif-ask">Bildirim izni ver</button>'),
+    'Bildirimler uygulama açıkken veya açıldığında gelir. Kapalıyken arka planda bildirim göndermek için bir sunucu gerekir; bu sürümde yok.');
 }
 function setGor(){
   return sec('Tema',segv('theme',[['auto','Sistem'],['light','Açık'],['dark','Koyu']],'Tema'))
@@ -793,6 +814,36 @@ ACT['sample-clear']=function(){
 ACT['reset-all']=function(el){if(!armed(el))return;S=norm({tx:[]});save();ui.page=null;ui.tab='cuzdan';ui.month=curP();render();try{if(location.hash.length>1)history.back();}catch(e){}};
 
 /* ---------- olaylar ---------- */
+/* ---------- canlı kur ---------- */
+var RK={USD:['USD'],EUR:['EUR'],XAU:['GRA','GRAM-ALTIN','GRAMALTIN','GA','GRAM_ALTIN'],BIST:['XU100','BIST100','BIST-100','XU-100']};
+function findRate(items,names){var keys=Object.keys(items||{});for(var i=0;i<names.length;i++){for(var j=0;j<keys.length;j++){if(keys[j].toUpperCase()===names[i]&&items[keys[j]]&&typeof items[keys[j]]==='object')return items[keys[j]];}}return null;}
+function rPrice(o){if(!o)return 0;var v=num(o.Selling!=null?o.Selling:(o.sell!=null?o.sell:(o.price!=null?o.price:(o.Buying!=null?o.Buying:o.buy))));return v>0?v:0;}
+function pickRates(j){var it=(j&&j.items)||j||{},o={USD:rPrice(findRate(it,RK.USD)),EUR:rPrice(findRate(it,RK.EUR)),XAU:rPrice(findRate(it,RK.XAU)),BIST:null,prov:(j&&(j.updated||j.Update_Date))||''};
+  var b=findRate(it,RK.BIST);if(b&&rPrice(b)>0){var c=b.Change!=null?b.Change:b.change;o.BIST={price:rPrice(b),chg:(c==null||c==='')?null:num(c)};}
+  return o;}
+function refreshRates(manual){
+  if(!S.fxAuto&&!manual)return Promise.resolve();
+  return fetch('rates.json?_='+Date.now(),{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();}).then(function(j){
+    var o=pickRates(j),got=[];
+    if(o.USD>0){S.fx.USD=o.USD;got.push('USD');}if(o.EUR>0){S.fx.EUR=o.EUR;got.push('EUR');}if(o.XAU>0){S.fx.XAU=o.XAU;got.push('altın');}
+    if(o.BIST){S.mkt.BIST=o.BIST;got.push('BIST');}
+    if(!got.length){if(manual)msg('Henüz kur verisi yok. Yayın sunucusu ilk güncellemeyi yapınca gelir.',false,'f-rates');return;}
+    S.fxTs=Date.now();S.fxProv=String(o.prov||'');S.fxSample=false;save();
+    if(manual){render();msg('Güncellendi: '+got.join(', ')+'.',true,'f-rates');}
+    else if(!document.getElementById('sheet-root').innerHTML&&!ui.page&&!ui.locked)render();
+  }).catch(function(){if(manual)msg('Kurlar alınamadı. İnternet bağlantını kontrol et.',false,'f-rates');});
+}
+ACT['rates-now']=function(){refreshRates(true);};
+/* ---------- bildirim ---------- */
+ACT['notif-ask']=function(){try{Notification.requestPermission().then(function(){render();});}catch(e){}};
+function notifyDue(){
+  if(!S.notif||!('Notification' in window)||Notification.permission!=='granted'||ui.locked)return;
+  var day=isoDate(today0());if(S.notifDay===day)return;
+  var items=alertItems();if(!items.length)return;
+  S.notifDay=day;save();
+  var body=items.slice(0,4).map(function(x){return x[1];}).join('\n');
+  try{if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){reg.showNotification('Wallet',{body:body,icon:'icons/icon-192.png',tag:'wallet-due'});});}else{new Notification('Wallet',{body:body,icon:'icons/icon-192.png'});}}catch(e){}
+}
 document.addEventListener('click',function(e){
   var el=e.target.closest('[data-act]');if(!el)return;
   var a=el.dataset.act;if(Object.prototype.hasOwnProperty.call(ACT,a))ACT[a](el,el.dataset.id,el.dataset.v);
@@ -846,6 +897,7 @@ document.addEventListener('keydown',function(e){
 document.addEventListener('visibilitychange',function(){
   if(document.hidden){ui.hiddenAt=Date.now();}
   else if(S.pin&&!ui.locked&&ui.hiddenAt&&(Date.now()-ui.hiddenAt)>=(S.pin.auto||0)*60000){ui.locked=true;ui.pinBuf='';ui.lkMsg='';ui.forgot=false;closeSheet();render();}
+  if(!document.hidden){if(!S.fxTs||Date.now()-S.fxTs>300000)refreshRates();notifyDue();}
 });
 window.addEventListener('hashchange',function(){
   if(ui.page&&(!location.hash||location.hash==='#')){finishPage();ui.page=null;render();}
@@ -853,4 +905,5 @@ window.addEventListener('hashchange',function(){
 
 document.getElementById('fab').innerHTML=ic('plus');
 render();
+refreshRates();setTimeout(notifyDue,1500);
 })();

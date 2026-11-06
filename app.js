@@ -827,7 +827,7 @@ function refreshRates(manual){
     var o=pickRates(j),got=[];
     if(o.USD>0){S.fx.USD=o.USD;got.push('USD');}if(o.EUR>0){S.fx.EUR=o.EUR;got.push('EUR');}if(o.XAU>0){S.fx.XAU=o.XAU;got.push('altın');}
     if(o.BIST){S.mkt.BIST=o.BIST;got.push('BIST');}
-    if(!got.length){if(manual)msg('Henüz kur verisi yok. Yayın sunucusu ilk güncellemeyi yapınca gelir.',false,'f-rates');return;}
+    if(!got.length){var n=Object.keys((j&&j.items)||{}).length;if(manual)msg(n?'Veri geldi ('+n+' kalem) ama USD/EUR bulunamadı. Kaynak alan adları farklı olabilir.':'Henüz kur verisi yok. Sunucu veriyi alamamış olabilir veya ilk güncelleme beklemede.',false,'f-rates');return;}
     S.fxTs=Date.now();S.fxProv=String(o.prov||'');S.fxSample=false;save();
     if(manual){render();msg('Güncellendi: '+got.join(', ')+'.',true,'f-rates');}
     else if(!document.getElementById('sheet-root').innerHTML&&!ui.page&&!ui.locked)render();

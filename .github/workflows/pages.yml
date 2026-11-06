@@ -23,6 +23,7 @@ jobs:
       - name: Kurları indir (başarısız olursa eski rates.json kalır)
         continue-on-error: true
         run: |
+          set -x
           curl -fsS --retry 3 --max-time 30 https://finans.truncgil.com/v4/today.json -o "$RUNNER_TEMP/raw.json"
           python3 - <<'PY'
           import json, os
@@ -32,6 +33,9 @@ jobs:
               out = {"updated": str(j.get("Update_Date", "")), "items": items}
               json.dump(out, open("rates.json", "w", encoding="utf-8"), ensure_ascii=False)
               print("rates.json:", len(items), "kalem")
+              print("ANAHTARLAR:", ", ".join(list(items.keys())[:80]))
+          else:
+              print("UYARI: nesne bulunamadi; ust anahtarlar:", list(j.keys())[:20])
           PY
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

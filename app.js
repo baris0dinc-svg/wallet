@@ -116,7 +116,7 @@ function seed(){
 }
 function norm(d){
   d.tx=d.tx||[];d.budgets=d.budgets||{};d.opening=d.opening||{};d.holdings=d.holdings||[];d.notes=d.notes||[];
-  d.fx=d.fx||{};d.fx.USD=d.fx.USD||0;d.fx.EUR=d.fx.EUR||0;d.fx.XAU=d.fx.XAU||0;d.fxAuto=d.fxAuto!==false;d.mkt=d.mkt||{};d.notif=!!d.notif;d.notifDay=d.notifDay||'';d.last=d.last||{};d.logos=d.logos!==false;d.setupHide=!!d.setupHide;
+  d.fx=d.fx||{};d.fx.USD=d.fx.USD||0;d.fx.EUR=d.fx.EUR||0;d.fx.XAU=d.fx.XAU||0;d.fxAuto=d.fxAuto!==false;d.mkt=d.mkt||{};d.notif=!!d.notif;d.notifDay=d.notifDay||'';d.last=d.last||{};d.logos=d.logos!==false;d.brandMap=d.brandMap||{};d.setupHide=!!d.setupHide;
   d.goals=d.goals||[];d.recurring=d.recurring||[];d.debts=d.debts||[];
   d.accounts=(d.accounts&&d.accounts.length)?d.accounts:D_ACC.slice();
   d.cats=d.cats||{};d.cats.exp=d.cats.exp||D_EXP.slice();d.cats.inc=d.cats.inc||D_INC.slice();
@@ -283,12 +283,16 @@ var BRANDS=[
 ];
 function nrm(x){return String(x||'').replace(/İ/g,'i').replace(/I/g,'i').toLowerCase().replace(/\u0307/g,'').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,' ').trim();}
 var BRX=BRANDS.map(function(b){return new RegExp('(^| )('+b[1].split('|').map(function(x){return nrm(x);}).join('|')+')( |$)');});
-function brandOf(note){if(!note)return null;var n=nrm(note);for(var i=0;i<BRANDS.length;i++){if(BRX[i].test(n))return BRANDS[i];}return null;}
+function bkey(note){var w=nrm(note).split(' ')[0]||'';return w.length>=2?w:'';}
+function hueCol(str){var h=0,i;for(i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))%360;return 'hsl('+h+',55%,42%)';}
+function cleanDomain(v){v=String(v||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0];return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v)?v:'';}
+function brandOf(note){if(!note)return null;var n=nrm(note),i;for(i=0;i<BRANDS.length;i++){if(BRX[i].test(n))return BRANDS[i];}
+  var m=S.brandMap||{},ks=Object.keys(m);for(i=0;i<ks.length;i++){if(new RegExp('(^| )'+ks[i]+'( |$)').test(n))return [m[ks[i]].n,'',m[ks[i]].d,hueCol(ks[i])];}return null;}
 function avatar(t){
   var b=S.logos?brandOf(t.note):null;
   if(!b)return '<span class="dot" style="background:'+color(t.cat)+'"></span>';
   var ini=esc(b[0].replace(/[^A-Za-zÇĞİÖŞÜçğıöşü0-9+]/g,'').slice(0,2).toUpperCase());
-  var hx=b[3],lum=(parseInt(hx.slice(1,3),16)*299+parseInt(hx.slice(3,5),16)*587+parseInt(hx.slice(5,7),16)*114)/1000;
+  var hx=b[3],lum=hx.charAt(0)==='#'?(parseInt(hx.slice(1,3),16)*299+parseInt(hx.slice(3,5),16)*587+parseInt(hx.slice(5,7),16)*114)/1000:0;
   return '<span class="mav" style="background:'+hx+';color:'+(lum>150?'#222':'#fff')+'" aria-hidden="true">'+ini+'<img alt="" loading="lazy" referrerpolicy="no-referrer" src="https://www.google.com/s2/favicons?domain='+b[2]+'&sz=64" onerror="this.remove()"></span>';
 }
 function txRow(t){
@@ -518,8 +522,9 @@ function setBild(){
    +sec('Telefon bildirimi',tgl('notif','Bildirim gönder','Uygulamayı açtığında, günde bir kez özet bildirim')+(perm==='granted'?'<div class="small muted">Bildirim izni verildi.</div>':perm==='denied'?'<div class="small muted">İzin reddedilmiş. Tarayıcı site ayarlarından açabilirsin.</div>':perm==='yok'?'<div class="small muted">Bu tarayıcı bildirimi desteklemiyor.</div>':'<button class="btn ghost" data-act="notif-ask">Bildirim izni ver</button>'),
     'Bildirimler uygulama açıkken veya açıldığında gelir. Kapalıyken arka planda bildirim göndermek için bir sunucu gerekir; bu sürümde yok.');
 }
+ACT['brand-del']=function(el,id){if(S.brandMap)delete S.brandMap[id];save();render();};
 function setGor(){
-  return sec('Marka logoları',tgl('logos','İşlemlerde marka logosu','Notta BİM, İGDAŞ gibi bir marka yazınca logosu görünür'),'Logolar, marka sitelerinin simgesi Google’ın simge servisinden internetten yüklenir; yalnızca marka alan adı gönderilir, tutar ve notun gönderilmez. Çevrimdışıysan marka renkli kısaltma görünür. Kapatırsan hiçbir şey indirilmez.')
+  return sec('Marka logoları',tgl('logos','İşlemlerde marka logosu','Notta BİM, İGDAŞ gibi bir marka yazınca logosu görünür')+(Object.keys(S.brandMap||{}).length?'<div class="lbl">Eklediğin markalar</div>'+Object.keys(S.brandMap).map(function(k){var m=S.brandMap[k];return '<div class="item" style="cursor:default"><span class="mid"><div class="t">'+esc(m.n)+'</div><div class="small muted">'+esc(m.d)+'</div></span><button class="btn small ghost" data-act="brand-del" data-id="'+esc(k)+'">Sil</button></div>';}).join(''):''),'Logolar, marka sitelerinin simgesi Google’ın simge servisinden internetten yüklenir; yalnızca marka alan adı gönderilir, tutar ve notun gönderilmez. Çevrimdışıysan marka renkli kısaltma görünür. Kapatırsan hiçbir şey indirilmez.')
    +sec('Tema',segv('theme',[['auto','Sistem'],['light','Açık'],['dark','Koyu']],'Tema'))
    +sec('Yazı boyutu',segv('fs',[[0.9,'Küçük'],[1,'Normal'],[1.15,'Büyük'],[1.3,'Çok büyük']],'Yazı boyutu'))
    +sec('Gizlilik',tgl('hide','Bakiyeleri gizle','Cüzdan ve Portföy’de tutarlar ••••, üst köşedeki göz düğmesiyle geçici gösterilir'));
@@ -683,6 +688,7 @@ function val(id){var e=document.getElementById(id);return e?e.value:'';}
 function badName(n){return /^(__proto__|constructor|prototype)$/.test(n);}
 var txType='exp';
 function lastSel(type,k,list){var l=S.last&&S.last[type];var v=l&&l[k];return list.indexOf(v)>=0?v:undefined;}
+function siteOf(note){var k=bkey(note),m=S.brandMap&&S.brandMap[k];return m?m.d:'';}
 function txSheet(id,force){
   var t=id?byId(S.tx,id):null;txType=t?t.type:(force||'exp');
   var acc=ACCS(),canTrf=acc.length>1;if(txType==='trf'&&!canTrf)txType='exp';
@@ -692,7 +698,8 @@ function txSheet(id,force){
    +'<div class="two"><div class="field" id="row-cat"'+(trf?' hidden':'')+'><label for="f-cat">Kategori</label><select id="f-cat">'+opts(cats,t?t.cat:lastSel(txType,'cat',cats))+'</select></div><div class="field"><label for="f-acct" id="lb-acct">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="f-acct">'+opts(acc,t?t.acct:lastSel(txType,'acct',acc))+'</select></div></div>'
    +'<div class="field" id="row-to"'+(trf?'':' hidden')+'><label for="f-to">Giriş hesabı</label><select id="f-to">'+opts(acc,(t&&t.to)||acc[1])+'</select></div>'
    +'<div class="field"><label for="f-date">Tarih</label><input id="f-date" type="date" value="'+(t?t.date:isoDate(new Date()))+'"></div>'
-   +'<div class="field"><label for="f-note">Not</label><input id="f-note" list="merchants" autocomplete="off" placeholder="Örn. BİM, İGDAŞ (logosu görünür)" value="'+esc(t?t.note:'')+'"><datalist id="merchants">'+BRANDS.map(function(b){return '<option value="'+esc(b[0])+'">';}).join('')+'</datalist></div><div class="err" id="f-err"></div>'
+   +'<div class="field"><label for="f-note">Not</label><input id="f-note" list="merchants" autocomplete="off" placeholder="Örn. BİM, İGDAŞ (logosu görünür)" value="'+esc(t?t.note:'')+'"><datalist id="merchants">'+BRANDS.map(function(b){return '<option value="'+esc(b[0])+'">';}).concat(Object.keys(S.brandMap||{}).map(function(k){return '<option value="'+esc(S.brandMap[k].n)+'">';})).join('')+'</datalist></div>'
+   +'<div class="field" id="row-site"'+(trf?' hidden':'')+'><label for="f-site">Logo için site adresi <span class="muted">(isteğe bağlı)</span></label><input id="f-site" inputmode="url" autocapitalize="none" autocomplete="off" placeholder="örn. koctas.com.tr" value="'+esc(t?siteOf(t.note):'')+'"><div class="small muted">Listede olmayan bir yerin logosu için bir kez gir; notun ilk kelimesi marka sayılır ve bir sonraki sefer hatırlanır.</div></div><div class="err" id="f-err"></div>'
    +'<button class="btn" data-act="save-tx" data-id="'+(t?t.id:'')+'">Kaydet</button>'+(t?delBtn('del-tx',t.id):''));
   if(!t)setTimeout(function(){var e=document.getElementById('f-amt');if(e)e.focus();},50);
 }
@@ -741,7 +748,7 @@ ACT['tx-type']=function(el,id,v){
   txType=v;
   document.querySelectorAll('#f-type button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===v));});
   var trf=v==='trf';
-  document.getElementById('row-cat').hidden=trf;document.getElementById('row-to').hidden=!trf;
+  document.getElementById('row-cat').hidden=trf;var rs=document.getElementById('row-site');if(rs)rs.hidden=trf;document.getElementById('row-to').hidden=!trf;
   document.getElementById('lb-acct').textContent=trf?'Çıkış hesabı':'Hesap';
   if(!trf){var c=document.getElementById('f-cat'),cl=v==='exp'?EXPC():INCC();c.innerHTML=opts(cl,lastSel(v,'cat',cl));delete c.dataset.manual;var ac=document.getElementById('f-acct'),as=lastSel(v,'acct',ACCS());if(as)ac.value=as;}
 };
@@ -751,6 +758,11 @@ ACT['save-tx']=function(el,id){
   var o={type:txType,amt:amt,acct:val('f-acct'),date:d,note:val('f-note').trim()};
   if(txType==='trf'){var to=val('f-to');if(to===o.acct){ferr('Çıkış ve giriş hesabı farklı olmalı.');return;}o.to=to;o.cat='Transfer';}
   else o.cat=val('f-cat');
+  if(txType!=='trf'){var sk=bkey(o.note),sd=cleanDomain(val('f-site')),bi=brandOf(o.note);
+    if(val('f-site').trim()&&!sk){ferr('Logo için önce nota marka adını yaz.');return;}
+    if(val('f-site').trim()&&!sd){ferr('Site adresi geçersiz. Örn. koctas.com.tr');return;}
+    if(sk){S.brandMap=S.brandMap||{};if(sd&&!(bi&&bi[2]===sd&&!S.brandMap[sk])&&!(S.brandMap[sk]&&S.brandMap[sk].d===sd)){S.brandMap[sk]={n:o.note.trim().split(/\s+/)[0],d:sd};}else if(!sd&&id&&S.brandMap[sk]){delete S.brandMap[sk];}}
+  }
   if(id){var t=byId(S.tx,id);if(txType!=='trf')delete t.to;Object.assign(t,o);delete t.sample;}else{o.id=uid();S.tx.push(o);}
   if(!id&&txType!=='trf'){S.last=S.last||{};S.last[txType]={cat:o.cat,acct:o.acct};}
   if(pk(d)!==ui.month)ui.month=pk(d);
@@ -906,6 +918,7 @@ function notifyDue(){
   var body=items.slice(0,4).map(function(x){return x[1];}).join('\n');
   try{if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){reg.showNotification('Wallet',{body:body,icon:'icons/icon-192.png',tag:'wallet-due'});});}else{new Notification('Wallet',{body:body,icon:'icons/icon-192.png'});}}catch(e){}
 }
+document.addEventListener('input',function(e){var t=e.target;if(t&&t.id==='f-note'){var f=document.getElementById('f-site');if(f&&!f.dataset.touched){var d=siteOf(t.value);f.value=d||'';}}else if(t&&t.id==='f-site'){t.dataset.touched='1';}});
 document.addEventListener('keydown',function(e){
   if(e.key!=='Enter'||e.isComposing)return;var t=e.target;
   if(t&&t.tagName==='INPUT'&&t.closest&&t.closest('.sheet')){var b=t.closest('.sheet').querySelector('.btn[data-act^="save"]');if(b){e.preventDefault();b.click();}}

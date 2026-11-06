@@ -46,11 +46,8 @@ var SETS=[
  {id:'kurlar',t:'Para Birimi & Piyasa Kurları',d:'Canlı döviz ve altın kuru, elle giriş',i:'trend',c:'var(--inc)'},
  {id:'bild',t:'Bildirimler',d:'Bütçe aşımı ve ödeme uyarıları',i:'bell',c:'var(--warn)'},
  {id:'gor',t:'Görünüm & Gizlilik',d:'Tema, yazı boyutu ve bakiye gizleme',i:'palette',c:'var(--blue)'},
- {id:'notlar',t:'Notlar',d:'Sıralama, görünüm ve sabitleme',i:'note',c:'var(--accent)'},
  {id:'guv',t:'Güvenlik & Kilit',d:'PIN ile uygulama kilidi',i:'shield',c:'var(--inc)'},
- {id:'veri',t:'Veri Yönetimi & Yedekleme',d:'CSV dışa aktarma, şifreli yedek ve geri yükleme',i:'server',c:'var(--blue)'},
- {id:'hak',t:'Hakkında & Destek',d:'Sürüm, gizlilik özeti ve sınırlar',i:'info',c:'var(--ink2)'},
- {id:'demo',t:'Gelişmiş & Demo Verileri',d:'Örnek verileri yükle ya da sil, her şeyi sıfırla',i:'sparkles',c:'var(--warn)'}
+ {id:'veri',t:'Veri Yönetimi & Yedekleme',d:'Yedek, CSV, notları dışa aktar, örnek veri, sıfırla',i:'server',c:'var(--blue)'}
 ];
 var ACT={};
 var dl=null;
@@ -116,7 +113,7 @@ function seed(){
 }
 function norm(d){
   d.tx=d.tx||[];d.budgets=d.budgets||{};d.opening=d.opening||{};d.holdings=d.holdings||[];d.notes=d.notes||[];
-  d.fx=d.fx||{};d.fx.USD=d.fx.USD||0;d.fx.EUR=d.fx.EUR||0;d.fx.XAU=d.fx.XAU||0;d.fxAuto=d.fxAuto!==false;d.mkt=d.mkt||{};d.notif=!!d.notif;d.notifDay=d.notifDay||'';d.last=d.last||{};d.logos=d.logos!==false;d.brandMap=d.brandMap||{};d.setupHide=!!d.setupHide;
+  d.fx=d.fx||{};d.fx.USD=d.fx.USD||0;d.fx.EUR=d.fx.EUR||0;d.fx.XAU=d.fx.XAU||0;d.fxAuto=d.fxAuto!==false;d.mkt=d.mkt||{};d.notif=!!d.notif;d.notifDay=d.notifDay||'';d.last=d.last||{};d.setupHide=!!d.setupHide;
   d.goals=d.goals||[];d.recurring=d.recurring||[];d.debts=d.debts||[];
   d.accounts=(d.accounts&&d.accounts.length)?d.accounts:D_ACC.slice();
   d.cats=d.cats||{};d.cats.exp=d.cats.exp||D_EXP.slice();d.cats.inc=d.cats.inc||D_INC.slice();
@@ -149,27 +146,28 @@ function prange(k){var f=function(d){return d.toLocaleDateString('tr-TR',{day:'n
 function dueDate(r,k){var p=k.split('-'),y=+p[0],m=+p[1],pd=pStartDay(y,m),day=r.day;if(pd>1&&day<pd){m++;if(m>12){m=1;y++;}}var r2=y+'-'+pad(m)+'-'+pad(Math.min(day,dimYM(y,m))),e=pEnd(k),st=pStart(k);return r2>e?e:(r2<st?st:r2);}
 function daysLeft(k){return daysBetween(isoDate(today0()),pEnd(k))+1;}
 
-var ui={slide:0,tab:'cuzdan',sub:'islem',month:curP(),filter:'all',calc:'kredi',cv:{},nq:'',sq:'',page:null,locked:!!S.pin,reveal:false,pinBuf:'',fails:0,lockUntil:0,forgot:false,hiddenAt:0};
+var ui={slide:0,tab:'cuzdan',sub:'islem',month:curP(),filter:'all',calc:'kredi',cv:{},nq:'',sq:'',tq:'',page:null,locked:!!S.pin,reveal:false,pinBuf:'',fails:0,lockUntil:0,forgot:false,hiddenAt:0};
 
 /* ---------- hesap ---------- */
 function monthTx(k){return S.tx.filter(function(t){return pk(t.date)===k;});}
-function sum(list,type){return list.filter(function(t){return t.type===type;}).reduce(function(a,t){return a+t.amt;},0);}
-function spentByCat(k){var o={};monthTx(k).forEach(function(t){if(t.type==='exp')o[t.cat]=(o[t.cat]||0)+t.amt;});return o;}
+function r2(n){n=+n||0;return (n<0?-1:1)*Math.round(Math.abs(n)*100+1e-7)/100;}
+function sum(list,type){return r2(list.filter(function(t){return t.type===type;}).reduce(function(a,t){return a+t.amt;},0));}
+function spentByCat(k){var o={};monthTx(k).forEach(function(t){if(t.type==='exp')o[t.cat]=(o[t.cat]||0)+t.amt;});Object.keys(o).forEach(function(c){o[c]=r2(o[c]);});return o;}
 function acctBal(a){var b=+S.opening[a]||0;S.tx.forEach(function(t){if(t.type==='trf'){if(t.acct===a)b-=t.amt;if(t.to===a)b+=t.amt;}else if(t.acct===a)b+=(t.type==='inc'?t.amt:-t.amt);});return Math.round(b*100)/100;}
-function accTotal(){return ACCS().reduce(function(a,x){return a+acctBal(x);},0);}
+function accTotal(){return r2(ACCS().reduce(function(a,x){return a+acctBal(x);},0));}
 function acctUsed(a){return S.tx.some(function(t){return t.acct===a||t.to===a;})||S.recurring.some(function(r){return r.acct===a;});}
 function hPrice(h){var r=h.ccy&&S.fx&&+S.fx[h.ccy];return r>0?r:h.price;}
-function hVal(h){return h.qty*hPrice(h);} function hCost(h){return h.qty*h.cost;}
-function pfTotals(){var v=0,c=0;S.holdings.forEach(function(h){v+=hVal(h);c+=hCost(h);});return {v:v,c:c};}
+function hVal(h){return r2(h.qty*hPrice(h));} function hCost(h){return r2(h.qty*h.cost);}
+function pfTotals(){var v=0,c=0;S.holdings.forEach(function(h){v+=hVal(h);c+=hCost(h);});return {v:r2(v),c:r2(c)};}
 function hasSample(){return S.tx.some(function(t){return t.sample;})||S.holdings.some(function(h){return h.sample;})||S.notes.some(function(n){return n.sample;})||S.goals.some(function(n){return n.sample;})||S.recurring.some(function(n){return n.sample;})||S.debts.some(function(n){return n.sample;})||S.sampleExtras;}
-function debtManual(){return S.debts.reduce(function(a,d){return a+(+d.amt||0);},0);}
+function debtManual(){return r2(S.debts.reduce(function(a,d){return a+(+d.amt||0);},0));}
 function wealth(){
   var items=[],debts=[],by={};
   ACCS().forEach(function(a){var b=acctBal(a);if(b>0)items.push([a,b]);else if(b<0)debts.push([a,-b]);});
   S.holdings.forEach(function(x){var v=hVal(x);if(v>0)by[x.type]=(by[x.type]||0)+v;});
   Object.keys(by).forEach(function(k){items.push([k,by[k]]);});
   S.debts.forEach(function(d){if(d.amt>0)debts.push([d.name,+d.amt]);});
-  var A=items.reduce(function(s,x){return s+x[1];},0),D=debts.reduce(function(s,x){return s+x[1];},0);
+  var A=r2(items.reduce(function(s,x){return s+x[1];},0)),D=r2(debts.reduce(function(s,x){return s+x[1];},0));
   return {items:items,debts:debts,assets:A,debt:D,net:A-D};
 }
 function recPaid(r,k){var id=r.paid&&r.paid[k];return !!id&&S.tx.some(function(t){return t.id===id;});}
@@ -242,63 +240,10 @@ function trendCard(){
   return '<div class="card"><h2 style="margin:0 0 8px">Son 6 dönem</h2><svg viewBox="0 0 '+W+' '+(H+20)+'" width="100%" role="img" aria-label="Son 6 dönem gelir ve gider grafiği">'+svg+'</svg><div class="small muted" style="display:flex;gap:14px;flex-wrap:wrap;margin-top:4px"><span><b style="color:var(--inc)">■</b> Gelir</span><span><b style="color:var(--exp)">■</b> Gider</span><span>Ortalama gider '+TRY0.format(av)+'</span></div></div>';
 }
 function monthNav(){return '<div class="mnav"><button class="icon-btn" data-act="mprev" aria-label="Önceki dönem">'+ic('l')+'</button><span style="text-align:center">'+esc(plabel(ui.month))+(S.payday>1?'<div class="small muted" style="font-weight:500;text-transform:none">'+esc(prange(ui.month))+'</div>':'')+'</span><button class="icon-btn" data-act="mnext" aria-label="Sonraki dönem">'+ic('r')+'</button></div>';}
-var BRANDS=[
-  ["BİM","bim","bim.com.tr","#E30613"],
-  ["A101","a101|a 101","a101.com.tr","#00A0DF"],
-  ["ŞOK","sok","sokmarket.com.tr","#FFC20E"],
-  ["Migros","migros","migros.com.tr","#F58220"],
-  ["CarrefourSA","carrefour|carrefoursa","carrefoursa.com","#0B4EA2"],
-  ["İGDAŞ","igdas","igdas.istanbul","#0072BC"],
-  ["İSKİ","iski","iski.istanbul","#0A7BC4"],
-  ["Enerjisa","enerjisa","enerjisa.com.tr","#E2001A"],
-  ["Turkcell","turkcell","turkcell.com.tr","#003B71"],
-  ["Vodafone","vodafone","vodafone.com.tr","#E60000"],
-  ["Türk Telekom","turk telekom|turktelekom","turktelekom.com.tr","#00A3E0"],
-  ["Netflix","netflix","netflix.com","#E50914"],
-  ["Spotify","spotify","spotify.com","#1DB954"],
-  ["YouTube","youtube","youtube.com","#FF0000"],
-  ["Trendyol","trendyol","trendyol.com","#F27A1A"],
-  ["Hepsiburada","hepsiburada","hepsiburada.com","#FF6000"],
-  ["Yemeksepeti","yemeksepeti","yemeksepeti.com","#FA0050"],
-  ["Getir","getir","getir.com","#5D3EBC"],
-  ["Shell","shell","shell.com.tr","#DD1D21"],
-  ["Opet","opet","opet.com.tr","#00549F"],
-  ["BP","bp","bp.com","#009900"],
-  ["Petrol Ofisi","petrol ofisi|po","petrolofisi.com.tr","#E30613"],
-  ["Starbucks","starbucks","starbucks.com.tr","#00704A"],
-  ["Amazon","amazon","amazon.com.tr","#FF9900"],
-  ["n11","n11","n11.com","#7B2CBF"],
-  ["LC Waikiki","lc waikiki|lcw","lcw.com","#E30613"],
-  ["Teknosa","teknosa","teknosa.com","#0057B8"],
-  ["MediaMarkt","mediamarkt|media markt","mediamarkt.com.tr","#DF0000"],
-  ["IKEA","ikea","ikea.com.tr","#0058A3"],
-  ["Apple","apple|icloud","apple.com","#555555"],
-  ["Google","google","google.com","#4285F4"],
-  ["Disney+","disney","disneyplus.com","#113CCF"],
-  ["BluTV","blutv","blutv.com","#0099FF"],
-  ["Exxen","exxen","exxen.com","#FFB400"],
-  ["Burger King","burger king","burgerking.com.tr","#D62300"],
-  ["McDonald's","mcdonalds|mc donalds","mcdonalds.com.tr","#DA291C"],
-  ["Dominos","dominos","dominos.com.tr","#006491"]
-];
-function nrm(x){return String(x||'').replace(/İ/g,'i').replace(/I/g,'i').toLowerCase().replace(/\u0307/g,'').replace(/ı/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g').replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c').replace(/[^a-z0-9]+/g,' ').trim();}
-var BRX=BRANDS.map(function(b){return new RegExp('(^| )('+b[1].split('|').map(function(x){return nrm(x);}).join('|')+')( |$)');});
-function bkey(note){var w=nrm(note).split(' ')[0]||'';return w.length>=2?w:'';}
-function hueCol(str){var h=0,i;for(i=0;i<str.length;i++)h=(h*31+str.charCodeAt(i))%360;return 'hsl('+h+',55%,42%)';}
-function cleanDomain(v){v=String(v||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0].split('?')[0];return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(v)?v:'';}
-function brandOf(note){if(!note)return null;var n=nrm(note),i;for(i=0;i<BRANDS.length;i++){if(BRX[i].test(n))return BRANDS[i];}
-  var m=S.brandMap||{},ks=Object.keys(m);for(i=0;i<ks.length;i++){if(new RegExp('(^| )'+ks[i]+'( |$)').test(n))return [m[ks[i]].n,'',m[ks[i]].d,hueCol(ks[i])];}return null;}
-function avatar(t){
-  var b=S.logos?brandOf(t.note):null;
-  if(!b)return '<span class="dot" style="background:'+color(t.cat)+'"></span>';
-  var ini=esc(b[0].replace(/[^A-Za-zÇĞİÖŞÜçğıöşü0-9+]/g,'').slice(0,2).toUpperCase());
-  var hx=b[3],lum=hx.charAt(0)==='#'?(parseInt(hx.slice(1,3),16)*299+parseInt(hx.slice(3,5),16)*587+parseInt(hx.slice(5,7),16)*114)/1000:0;
-  return '<span class="mav" style="background:'+hx+';color:'+(lum>150?'#222':'#fff')+'" aria-hidden="true">'+ini+'<img alt="" loading="lazy" referrerpolicy="no-referrer" src="https://www.google.com/s2/favicons?domain='+b[2]+'&sz=64" onerror="this.remove()"></span>';
-}
 function txRow(t){
   if(t.type==='trf')return '<button class="item" data-act="edit-tx" data-id="'+t.id+'"><span class="dot" style="background:var(--ink2)"></span><span class="mid"><div class="t">Transfer'+(t.note?' · '+esc(t.note):'')+'</div><div class="small muted">'+esc(t.acct)+' → '+esc(t.to)+'</div></span><span class="num">'+TRY2.format(t.amt)+'</span></button>';
   var inc=t.type==='inc';
-  return '<button class="item" data-act="edit-tx" data-id="'+t.id+'">'+avatar(t)+'<span class="mid"><div class="t">'+esc(t.cat)+(t.note?' · '+esc(t.note):'')+'</div><div class="small muted">'+esc(t.acct)+'</div></span><span class="num '+(inc?'inc':'exp')+'">'+(inc?'+':'−')+TRY2.format(t.amt)+'</span></button>';
+  return '<button class="item" data-act="edit-tx" data-id="'+t.id+'"><span class="dot" style="background:'+color(t.cat)+'"></span><span class="mid"><div class="t">'+esc(t.cat)+(t.note?' · '+esc(t.note):'')+'</div><div class="small muted">'+esc(t.acct)+'</div></span><span class="num '+(inc?'inc':'exp')+'">'+(inc?'+':'−')+TRY2.format(t.amt)+'</span></button>';
 }
 function fireCard(){
   var m=fireModel();
@@ -332,7 +277,7 @@ function vCuzdan(){
   var h=bannerHtml();
   if(S.name)h+='<p class="small muted" style="margin:0 2px">Merhaba, <b>'+esc(S.name)+'</b></p>';
   h+=heroSlides(wealth());
-  h+=alertsHtml()+fireCard()+trendCard()+monthNav();
+  h+=alertsHtml()+fireCard()+monthNav();
   h+='<div class="card"><div class="row3" style="margin-top:0"><div><div class="lbl">Gelir</div><span class="num inc">'+TRY0.format(inc)+'</span></div><div><div class="lbl">Gider</div><span class="num exp">'+TRY0.format(exp)+'</span></div><div><div class="lbl">Fark</div><span class="num '+(net<0?'exp':'')+'">'+sgn(net)+'</span></div></div></div>';
   var isCur=ui.month===curP(),prev=addMonth(ui.month,-1),el=isCur?daysBetween(pStart(ui.month),isoDate(today0())):9999;
   var pe=monthTx(prev).filter(function(t){return t.type==='exp'&&daysBetween(pStart(prev),t.date)<=el;}).reduce(function(x,t){return x+t.amt;},0);
@@ -341,18 +286,32 @@ function vCuzdan(){
   var body={islem:txBody,butce:budgetBody,hedef:hedefBody,duzenli:duzenliBody}[ui.sub]||txBody;
   return h+body();
 }
+function txMatch(t,q){
+  var h=(String(t.note||'')+' '+(t.cat||'')+' '+(t.acct||'')+' '+(t.to||'')).toLocaleLowerCase('tr-TR');
+  var amt=String(t.amt).replace('.',','),amt2=String(t.amt);
+  var parts=q.split(/\s+/).filter(Boolean);
+  return parts.every(function(w){return h.indexOf(w)>=0||amt.indexOf(w.replace('.',','))>=0||amt2.indexOf(w)>=0;});
+}
+function txList(){
+  var q=(ui.tq||'').trim().toLocaleLowerCase('tr-TR'),f=function(t){return ui.filter==='all'||t.type===ui.filter;};
+  var mt=(q?S.tx.filter(function(t){return f(t)&&txMatch(t,q);}):monthTx(ui.month).filter(f)).sort(function(a,b){return b.date.localeCompare(a.date);});
+  if(!mt.length)return q?'<div class="empty">“'+esc(ui.tq.trim())+'” için işlem bulunamadı.</div>':'<div class="empty">Bu dönemde işlem yok. Sağ alttaki + ile ilk işlemini ekle.</div>';
+  var more=0;if(q&&mt.length>200){more=mt.length-200;mt=mt.slice(0,200);}
+  var cur='',out=(q?'<div class="small muted" style="margin:0 2px 6px">'+mt.length+(more?'+':'')+' sonuç · tüm dönemler</div>':'')+'<div class="card" style="padding-top:2px">';
+  mt.forEach(function(t){if(t.date!==cur){cur=t.date;out+='<div class="day">'+esc(pdate(t.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:q?'numeric':undefined,weekday:'long'}))+'</div>';}out+='<div class="list">'+txRow(t)+'</div>';});
+  return out+'</div>';
+}
 function txBody(){
-  var mt=monthTx(ui.month).filter(function(t){return ui.filter==='all'||t.type===ui.filter;}).sort(function(a,b){return b.date.localeCompare(a.date);});
-  var h='<div class="chips">'+[['all','Tümü'],['inc','Gelir'],['exp','Gider'],['trf','Transfer']].map(function(f){return '<button class="chip" data-act="filter" data-v="'+f[0]+'" aria-pressed="'+(ui.filter===f[0])+'">'+f[1]+'</button>';}).join('')+'</div>';
-  if(!mt.length)return h+'<div class="empty">Bu dönemde işlem yok. Sağ alttaki + ile ilk işlemini ekle.</div>';
-  var cur='',out='<div class="card" style="padding-top:2px">';
-  mt.forEach(function(t){if(t.date!==cur){cur=t.date;out+='<div class="day">'+esc(pdate(t.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'}))+'</div>';}out+='<div class="list">'+txRow(t)+'</div>';});
-  return h+out+'</div>';
+  return '<div class="search">'+ic('search')+'<input id="tq" type="search" placeholder="İşlemlerde ara: not, kategori, tutar" value="'+esc(ui.tq||'')+'"></div>'
+   +'<div class="chips">'+[['all','Tümü'],['inc','Gelir'],['exp','Gider'],['trf','Transfer']].map(function(f){return '<button class="chip" data-act="filter" data-v="'+f[0]+'" aria-pressed="'+(ui.filter===f[0])+'">'+f[1]+'</button>';}).join('')+'</div>'
+   +'<div id="txlist" class="stack">'+txList()+'</div>';
 }
 function budgetBody(){
   var sp=spentByCat(ui.month),limSum=0,spSum=0;
   EXPC().forEach(function(c){if(S.budgets[c]){limSum+=S.budgets[c];spSum+=(sp[c]||0);}});
   var h='<div class="card"><div class="lbl">Toplam bütçe</div><p class="big">'+TRY0.format(limSum)+'</p><div class="small muted">Harcanan '+TRY0.format(spSum)+' · '+(limSum-spSum>=0?TRY0.format(limSum-spSum)+' kaldı':TRY0.format(spSum-limSum)+' aşıldı')+'</div>'+dailyLine(limSum-spSum)+'</div>';
+  var dn=donut(EXPC().map(function(c){return [c,sp[c]||0];}).filter(function(x){return x[1]>0;}),'Bu dönemde harcama yok.');
+  h+='<div class="card"><h2>Harcama dağılımı</h2>'+dn+'</div>'+trendCard();
   h+='<div class="card"><h2>Kategori limitleri</h2><p class="small muted" style="margin:-4px 0 6px">Aylık limit gir. Boş bıraktığın kategori takip edilmez.</p>';
   EXPC().forEach(function(c){
     var lim=S.budgets[c]||0,s=sp[c]||0,ratio=lim?s/lim:0,cls=ratio>1?'over':(ratio>.8?'warn':'');
@@ -488,7 +447,7 @@ function setList(){var q=ui.sq.toLocaleLowerCase('tr-TR');var l=SETS.filter(func
   if(!l.length)return '<div class="empty">Eşleşen ayar yok.</div>';
   return l.map(function(s){return '<button class="setcard" data-act="open-set" data-id="'+s.id+'"><span class="sic" style="--c:'+s.c+'">'+ic(s.i)+'</span><span class="mid"><div class="t">'+esc(s.t)+'</div><div class="small muted">'+esc(s.d)+'</div></span>'+ic('r')+'</button>';}).join('');}
 function vAyarlar(){return '<div class="search">'+ic('search')+'<input id="sset" type="search" placeholder="Ayarlarda ara..." value="'+esc(ui.sq)+'" aria-label="Ayarlarda ara"></div><div id="setlist" class="stack" style="gap:10px">'+setList()+'</div><p class="small muted" style="text-align:center">Wallet 2.0 · Veriler bu cihazda saklanır</p>';}
-function setBody(s){return ({profil:setProfil,hesap:setHesap,kat:setKat,kurlar:setKur,bild:setBild,gor:setGor,notlar:setNotlar,guv:setGuv,veri:setVeri,hak:setHak,demo:setDemo}[s]||setHak)();}
+function setBody(s){return ({profil:setProfil,hesap:setHesap,kat:setKat,kurlar:setKur,bild:setBild,gor:setGor,guv:setGuv,veri:setVeri}[s]||setVeri)();}
 function setProfil(){
   var pd=S.payday||1,o='';for(var i=1;i<=31;i++)o+='<option value="'+i+'"'+(i===pd?' selected':'')+'>'+i+'. gün</option>';
   return sec('Profil','<div class="field"><label for="pf-name">Ad</label><input id="pf-name" data-bind="name" data-kind="text" placeholder="Adın" value="'+esc(S.name)+'"></div><div class="field"><label>Ana para birimi</label><div class="static">Türk Lirası (₺)</div></div>','Başka para birimi şimdilik desteklenmez. Döviz varlıkları portföyde kurla liraya çevrilir.')
@@ -522,20 +481,13 @@ function setBild(){
    +sec('Telefon bildirimi',tgl('notif','Bildirim gönder','Uygulamayı açtığında, günde bir kez özet bildirim')+(perm==='granted'?'<div class="small muted">Bildirim izni verildi.</div>':perm==='denied'?'<div class="small muted">İzin reddedilmiş. Tarayıcı site ayarlarından açabilirsin.</div>':perm==='yok'?'<div class="small muted">Bu tarayıcı bildirimi desteklemiyor.</div>':'<button class="btn ghost" data-act="notif-ask">Bildirim izni ver</button>'),
     'Bildirimler uygulama açıkken veya açıldığında gelir. Kapalıyken arka planda bildirim göndermek için bir sunucu gerekir; bu sürümde yok.');
 }
-ACT['brand-del']=function(el,id){if(S.brandMap)delete S.brandMap[id];save();render();};
 function setGor(){
-  return sec('Marka logoları',tgl('logos','İşlemlerde marka logosu','Notta BİM, İGDAŞ gibi bir marka yazınca logosu görünür')+(Object.keys(S.brandMap||{}).length?'<div class="lbl">Eklediğin markalar</div>'+Object.keys(S.brandMap).map(function(k){var m=S.brandMap[k];return '<div class="item" style="cursor:default"><span class="mid"><div class="t">'+esc(m.n)+'</div><div class="small muted">'+esc(m.d)+'</div></span><button class="btn small ghost" data-act="brand-del" data-id="'+esc(k)+'">Sil</button></div>';}).join(''):''),'Logolar, marka sitelerinin simgesi Google’ın simge servisinden internetten yüklenir; yalnızca marka alan adı gönderilir, tutar ve notun gönderilmez. Çevrimdışıysan marka renkli kısaltma görünür. Kapatırsan hiçbir şey indirilmez.')
-   +sec('Tema',segv('theme',[['auto','Sistem'],['light','Açık'],['dark','Koyu']],'Tema'))
+  return sec('Tema',segv('theme',[['auto','Sistem'],['light','Açık'],['dark','Koyu']],'Tema'))
    +sec('Yazı boyutu',segv('fs',[[0.9,'Küçük'],[1,'Normal'],[1.15,'Büyük'],[1.3,'Çok büyük']],'Yazı boyutu'))
    +sec('Gizlilik',tgl('hide','Bakiyeleri gizle','Cüzdan ve Portföy’de tutarlar ••••, üst köşedeki göz düğmesiyle geçici gösterilir'));
 }
-function setNotlar(){
-  return sec('Liste','<div class="lbl">Sıralama</div>'+segv('nset.sort',[['edited','Son düzenlenen'],['created','Oluşturulma'],['title','Başlık A–Z']],'Sıralama')
-    +'<div class="lbl">Görünüm</div>'+segv('nset.view',[['card','Kart'],['list','Liste']],'Görünüm')
-    +'<div class="lbl">Önizleme satırı</div>'+segv('nset.lines',[[0,'Yok'],[1,'1'],[3,'3'],[5,'5']],'Önizleme satırı')
-    +tgl('nset.date','Tarihi göster')+tgl('nset.pinFirst','Sabit notlar üstte'))
-   +sec('Silme',tgl('nset.confirmDel','Silmeden önce onay iste','Sil düğmesine iki kez dokunman gerekir'))
-   +sec('Dışa aktar','<div class="small muted">'+S.notes.length+' not</div><button class="btn ghost" data-act="notes-copy">Tüm notları kopyala</button><button class="btn ghost" data-act="notes-save">Metin dosyası olarak kaydet</button><div class="err" id="f-err"></div>');
+function notesExport(){
+  return sec('Dışa aktar','<div class="small muted">'+S.notes.length+' not</div><button class="btn ghost" data-act="notes-copy">Tüm notları kopyala</button><button class="btn ghost" data-act="notes-save">Metin dosyası olarak kaydet</button><div class="err" id="f-err"></div>');
 }
 function setGuv(){
   var h='';
@@ -553,12 +505,8 @@ function setGuv(){
 function setVeri(){
   return sec('Dışa aktar','<button class="btn ghost" data-act="csv">İşlemleri CSV olarak kaydet</button><button class="btn ghost" data-act="csv-copy">CSV metnini kopyala</button><div class="err" id="f-err"></div>','CSV; Excel ve tablo uygulamalarında açılır. '+S.tx.length+' işlem.')
    +sec('Yedek','<div class="field"><label for="bk-pw">Yedek şifresi</label><input id="bk-pw" type="password" autocomplete="new-password" placeholder="Boş bırakırsan şifresiz yedek"></div><button class="btn" data-act="bk-make">Yedek hazırla</button><div id="bk-box" class="stack" style="gap:10px" hidden><textarea id="bk-out" readonly aria-label="Yedek metni"></textarea><button class="btn ghost" data-act="bk-copy">Yedeği kopyala</button><button class="btn ghost" data-act="bk-save">Dosya olarak kaydet</button></div><div class="err" id="f-err3"></div>','Şifreli yedek AES-256 ile korunur. Şifreyi unutursan yedek açılmaz, şifre hiçbir yerde saklanmaz.')
-   +sec('Yedekten yükle','<div class="field"><label for="rs-file">Yedek dosyası</label><input id="rs-file" type="file" accept=".json,.txt,application/json,text/plain"></div><div class="field"><label for="rs-txt">Ya da yedek metni</label><textarea id="rs-txt" placeholder="Kopyaladığın yedeği buraya yapıştır"></textarea></div><div class="field"><label for="rs-pw">Şifre (yedek şifreliyse)</label><input id="rs-pw" type="password" autocomplete="off"></div><div class="err" id="f-err2"></div><button class="btn ghost" data-act="rs-go">Yedeği yükle</button>','Yükleme mevcut verilerin yerine geçer. PIN ayarın korunur.');
-}
-function setHak(){
-  return sec('Wallet','<div class="res"><div class="r"><span>Sürüm</span><span class="num">2.0</span></div><div class="r"><span>Veri konumu</span><span>Bu cihaz, tarayıcı</span></div></div>')
-   +sec('Gizlilik özeti','<div class="small">Verilerin yalnızca bu tarayıcıda saklanır. Wallet bir sunucuya veri göndermez, hesap açmaz.</div>','Tarayıcı verilerini silersen ya da farklı bir cihaz kullanırsan veriler görünmez. Yedek al.')
-   +sec('Sınırlar','<ul class="plain"><li>Kur verisi gecikmelidir (yaklaşık 15 dk); hisse ve fon fiyatları elle girilir.</li><li>Bildirim yalnızca uygulama açılınca gelir.</li><li>Banka bağlantısı yok, işlemler elle girilir.</li><li>Parmak izi kilidi yok, PIN vardır.</li></ul>');
+   +sec('Yedekten yükle','<div class="field"><label for="rs-file">Yedek dosyası</label><input id="rs-file" type="file" accept=".json,.txt,application/json,text/plain"></div><div class="field"><label for="rs-txt">Ya da yedek metni</label><textarea id="rs-txt" placeholder="Kopyaladığın yedeği buraya yapıştır"></textarea></div><div class="field"><label for="rs-pw">Şifre (yedek şifreliyse)</label><input id="rs-pw" type="password" autocomplete="off"></div><div class="err" id="f-err2"></div><button class="btn ghost" data-act="rs-go">Yedeği yükle</button>','Yükleme mevcut verilerin yerine geçer. PIN ayarın korunur.')
+   +notesExport()+setDemo();
 }
 function setDemo(){
   return sec('Örnek veriler','<button class="btn ghost" data-act="sample-load">Örnek verileri yükle</button>'+(hasSample()?'<button class="btn ghost" data-act="sample-clear">Örnek verileri sil</button>':''),'Örnek veriler kendi kayıtlarının yanına eklenir ve işaretlidir, istediğinde silebilirsin.')
@@ -605,7 +553,7 @@ function allNotesText(){return S.notes.map(function(n){return (n.title||'Başlı
 function res(rows){return '<div class="res">'+rows.map(function(r){return '<div class="r'+(r[2]?' strong':'')+'"><span>'+esc(r[0])+'</span><span class="num">'+r[1]+'</span></div>';}).join('')+'</div>';}
 var CALCS={
   kredi:{name:'Kredi',fields:[['amt','Kredi tutarı (₺)',100000],['rate','Aylık faiz (%)',3.5],['n','Vade (ay)',24],['tax','Faize eklenen vergi (%)',0]],
-    run:function(v){var P=v.amt,n=Math.round(v.n),r=v.rate/100*(1+v.tax/100);if(P<=0||n<=0)return '<div class="empty">Tutar ve vadeyi gir.</div>';
+    run:function(v){var P=v.amt,n=Math.round(v.n),r=v.rate/100*(1+v.tax/100);if(P<=0||n<=0)return '<div class="empty">Tutar ve vadeyi gir.</div>';if(n>600)return '<div class="empty">Vade en fazla 600 ay (50 yıl) olabilir.</div>';if(v.rate<0||v.tax<0)return '<div class="empty">Faiz ve vergi sıfır ya da pozitif olmalı.</div>';
       var pay=r===0?P/n:P*r/(1-Math.pow(1+r,-n)),bal=P,tot=0,rows='';
       for(var i=1;i<=n;i++){var it=bal*r,pr=pay-it;bal-=pr;tot+=it;rows+='<tr><td>'+i+'</td><td>'+TRY2.format(pay)+'</td><td>'+TRY2.format(pr)+'</td><td>'+TRY2.format(it)+'</td><td>'+TRY2.format(Math.max(bal,0))+'</td></tr>';}
       return res([['Aylık taksit',TRY2.format(pay),1],['Toplam geri ödeme',TRY2.format(pay*n)],['Toplam faiz',TRY2.format(tot)],['Yıllık bileşik maliyet','%'+NUM2.format((Math.pow(1+r,12)-1)*100)]])
@@ -625,6 +573,9 @@ var CALCS={
     run:function(v){if(v.y<0)return '<div class="empty">Süreyi gir.</div>';var f=Math.pow(1+v.inf/100,v.y),realRate=((1+v.nom/100)/(1+v.inf/100)-1)*100;
       return res([['Bugünkü alım gücünü korumak için',TRY0.format(v.a*f),1],['Bugünkü tutarın o günkü değeri',TRY0.format(v.a/f)],['Reel getiri (yıllık)',(realRate>=0?'+%':'−%')+NUM2.format(Math.abs(realRate))],['Getiri sonrası reel değer',TRY0.format(v.a*Math.pow(1+v.nom/100,v.y)/f)]]);}}
 };
+Object.keys(CALCS).forEach(function(k){var f=CALCS[k].run;CALCS[k].run=function(v){var h='';try{h=f(v);}catch(e){h='';}
+  if(!h||/NaN|Infinity|undefined/.test(String(h).replace(/<[^>]*>/g,' ')))return '<div class="empty">Değerleri kontrol et, sonuç hesaplanamadı.</div>';return h;};});
+
 function vArac(){
   var key=ui.calc,c=CALCS[key];if(!ui.cv[key]){ui.cv[key]={};c.fields.forEach(function(f){ui.cv[key][f[0]]=String(f[2]);});}
   var h='<div class="calcseg">'+Object.keys(CALCS).map(function(k){return '<button class="chip" data-act="calc" data-v="'+k+'" aria-pressed="'+(k===key)+'">'+CALCS[k].name+'</button>';}).join('')+'</div>';
@@ -688,7 +639,6 @@ function val(id){var e=document.getElementById(id);return e?e.value:'';}
 function badName(n){return /^(__proto__|constructor|prototype)$/.test(n);}
 var txType='exp';
 function lastSel(type,k,list){var l=S.last&&S.last[type];var v=l&&l[k];return list.indexOf(v)>=0?v:undefined;}
-function siteOf(note){var k=bkey(note),m=S.brandMap&&S.brandMap[k];return m?m.d:'';}
 function txSheet(id,force){
   var t=id?byId(S.tx,id):null;txType=t?t.type:(force||'exp');
   var acc=ACCS(),canTrf=acc.length>1;if(txType==='trf'&&!canTrf)txType='exp';
@@ -698,9 +648,8 @@ function txSheet(id,force){
    +'<div class="two"><div class="field" id="row-cat"'+(trf?' hidden':'')+'><label for="f-cat">Kategori</label><select id="f-cat">'+opts(cats,t?t.cat:lastSel(txType,'cat',cats))+'</select></div><div class="field"><label for="f-acct" id="lb-acct">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="f-acct">'+opts(acc,t?t.acct:lastSel(txType,'acct',acc))+'</select></div></div>'
    +'<div class="field" id="row-to"'+(trf?'':' hidden')+'><label for="f-to">Giriş hesabı</label><select id="f-to">'+opts(acc,(t&&t.to)||acc[1])+'</select></div>'
    +'<div class="field"><label for="f-date">Tarih</label><input id="f-date" type="date" value="'+(t?t.date:isoDate(new Date()))+'"></div>'
-   +'<div class="field"><label for="f-note">Not</label><input id="f-note" list="merchants" autocomplete="off" placeholder="Örn. BİM, İGDAŞ (logosu görünür)" value="'+esc(t?t.note:'')+'"><datalist id="merchants">'+BRANDS.map(function(b){return '<option value="'+esc(b[0])+'">';}).concat(Object.keys(S.brandMap||{}).map(function(k){return '<option value="'+esc(S.brandMap[k].n)+'">';})).join('')+'</datalist></div>'
-   +'<div class="field" id="row-site"'+(trf?' hidden':'')+'><label for="f-site">Logo için site adresi <span class="muted">(isteğe bağlı)</span></label><input id="f-site" inputmode="url" autocapitalize="none" autocomplete="off" placeholder="örn. koctas.com.tr" value="'+esc(t?siteOf(t.note):'')+'"><div class="small muted">Listede olmayan bir yerin logosu için bir kez gir; notun ilk kelimesi marka sayılır ve bir sonraki sefer hatırlanır.</div></div><div class="err" id="f-err"></div>'
-   +'<button class="btn" data-act="save-tx" data-id="'+(t?t.id:'')+'">Kaydet</button>'+(t?delBtn('del-tx',t.id):''));
+   +'<div class="field"><label for="f-note">Not</label><input id="f-note" placeholder="İsteğe bağlı" value="'+esc(t?t.note:'')+'"></div><div class="err" id="f-err"></div>'
+   +'<button class="btn" data-act="save-tx" data-id="'+(t?t.id:'')+'">Kaydet</button>'+(t?'<button class="btn ghost" data-act="dup-tx" data-id="'+t.id+'">Bugüne kopyala</button>'+delBtn('del-tx',t.id):''));
   if(!t)setTimeout(function(){var e=document.getElementById('f-amt');if(e)e.focus();},50);
 }
 function hSheet(id){
@@ -748,27 +697,30 @@ ACT['tx-type']=function(el,id,v){
   txType=v;
   document.querySelectorAll('#f-type button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===v));});
   var trf=v==='trf';
-  document.getElementById('row-cat').hidden=trf;var rs=document.getElementById('row-site');if(rs)rs.hidden=trf;document.getElementById('row-to').hidden=!trf;
+  document.getElementById('row-cat').hidden=trf;document.getElementById('row-to').hidden=!trf;
   document.getElementById('lb-acct').textContent=trf?'Çıkış hesabı':'Hesap';
   if(!trf){var c=document.getElementById('f-cat'),cl=v==='exp'?EXPC():INCC();c.innerHTML=opts(cl,lastSel(v,'cat',cl));delete c.dataset.manual;var ac=document.getElementById('f-acct'),as=lastSel(v,'acct',ACCS());if(as)ac.value=as;}
 };
 ACT['save-tx']=function(el,id){
-  var amt=num(val('f-amt'));if(amt<=0){ferr('Tutarı sıfırdan büyük gir.');return;}
+  var amt=r2(num(val('f-amt')));if(amt<=0){ferr('Tutarı sıfırdan büyük gir.');return;}
   var d=val('f-date');if(!d){ferr('Tarih seç.');return;}
   var o={type:txType,amt:amt,acct:val('f-acct'),date:d,note:val('f-note').trim()};
   if(txType==='trf'){var to=val('f-to');if(to===o.acct){ferr('Çıkış ve giriş hesabı farklı olmalı.');return;}o.to=to;o.cat='Transfer';}
   else o.cat=val('f-cat');
-  if(txType!=='trf'){var sk=bkey(o.note),sd=cleanDomain(val('f-site')),bi=brandOf(o.note);
-    if(val('f-site').trim()&&!sk){ferr('Logo için önce nota marka adını yaz.');return;}
-    if(val('f-site').trim()&&!sd){ferr('Site adresi geçersiz. Örn. koctas.com.tr');return;}
-    if(sk){S.brandMap=S.brandMap||{};if(sd&&!(bi&&bi[2]===sd&&!S.brandMap[sk])&&!(S.brandMap[sk]&&S.brandMap[sk].d===sd)){S.brandMap[sk]={n:o.note.trim().split(/\s+/)[0],d:sd};}else if(!sd&&id&&S.brandMap[sk]){delete S.brandMap[sk];}}
-  }
   if(id){var t=byId(S.tx,id);if(txType!=='trf')delete t.to;Object.assign(t,o);delete t.sample;}else{o.id=uid();S.tx.push(o);}
   if(!id&&txType!=='trf'){S.last=S.last||{};S.last[txType]={cat:o.cat,acct:o.acct};}
   if(pk(d)!==ui.month)ui.month=pk(d);
   save();closeSheet();render();
 };
-ACT['del-tx']=function(el,id){if(!armed(el))return;S.tx=S.tx.filter(function(x){return x.id!==id;});save();closeSheet();render();};
+var toastT=null;
+function toast(text,undo){
+  var e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.setAttribute('role','status');document.body.appendChild(e);}
+  ui.undoFn=undo||null;e.innerHTML='<span>'+esc(text)+'</span>'+(undo?'<button data-act="undo">Geri al</button>':'');e.hidden=false;
+  clearTimeout(toastT);toastT=setTimeout(function(){e.hidden=true;ui.undoFn=null;},6000);
+}
+ACT.undo=function(){var f=ui.undoFn;ui.undoFn=null;var e=document.getElementById('toast');if(e)e.hidden=true;if(f)f();};
+ACT['del-tx']=function(el,id){var t=byId(S.tx,id);if(!t)return;S.tx=S.tx.filter(function(x){return x.id!==id;});save();closeSheet();render();toast('İşlem silindi',function(){S.tx.push(t);save();render();});};
+ACT['dup-tx']=function(el,id){var t=byId(S.tx,id);if(!t)return;var c=Object.assign({},t,{id:uid(),date:isoDate(new Date())});delete c.sample;S.tx.push(c);ui.month=pk(c.date);save();closeSheet();render();toast('Bugüne kopyalandı');};
 ACT['new-h']=function(){hSheet();};ACT['edit-h']=function(el,id){hSheet(id);};
 ACT['save-h']=function(el,id){
   var nm=val('h-name').trim();if(!nm){ferr('Bir ad yaz.');return;}var q=num(val('h-qty'));if(q<=0){ferr('Miktarı gir.');return;}
@@ -918,7 +870,6 @@ function notifyDue(){
   var body=items.slice(0,4).map(function(x){return x[1];}).join('\n');
   try{if(navigator.serviceWorker&&navigator.serviceWorker.ready){navigator.serviceWorker.ready.then(function(reg){reg.showNotification('Wallet',{body:body,icon:'icons/icon-192.png',tag:'wallet-due'});});}else{new Notification('Wallet',{body:body,icon:'icons/icon-192.png'});}}catch(e){}
 }
-document.addEventListener('input',function(e){var t=e.target;if(t&&t.id==='f-note'){var f=document.getElementById('f-site');if(f&&!f.dataset.touched){var d=siteOf(t.value);f.value=d||'';}}else if(t&&t.id==='f-site'){t.dataset.touched='1';}});
 document.addEventListener('keydown',function(e){
   if(e.key!=='Enter'||e.isComposing)return;var t=e.target;
   if(t&&t.tagName==='INPUT'&&t.closest&&t.closest('.sheet')){var b=t.closest('.sheet').querySelector('.btn[data-act^="save"]');if(b){e.preventDefault();b.click();}}
@@ -956,6 +907,7 @@ document.addEventListener('input',function(e){
   var t=e.target,d=t.dataset||{};
   if(t.classList&&t.classList.contains('calc-in')){ui.cv[ui.calc][d.k]=t.value;document.getElementById('calc-out').innerHTML=calcOut();}
   else if(t.id==='nsearch'){ui.nq=t.value;document.getElementById('nlist').innerHTML=notesList();}
+  else if(t.id==='tq'){ui.tq=t.value;var tl=document.getElementById('txlist');if(tl)tl.innerHTML=txList();}
   else if(t.id==='sset'){ui.sq=t.value;document.getElementById('setlist').innerHTML=setList();}
   else if(d.nf&&ui.page&&ui.page.k==='note'){ui.page.draft[d.nf]=t.value;ui.page.dirty=true;}
   else if(t.id==='f-note'&&txType!=='trf'){

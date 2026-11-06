@@ -608,6 +608,14 @@ function render(){
   document.getElementById('tabsnav').hidden=!!ui.page;
   document.getElementById('fab').hidden=!(!ui.page&&ui.tab==='cuzdan'&&(ui.sub==='islem'||ui.sub==='butce'));
 }
+function persistUi(){try{localStorage.setItem('wallet-ui',JSON.stringify({tab:ui.tab,sub:ui.sub}));}catch(e){}}
+function restoreUi(){
+  try{var u=JSON.parse(localStorage.getItem('wallet-ui')||'{}');if(TABS.some(function(t){return t[0]===u.tab;}))ui.tab=u.tab;if(['islem','butce','hedef','duzenli'].indexOf(u.sub)>=0)ui.sub=u.sub;}catch(e){}
+  var h=(location.hash||'').slice(1);
+  if(h==='fire')ui.page={k:'fire'};
+  else if(/^ayar-[a-z]+$/.test(h))ui.page={k:'set',s:h.slice(5)};
+  else if(h){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
+}
 function openPage(p,hash){ui.page=p;try{if(hash)location.hash=hash;}catch(e){}render();window.scrollTo(0,0);}
 function finishPage(){if(ui.page&&ui.page.k==='note')saveNote();}
 function closePage(){finishPage();ui.page=null;render();try{if(location.hash.length>1)history.back();}catch(e){}}
@@ -659,10 +667,10 @@ function rSheet(id){
 }
 
 /* ---------- eylemler ---------- */
-ACT.tab=function(el,id,v){ui.tab=v;render();window.scrollTo(0,0);};
+ACT.tab=function(el,id,v){ui.tab=v;persistUi();render();window.scrollTo(0,0);};
 ACT.back=function(){closePage();};
 ACT.eye=function(){ui.reveal=!ui.reveal;render();};
-ACT.sub=function(el,id,v){ui.sub=v;render();};
+ACT.sub=function(el,id,v){ui.sub=v;persistUi();render();};
 ACT.mprev=function(){ui.month=addMonth(ui.month,-1);render();};
 ACT.mnext=function(){ui.month=addMonth(ui.month,1);render();};
 ACT.filter=function(el,id,v){ui.filter=v;render();};
@@ -904,6 +912,8 @@ window.addEventListener('hashchange',function(){
 });
 
 document.getElementById('fab').innerHTML=ic('plus');
+restoreUi();
 render();
+(function(){var sp=document.getElementById('splash');if(sp){setTimeout(function(){sp.style.opacity='0';setTimeout(function(){sp.remove();},350);},500);}})();
 refreshRates();setTimeout(notifyDue,1500);
 })();

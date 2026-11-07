@@ -24,7 +24,6 @@ import android.provider.Settings;
 import android.provider.MediaStore;
 import android.content.res.Configuration;
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -65,7 +64,7 @@ public class MainActivity extends Activity {
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
     /** Açılış: sistem açılış ekranı sayfa çizilene kadar kalır; web açılışı bitince çubuk renkleri uygulamanınkine döner. */
-    private boolean pageShown = false, splashOver = false;
+    private boolean splashOver = false;
     private final Handler ui = new Handler(Looper.getMainLooper());
 
     @Override
@@ -75,19 +74,9 @@ public class MainActivity extends Activity {
         // yalnızca test derlemesinde (webDebug=true) WebView uzaktan incelenebilir
         if (BuildConfig.WEB_DEBUG) WebView.setWebContentsDebuggingEnabled(true);
         web = new WebView(this);
-        web.setBackgroundColor(getColor(R.color.splash));  // sayfa çizilmeden önce beyaz yanıp sönmesin
+        // sayfa çizilene kadar WebView saydam: arkadaki açılış zemini (lacivert + logo) görünür, beyaz yanıp sönme olmaz
+        web.setBackgroundColor(0);
         setContentView(web);
-        final View content = findViewById(android.R.id.content);
-        content.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
-            @Override
-            public boolean onPreDraw() {
-                if (!pageShown) return false;
-                content.getViewTreeObserver().removeOnPreDrawListener(this);
-                return true;
-            }
-        });
-        // ağ yavaşsa bile açılış ekranı en fazla 2,5 sn bekler
-        ui.postDelayed(new Runnable() { public void run() { showPage(); } }, 2500);
         // eski bir web sürümü haber vermezse çubuk renkleri yine de düzelir
         ui.postDelayed(new Runnable() { public void run() { endSplash(); } }, 7000);
 
@@ -106,9 +95,6 @@ public class MainActivity extends Activity {
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
                 return true;
             }
-
-            @Override
-            public void onPageCommitVisible(WebView v, String url) { showPage(); }
 
             /** Telefon belleği azalınca WebView işlemi kapanırsa uygulama çökmez, sayfa yeniden kurulur (veriler cihazda). */
             @Override
@@ -145,17 +131,9 @@ public class MainActivity extends Activity {
         if (state == null || web.restoreState(state) == null) web.loadUrl(URL_APP);
     }
 
-    private void showPage() {
-        if (pageShown) return;
-        pageShown = true;
-        View c = findViewById(android.R.id.content);
-        if (c != null) c.invalidate();
-    }
-
     /** Web açılışı bitti: pencere ve sistem çubukları uygulamanın açık/koyu temasına döner. */
     private void endSplash() {
         splashOver = true;
-        showPage();
         applyBars();
     }
 

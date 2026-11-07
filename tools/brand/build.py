@@ -162,10 +162,10 @@ def main():
     css = (
         '#splash{position:fixed;inset:0;z-index:9999;background:%(bg)s;overflow:hidden;transition:opacity .45s ease}'
         '#splash::before{content:"";position:absolute;inset:-10%%;background:radial-gradient(ellipse 70%% 55%% at 50%% 44%%,%(hi)s 0%%,transparent 70%%),radial-gradient(ellipse at 50%% 50%%,transparent 55%%,%(lo)s 100%%);opacity:0;animation:spGlow 1s ease .05s forwards}'
-        '#splash i{position:absolute;left:50%%;top:50%%;display:block;background:linear-gradient(135deg,%(grad)s)}'
-        '#splash .sp-l{-webkit-mask:%(m1)s center/100%% 100%% no-repeat;mask:%(m1)s center/100%% 100%% no-repeat;width:%(lw).2fpx;height:%(lh).2fpx;margin:%(lmy).2fpx 0 0 %(lmx).2fpx}'
+        '/* yalnızca -webkit-mask: eski Android WebView içinde öneksiz mask öğeyi tümüyle gizler */#splash i{position:absolute;left:50%%;top:50%%;display:block;background:linear-gradient(135deg,%(grad)s)}'
+        '#splash .sp-l{-webkit-mask:%(m1)s center/100%% 100%% no-repeat;width:%(lw).2fpx;height:%(lh).2fpx;margin:%(lmy).2fpx 0 0 %(lmx).2fpx}'
         '#splash .sp-l::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%%,rgba(255,250,235,.85) 50%%,transparent 65%%);background-size:300%% 100%%;background-position:120%% 0;animation:spShine 1.1s cubic-bezier(.4,0,.2,1) .2s forwards}'
-        '#splash .sp-w{width:%(ww).2fpx;height:%(wh).2fpx;margin:%(wmy).2fpx 0 0 %(wmx).2fpx;-webkit-mask:%(m2)s center/100%% 100%% no-repeat;mask:%(m2)s center/100%% 100%% no-repeat;opacity:0;transform:translateY(10px);animation:spWord .8s cubic-bezier(.2,.7,.2,1) .3s forwards}'
+        '#splash .sp-w{width:%(ww).2fpx;height:%(wh).2fpx;margin:%(wmy).2fpx 0 0 %(wmx).2fpx;-webkit-mask:%(m2)s center/100%% 100%% no-repeat;opacity:0;transform:translateY(10px);animation:spWord .8s cubic-bezier(.2,.7,.2,1) .3s forwards}'
         '#splash.out{opacity:0}#splash.out .sp-l{transform:scale(1.04);transition:transform .45s ease}'
         '@keyframes spGlow{to{opacity:1}}@keyframes spShine{to{background-position:-20%% 0}}@keyframes spWord{to{opacity:1;transform:none}}'
         '@media (prefers-reduced-motion:reduce){#splash *,#splash::before{animation-duration:.01s!important;animation-delay:0s!important}}'

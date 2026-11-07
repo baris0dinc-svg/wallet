@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash">#0C1424</color>
+    <color name="splash">#131315</color>
     <!-- açılış teması: sistem açılış ekranı, sayfa çizilene kadar ekranda kalır (MainActivity) -->
     <style name="LaunchTheme" parent="AppTheme">
         <item name="android:windowBackground">@drawable/splash_bg</item>

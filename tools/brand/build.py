@@ -15,9 +15,9 @@ sys.path.insert(0, HERE)
 from wordmark import wordmark  # noqa: E402
 
 # ---- marka: renkler ve yazı ----
-BG = '#0C1424'                      # açılış ekranı düz zemin (Android 12 yalnızca düz renk kabul eder)
-BG_HI, BG_LO = '#1A2746', '#060A13'  # simge ve web açılışındaki ışık / köşe tonları
-GOLD = ['#F6E3A8', '#D9AE5C', '#B5863A', '#E8C77B']   # altın geçişi (sol üstten sağ alta)
+BG = '#131315'                      # açılış ekranı düz zemin (Android 12 yalnızca düz renk kabul eder)
+BG_HI, BG_LO = '#2A2B30', '#08080A'  # simge ve web açılışındaki ışık / köşe tonları
+GOLD = ['#FFFFFF', '#D9DCE2', '#9CA2AD', '#E9EBEF']   # platin geçişi (sol üstten sağ alta)
 GOLD_OFF = [0, .45, .75, 1]
 FONT = '/usr/share/fonts/truetype/google-fonts/Poppins-Medium.ttf'
 WORD, WORD_TRACK = 'WALLET', .42
@@ -164,7 +164,7 @@ def main():
         '#splash::before{content:"";position:absolute;inset:-10%%;background:radial-gradient(ellipse 70%% 55%% at 50%% 44%%,%(hi)s 0%%,transparent 70%%),radial-gradient(ellipse at 50%% 50%%,transparent 55%%,%(lo)s 100%%);opacity:0;animation:spGlow 1s ease .05s forwards}'
         '/* yalnızca -webkit-mask: eski Android WebView içinde öneksiz mask öğeyi tümüyle gizler */#splash i{position:absolute;left:50%%;top:50%%;display:block;background:linear-gradient(135deg,%(grad)s)}'
         '#splash .sp-l{-webkit-mask:%(m1)s center/100%% 100%% no-repeat;width:%(lw).2fpx;height:%(lh).2fpx;margin:%(lmy).2fpx 0 0 %(lmx).2fpx}'
-        '#splash .sp-l::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%%,rgba(255,250,235,.85) 50%%,transparent 65%%);background-size:300%% 100%%;background-position:120%% 0;animation:spShine 1.1s cubic-bezier(.4,0,.2,1) .2s forwards}'
+        '#splash .sp-l::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%%,rgba(255,255,255,.9) 50%%,transparent 65%%);background-size:300%% 100%%;background-position:120%% 0;animation:spShine 1.1s cubic-bezier(.4,0,.2,1) .2s forwards}'
         '#splash .sp-w{width:%(ww).2fpx;height:%(wh).2fpx;margin:%(wmy).2fpx 0 0 %(wmx).2fpx;-webkit-mask:%(m2)s center/100%% 100%% no-repeat;opacity:0;transform:translateY(10px);animation:spWord .8s cubic-bezier(.2,.7,.2,1) .3s forwards}'
         '#splash.out{opacity:0}#splash.out .sp-l{transform:scale(1.04);transition:transform .45s ease}'
         '@keyframes spGlow{to{opacity:1}}@keyframes spShine{to{background-position:-20%% 0}}@keyframes spWord{to{opacity:1;transform:none}}'

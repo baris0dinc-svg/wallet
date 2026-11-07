@@ -6,6 +6,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.provider.Telephony;
 import android.hardware.biometrics.BiometricManager;
 import android.hardware.biometrics.BiometricPrompt;
 import android.net.Uri;
@@ -23,6 +25,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
@@ -33,6 +36,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.lang.ref.WeakReference;
 import java.nio.charset.StandardCharsets;
 
 /** Wallet web uygulamasını tam ekran bir Android uygulaması olarak açar. */
@@ -42,6 +46,8 @@ public class MainActivity extends Activity {
     private static final String RATES = "https://finans.truncgil.com/v4/today.json";
     private static final int FILE_REQ = 7;
     private static final int NOTIF_REQ = 11;
+    private static final int SMS_REQ = 12;
+    private static WeakReference<MainActivity> live = new WeakReference<>(null);
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
 
@@ -49,6 +55,8 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         if (prefs(this).getBoolean("secure", false)) getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
+        // yalnızca test derlemesinde (webDebug=true) WebView uzaktan incelenebilir
+        if (BuildConfig.WEB_DEBUG) WebView.setWebContentsDebuggingEnabled(true);
         web = new WebView(this);
         setContentView(web);
 
@@ -95,6 +103,12 @@ public class MainActivity extends Activity {
         return c.getSharedPreferences("wallet", Context.MODE_PRIVATE);
     }
 
+    /** Uygulama açıkken arka plandaki bileşenlerin web tarafını uyarması için. */
+    static void notifyJs(String code) {
+        MainActivity a = live.get();
+        if (a != null) a.js(code);
+    }
+
     private void js(final String code) {
         runOnUiThread(new Runnable() {
             @Override
@@ -111,12 +125,14 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         super.onPause();
+        live = new WeakReference<>(null);
         if (web != null) web.onPause();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        live = new WeakReference<>(this);
         if (web != null) web.onResume();
     }
 
@@ -133,7 +149,7 @@ public class MainActivity extends Activity {
     @Override
     public void onRequestPermissionsResult(int req, String[] perms, int[] results) {
         super.onRequestPermissionsResult(req, perms, results);
-        if (req == NOTIF_REQ) js("window.walletPerm&&window.walletPerm()");
+        if (req == NOTIF_REQ || req == SMS_REQ) js("window.walletPerm&&window.walletPerm()");
     }
 
     /** Geri tuşu: önce uygulamadaki açık pencereyi/sayfayı kapatır, en son uygulamadan çıkar. */
@@ -324,6 +340,79 @@ public class MainActivity extends Activity {
                     else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE);
                 }
             });
+        }
+
+        /** Yedeği Drive, e-posta, WhatsApp gibi uygulamalarla paylaşır. */
+        @JavascriptInterface
+        public String shareFile(String name, String text) {
+            try {
+                SharedPreferences p = prefs(MainActivity.this);
+                String old = p.getString("shUri", null);
+                final Uri u = writeDownload(name, "Wallet", text, old != null ? Uri.parse(old) : null);
+                p.edit().putString("shUri", u.toString()).apply();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Intent s = new Intent(Intent.ACTION_SEND);
+                        s.setType("application/json");
+                        s.putExtra(Intent.EXTRA_STREAM, u);
+                        s.putExtra(Intent.EXTRA_SUBJECT, "Wallet yedeği");
+                        s.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        try { startActivity(Intent.createChooser(s, "Yedeği paylaş")); } catch (Exception ignored) { }
+                    }
+                });
+                return "ok";
+            } catch (Exception e) { return "err"; }
+        }
+
+        /** Banka SMS'leri: izin durumu, izin isteği, aç/kapa, kuyruk ve gelen kutusu taraması. */
+        @JavascriptInterface
+        public String smsState() {
+            boolean ok = checkSelfPermission("android.permission.RECEIVE_SMS") == PackageManager.PERMISSION_GRANTED
+                    && checkSelfPermission("android.permission.READ_SMS") == PackageManager.PERMISSION_GRANTED;
+            if (ok) return "granted";
+            return prefs(MainActivity.this).getBoolean("smsAsked", false) ? "denied" : "default";
+        }
+
+        @JavascriptInterface
+        public void askSms() {
+            prefs(MainActivity.this).edit().putBoolean("smsAsked", true).apply();
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() { requestPermissions(new String[]{"android.permission.RECEIVE_SMS", "android.permission.READ_SMS"}, SMS_REQ); }
+            });
+        }
+
+        @JavascriptInterface
+        public void smsSet(boolean on) { prefs(MainActivity.this).edit().putBoolean("smsOn", on).apply(); }
+
+        @JavascriptInterface
+        public String smsQueue() { return prefs(MainActivity.this).getString("smsQ", "[]"); }
+
+        @JavascriptInterface
+        public void smsAck(String ids) { SmsIn.ack(MainActivity.this, ids); }
+
+        @JavascriptInterface
+        public String smsScan(int days) {
+            JSONArray out = new JSONArray();
+            if (checkSelfPermission("android.permission.READ_SMS") != PackageManager.PERMISSION_GRANTED) return "[]";
+            long since = System.currentTimeMillis() - Math.max(1, Math.min(days, 120)) * 86400000L;
+            try (Cursor cu = getContentResolver().query(Telephony.Sms.Inbox.CONTENT_URI,
+                    new String[]{"_id", "address", "body", "date"}, "date > ?", new String[]{String.valueOf(since)}, "date DESC")) {
+                int n = 0;
+                while (cu != null && cu.moveToNext() && n < 600) {
+                    String body = cu.getString(2);
+                    if (body == null || !SmsIn.TX.matcher(body).find()) continue;
+                    JSONObject o = new JSONObject();
+                    o.put("id", "i" + cu.getLong(0));
+                    o.put("from", cu.getString(1) == null ? "" : cu.getString(1));
+                    o.put("body", body);
+                    o.put("ts", cu.getLong(3));
+                    out.put(o);
+                    n++;
+                }
+            } catch (Exception ignored) { }
+            return out.toString();
         }
 
         /** Güncel kurları doğrudan kaynaktan alır (tarayıcı kısıtı yok); sonucu walletNative ile geri verir. */

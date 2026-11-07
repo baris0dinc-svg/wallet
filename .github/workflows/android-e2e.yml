@@ -1,0 +1,53 @@
+name: Android E2E
+# Gerçek APK'yı Android 14 emülatöründe kurar; veri kalıcılığı, güncelleme, hatırlatıcı, bildirim,
+# otomatik yedek, SMS, canlı kur ve tam silmeyi uçtan uca dener.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['android-app/**', 'src/**', 'tests/android/**', '.github/workflows/android-e2e.yml']
+concurrency:
+  group: android-e2e
+  cancel-in-progress: true
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Test APK'sı (WebView incelenebilir)
+        run: gradle -p android-app assembleDebug -PwebDebug=true --no-daemon
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm i --no-save ws@8.18.0
+      - name: Yayının bu sürüme gelmesini bekle
+        run: |
+          want=$(sha256sum app.js | cut -d' ' -f1)
+          for i in $(seq 1 60); do
+            got=$(curl -fsS "https://baris0dinc-svg.github.io/wallet/app.js?v=$RANDOM$i" | sha256sum | cut -d' ' -f1)
+            [ "$got" = "$want" ] && { echo "yayın güncel"; exit 0; }
+            sleep 20
+          done
+          echo "yayın bu sürümle eşleşmedi"; exit 1
+      - name: KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Emülatörde uçtan uca test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash tests/android/run-e2e.sh

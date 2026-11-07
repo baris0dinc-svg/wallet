@@ -11,9 +11,23 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
+  # push'ta önce tüm testler; geçmezse yayınlanmaz (zamanlanmış kur yenilemesinde test atlanır)
+  test:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
+      - run: bash tests/run.sh
   deploy:
+    needs: test
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -46,6 +60,8 @@ jobs:
           else:
               print("UYARI: nesne bulunamadi; ust anahtarlar:", list(j.keys())[:20])
           PY
+      - name: Kaynak denetimi
+        run: python3 tools/build.py --check
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

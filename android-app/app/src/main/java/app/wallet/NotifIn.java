@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
+import android.util.Log;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -20,23 +21,27 @@ public class NotifIn extends NotificationListenerService {
     private static final Map<String, Long> recent = new LinkedHashMap<>();
 
     @Override
+    public void onListenerConnected() { Log.i("WalletNotif", "dinleyici bağlandı"); }
+
+    @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         try {
             SharedPreferences p = MainActivity.prefs(this);
-            if (!p.getBoolean("ntfOn", false)) return;
             String pkg = sbn.getPackageName();
+            Log.i("WalletNotif", "bildirim: " + pkg + " açık=" + p.getBoolean("ntfOn", false));
+            if (!p.getBoolean("ntfOn", false)) return;
             if (pkg == null || pkg.equals(getPackageName())) return;
             Notification n = sbn.getNotification();
             if (n == null || (n.flags & Notification.FLAG_GROUP_SUMMARY) != 0) return;
             String label = label(pkg);
-            if (!match(p.getString("ntfKw", DEFAULT_KW), pkg, label)) return;
+            if (!match(p.getString("ntfKw", DEFAULT_KW), pkg, label)) { Log.i("WalletNotif", "banka değil: " + pkg + " / " + label); return; }
             Bundle x = n.extras;
             if (x == null) return;
             CharSequence title = x.getCharSequence(Notification.EXTRA_TITLE);
             CharSequence text = x.getCharSequence(Notification.EXTRA_TEXT);
             CharSequence big = x.getCharSequence(Notification.EXTRA_BIG_TEXT);
             String body = ((title != null ? title + " " : "") + (big != null ? big : (text != null ? text : ""))).replaceAll("\\s+", " ").trim();
-            if (body.length() < 12 || !SmsIn.TX.matcher(body).find()) return;
+            if (body.length() < 12 || !SmsIn.TX.matcher(body).find()) { Log.i("WalletNotif", "tutar yok: " + body.length()); return; }
             long now = System.currentTimeMillis();
             String key = pkg + "|" + body;
             synchronized (recent) {
@@ -47,8 +52,9 @@ public class NotifIn extends NotificationListenerService {
                 while (recent.size() > 60 && it.hasNext()) { it.next(); it.remove(); }
             }
             SmsIn.queue(this, label, body, now, "app");
+            Log.i("WalletNotif", "kuyruğa alındı: " + label);
             MainActivity.notifyJs("window.walletSms&&window.walletSms()");
-        } catch (Exception ignored) { }
+        } catch (Exception e) { Log.w("WalletNotif", "hata", e); }
     }
 
     private String label(String pkg) {

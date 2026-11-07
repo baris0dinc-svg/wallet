@@ -1,6 +1,9 @@
 package app.wallet;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -15,6 +18,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.provider.Settings;
 import android.provider.MediaStore;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
@@ -27,6 +33,7 @@ import android.webkit.WebViewClient;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -34,6 +41,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Iterator;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.lang.ref.WeakReference;
@@ -44,6 +52,9 @@ public class MainActivity extends Activity {
     private static final String HOST = "baris0dinc-svg.github.io";
     private static final String URL_APP = "https://" + HOST + "/wallet/";
     private static final String RATES = "https://finans.truncgil.com/v4/today.json";
+    /** Piyasa verisi alınabilecek siteler (başka adrese istek gönderilmez). */
+    private static final String[] NET_OK = {"isyatirim.com.tr", "finance.yahoo.com", "api.coingecko.com", "finans.truncgil.com", "tefas.gov.tr", "fundturkey.com.tr"};
+    private static final String[] WEB_OK = {"tefas.gov.tr", "fundturkey.com.tr"};
     private static final int FILE_REQ = 7;
     private static final int NOTIF_REQ = 11;
     private static final int SMS_REQ = 12;
@@ -146,6 +157,8 @@ public class MainActivity extends Activity {
         super.onResume();
         live = new WeakReference<>(this);
         if (web != null) web.onResume();
+        // ayarlardan (bildirim erişimi gibi) dönünce izin durumunu yenile
+        js("window.walletPerm&&window.walletPerm()");
     }
 
     @Override
@@ -207,6 +220,32 @@ public class MainActivity extends Activity {
             o.write(text.getBytes(StandardCharsets.UTF_8));
         }
         return u;
+    }
+
+    static boolean hostOk(String host, String[] list) {
+        if (host == null) return false;
+        host = host.toLowerCase();
+        for (String h : list) if (host.equals(h) || host.endsWith("." + h)) return true;
+        return false;
+    }
+
+    private static String readMax(InputStream in, int max) throws Exception {
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        byte[] buf = new byte[8192];
+        int n;
+        while ((n = in.read(buf)) > 0) { b.write(buf, 0, n); if (b.size() > max) break; }
+        return new String(b.toByteArray(), StandardCharsets.UTF_8);
+    }
+
+    private void httpDone(String id, int code, String text) {
+        js("window.walletHttp&&window.walletHttp(" + JSONObject.quote(id) + "," + code + "," + (text == null ? "null" : JSONObject.quote(text)) + ")");
+    }
+
+    static boolean ntfGranted(Context c) {
+        try {
+            String flat = Settings.Secure.getString(c.getContentResolver(), "enabled_notification_listeners");
+            return flat != null && flat.contains(new ComponentName(c, NotifIn.class).flattenToString());
+        } catch (Exception e) { return false; }
     }
 
     /** Web uygulamasının çağırdığı yerel işlevler. */
@@ -453,6 +492,160 @@ public class MainActivity extends Activity {
                     js("window.walletNative&&window.walletNative(" + JSONObject.quote(reqId) + "," + (text == null ? "null" : JSONObject.quote(text)) + ")");
                 }
             }).start();
+        }
+        /** Piyasa verisi: izinli sitelere doğrudan istek (tarayıcıdaki CORS kısıtı olmadan). Sonuç walletHttp ile döner. */
+        @JavascriptInterface
+        public void http(final String reqId, final String url, final String method, final String body, final String hdrs) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    int code = 0;
+                    String text = null;
+                    HttpURLConnection c = null;
+                    try {
+                        URL u = new URL(url);
+                        if (!"https".equals(u.getProtocol()) || !hostOk(u.getHost(), NET_OK)) throw new Exception("izinli değil");
+                        c = (HttpURLConnection) u.openConnection();
+                        c.setConnectTimeout(10000);
+                        c.setReadTimeout(15000);
+                        String ua;
+                        try { ua = WebSettings.getDefaultUserAgent(MainActivity.this); } catch (Exception e) { ua = "Mozilla/5.0 (Linux; Android) Mobile"; }
+                        c.setRequestProperty("User-Agent", ua);
+                        c.setRequestProperty("Accept", "application/json, text/plain, */*");
+                        c.setRequestProperty("Accept-Language", "tr-TR,tr;q=0.9,en;q=0.8");
+                        if (hdrs != null && hdrs.length() > 2) {
+                            JSONObject h = new JSONObject(hdrs);
+                            Iterator<String> it = h.keys();
+                            while (it.hasNext()) { String k = it.next(); c.setRequestProperty(k, h.optString(k)); }
+                        }
+                        if ("POST".equalsIgnoreCase(method)) {
+                            c.setRequestMethod("POST");
+                            c.setDoOutput(true);
+                            try (OutputStream o = c.getOutputStream()) { o.write((body == null ? "" : body).getBytes(StandardCharsets.UTF_8)); }
+                        }
+                        code = c.getResponseCode();
+                        InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
+                        if (in != null) try (InputStream i2 = in) { text = readMax(i2, 4 * 1024 * 1024); }
+                    } catch (Exception ignored) {
+                    } finally {
+                        if (c != null) c.disconnect();
+                    }
+                    httpDone(reqId, code, text);
+                }
+            }).start();
+        }
+
+        /** Tarayıcı doğrulaması isteyen sayfalar (TEFAS gibi) için görünmez bir WebView'da sayfayı açıp metnini okur. */
+        @JavascriptInterface
+        public void webText(final String reqId, final String url, final String need, final int waitMs) {
+            Uri pu = Uri.parse(url);
+            if (!"https".equals(pu.getScheme()) || !hostOk(pu.getHost(), WEB_OK)) { httpDone(reqId, 0, null); return; }
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    final WebView w = new WebView(MainActivity.this);
+                    final Handler h = new Handler(Looper.getMainLooper());
+                    final long until = System.currentTimeMillis() + Math.max(5000, Math.min(waitMs, 40000));
+                    final boolean[] done = {false};
+                    final String[] last = {null};
+                    WebSettings ws = w.getSettings();
+                    ws.setJavaScriptEnabled(true);
+                    ws.setDomStorageEnabled(true);
+                    ws.setBlockNetworkImage(true);
+                    ws.setAllowFileAccess(false);
+                    w.setWebViewClient(new WebViewClient());
+                    w.layout(0, 0, 1080, 2400);
+                    final Runnable[] poll = new Runnable[1];
+                    poll[0] = new Runnable() {
+                        @Override
+                        public void run() {
+                            if (done[0]) return;
+                            w.evaluateJavascript("(function(){var b=document.body;return JSON.stringify({u:location.href,ti:document.title,t:b?b.innerText.slice(0,80000):''});})()", new ValueCallback<String>() {
+                                @Override
+                                public void onReceiveValue(String v) {
+                                    if (done[0]) return;
+                                    String txt = null;
+                                    try { Object o = new JSONTokener(v).nextValue(); if (o instanceof String) txt = (String) o; } catch (Exception ignored) { }
+                                    if (txt != null) last[0] = txt;
+                                    boolean ready = txt != null && need != null && need.length() > 0 && txt.contains(need);
+                                    if (ready || System.currentTimeMillis() > until) {
+                                        done[0] = true;
+                                        httpDone(reqId, ready ? 200 : 0, last[0]);
+                                        try { w.stopLoading(); w.destroy(); } catch (Exception ignored) { }
+                                    } else h.postDelayed(poll[0], 900);
+                                }
+                            });
+                        }
+                    };
+                    w.loadUrl(url);
+                    h.postDelayed(poll[0], 1500);
+                }
+            });
+        }
+
+        /** Bağlantıyı telefonun tarayıcısında ya da ilgili uygulamada açar. */
+        @JavascriptInterface
+        public void openUrl(final String url) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Uri u = Uri.parse(url);
+                        if (!"https".equals(u.getScheme())) return;
+                        startActivity(new Intent(Intent.ACTION_VIEW, u));
+                    } catch (Exception ignored) { }
+                }
+            });
+        }
+
+        /** Metni Claude ya da başka bir uygulamayla paylaşır. */
+        @JavascriptInterface
+        public void shareText(final String text, final String title) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Intent s = new Intent(Intent.ACTION_SEND);
+                    s.setType("text/plain");
+                    s.putExtra(Intent.EXTRA_TEXT, text);
+                    try { startActivity(Intent.createChooser(s, title == null || title.isEmpty() ? "Paylaş" : title)); } catch (Exception ignored) { }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public String copyText(String text) {
+            try {
+                ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                cm.setPrimaryClip(ClipData.newPlainText("Wallet", text));
+                return "ok";
+            } catch (Exception e) { return "err"; }
+        }
+
+        /** Banka uygulaması bildirimleri: erişim durumu, ayar ekranı, aç/kapa ve hangi uygulamalar. */
+        @JavascriptInterface
+        public String ntfState() { return ntfGranted(MainActivity.this) ? "granted" : "default"; }
+
+        @JavascriptInterface
+        public void ntfAsk() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (Build.VERSION.SDK_INT >= 30) {
+                            Intent i = new Intent(Settings.ACTION_NOTIFICATION_LISTENER_DETAIL_SETTINGS);
+                            i.putExtra(Settings.EXTRA_NOTIFICATION_LISTENER_COMPONENT_NAME, new ComponentName(MainActivity.this, NotifIn.class).flattenToString());
+                            startActivity(i);
+                            return;
+                        }
+                    } catch (Exception ignored) { }
+                    try { startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)); } catch (Exception ignored) { }
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void ntfSet(boolean on, String keywords) {
+            prefs(MainActivity.this).edit().putBoolean("ntfOn", on).putString("ntfKw", keywords == null ? "" : keywords).apply();
         }
     }
 }

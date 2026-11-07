@@ -8,14 +8,18 @@ jobs:
         shell: bash {0}
         run: |
           UA="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36"
-          t(){ echo "=== $1"; curl -sS -m 25 -A "$UA" -D /tmp/h -o /tmp/b "${@:2}"; head -1 /tmp/h; grep -i "access-control-allow-origin" /tmp/h || true; head -c ${LEN:-700} /tmp/b; echo; }
-          t yahoo_chart "https://query1.finance.yahoo.com/v8/finance/chart/THYAO.IS?range=5d&interval=1d"
-          t yahoo_chart_q2 "https://query2.finance.yahoo.com/v8/finance/chart/USDTRY=X?range=1d&interval=1h"
-          t yahoo_search "https://query1.finance.yahoo.com/v1/finance/search?q=aselsan&quotesCount=6&newsCount=0"
-          t yahoo_search2 "https://query1.finance.yahoo.com/v1/finance/search?q=tupras&quotesCount=6&newsCount=0"
-          LEN=1500 t tefas_hist -X POST -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "X-Requested-With: XMLHttpRequest" -H "Origin: https://www.tefas.gov.tr" -H "Referer: https://www.tefas.gov.tr/TarihselVeriler.aspx" --data "fontip=YAT&sfontur=&fonkod=AFT&fongrup=&bastarih=01.11.2026&bittarih=06.11.2026&fonturkod=&fonunvantip=&strperiod=1,1,1,1,1,1,1&islemdurum=1" "https://www.tefas.gov.tr/api/DB/BindHistoryInfo"
-          t tefas_page "https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=AFT"
-          t coingecko "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=try,usd&include_24hr_change=true"
-          t coingecko_search "https://api.coingecko.com/api/v3/search?query=solana"
-          t binance "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCTRY"
-          t truncgil "https://finans.truncgil.com/v4/today.json"
+          t(){ echo "=== $1"; curl -sS -m 25 -A "$UA" -D /tmp/h -o /tmp/b "${@:2}"; head -1 /tmp/h; grep -i "access-control-allow-origin" /tmp/h || true; head -c ${LEN:-600} /tmp/b; echo; }
+          t bigpara_tek "https://bigpara.hurriyet.com.tr/api/v1/borsa/hisseyuzeysel/THYAO"
+          t bigpara_liste "https://bigpara.hurriyet.com.tr/api/v1/hisse/list"
+          t isy_tekil "https://www.isyatirim.com.tr/_layouts/15/Isyatirim.Website/Common/Data.aspx/HisseTekil?hisse=THYAO&startdate=01-11-2026&enddate=07-11-2026"
+          t genelpara "https://api.genelpara.com/embed/borsa.json"
+          LEN=300 t gfin "https://www.google.com/finance/quote/THYAO:IST"; grep -o 'data-last-price="[^"]*"' /tmp/b | head -2
+          t stooq "https://stooq.com/q/l/?s=aapl.us&f=sd2t2ohlcv&h&e=json"
+          curl -sS -m 20 -A "$UA" -c /tmp/cj -o /dev/null https://fc.yahoo.com/ ; CR=$(curl -sS -m 20 -A "$UA" -b /tmp/cj https://query2.finance.yahoo.com/v1/test/getcrumb); echo "crumb=$CR"
+          t yahoo_crumb -b /tmp/cj "https://query2.finance.yahoo.com/v7/finance/quote?symbols=THYAO.IS,AAPL&crumb=$CR"
+          t yahoo_chart3 -b /tmp/cj "https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d"
+          t fundturkey -X POST -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "X-Requested-With: XMLHttpRequest" --data "fontip=YAT&fonkod=AFT&bastarih=01.11.2026&bittarih=06.11.2026" "https://www.fundturkey.com.tr/api/DB/BindHistoryInfo"
+          t tefas_cmp -X POST -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "X-Requested-With: XMLHttpRequest" --data "calismatipi=2&fontip=YAT&sfontur=&kurucukod=&fongrup=&bastarih=Başlangıç&bittarih=Bitiş&fonturkod=&fonunvantip=&strperiod=1,1,1,1,1,1,1&islemdurum=1" "https://www.tefas.gov.tr/api/DB/BindComparisonFundReturns"
+          t tefas_root "https://www.tefas.gov.tr/"
+          echo "=== truncgil anahtarlar"; curl -sS -m 25 -A "$UA" https://finans.truncgil.com/v4/today.json | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d));print(sorted(set(v.get('Type') for v in d.values() if isinstance(v,dict))));print([k for k in d][:120])"
+          t cg_markets "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=try&days=30&interval=daily"

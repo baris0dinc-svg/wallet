@@ -1,0 +1,20 @@
+name: Veri kaynağı denemesi
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kaynakları dene
+        run: |
+          UA="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36"
+          t(){ echo "=== $1"; curl -sS -m 25 -A "$UA" -D /tmp/h -o /tmp/b "${@:2}"; head -1 /tmp/h; grep -i "access-control-allow-origin" /tmp/h; head -c ${LEN:-700} /tmp/b; echo; }
+          t yahoo_chart "https://query1.finance.yahoo.com/v8/finance/chart/THYAO.IS?range=5d&interval=1d"
+          t yahoo_chart_q2 "https://query2.finance.yahoo.com/v8/finance/chart/USDTRY=X?range=1d&interval=1h"
+          t yahoo_search "https://query1.finance.yahoo.com/v1/finance/search?q=aselsan&quotesCount=6&newsCount=0"
+          t yahoo_search2 "https://query1.finance.yahoo.com/v1/finance/search?q=tupras&quotesCount=6&newsCount=0"
+          LEN=1500 t tefas_hist -X POST -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "X-Requested-With: XMLHttpRequest" -H "Origin: https://www.tefas.gov.tr" -H "Referer: https://www.tefas.gov.tr/TarihselVeriler.aspx" --data "fontip=YAT&sfontur=&fonkod=AFT&fongrup=&bastarih=01.11.2026&bittarih=06.11.2026&fonturkod=&fonunvantip=&strperiod=1,1,1,1,1,1,1&islemdurum=1" "https://www.tefas.gov.tr/api/DB/BindHistoryInfo"
+          t tefas_page "https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=AFT"
+          t coingecko "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=try,usd&include_24hr_change=true"
+          t coingecko_search "https://api.coingecko.com/api/v3/search?query=solana"
+          t binance "https://api.binance.com/api/v3/ticker/24hr?symbol=BTCTRY"
+          t truncgil "https://finans.truncgil.com/v4/today.json"

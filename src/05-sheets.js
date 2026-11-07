@@ -34,15 +34,17 @@ function render(){
     edgeFade('secbar','secwrap');edgeFade('qa','qawrap');
   }
   document.documentElement.style.setProperty('--hh',hd.offsetHeight+'px');
-  document.getElementById('fab').hidden=!(!ui.page&&(ui.sub==='islem'||ui.sub==='hesap'||(ui.sub==='plan'&&ui.plan==='butce')));
+  document.getElementById('fab').hidden=!(!ui.page&&ui.sub==='islem');
 }
-function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({sub:ui.sub,nv:ui.nv,plan:ui.plan}));}catch(e){}}
+function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({sub:ui.sub,nv:ui.nv,plan:ui.plan,sv:ui.sv,an:ui.an}));}catch(e){}}
 /* eski bölüm adları (Bütçe, Düzenli, Hedefler) Planlama'nın alt sekmelerine gider */
-function mapSec(s){if(PLANS.some(function(x){return x[0]===s;})){ui.plan=s;return 'plan';}return SECS.some(function(x){return x[0]===s;})?s:'islem';}
+function mapSec(s){if(PLANS.some(function(x){return x[0]===s;})){ui.plan=s;return 'plan';}
+  if(s==='portfoy')s='yatirim';if(WEALTH.some(function(x){return x[0]===s;})){ui.sv=s;return 'servet';}
+  return SECS.some(function(x){return x[0]===s;})?s:'islem';}
 function restoreUi(){
   try{var u=JSON.parse(localStorage.getItem(UIKEY)||'{}');
-    if(PLANS.some(function(x){return x[0]===u.plan;}))ui.plan=u.plan;
-    if(u.sub)ui.sub=mapSec(u.sub);else if(u.tab==='portfoy'||u.tab==='notlar')ui.sub=u.tab;
+    if(PLANS.some(function(x){return x[0]===u.plan;}))ui.plan=u.plan;if(WEALTH.some(function(x){return x[0]===u.sv;}))ui.sv=u.sv;if(ANS.some(function(x){return x[0]===u.an;}))ui.an=u.an;
+    if(u.sub)ui.sub=mapSec(u.sub);else if(u.tab)ui.sub=mapSec(u.tab);
     if(u.nv==='arch'||u.nv==='trash')ui.nv=u.nv;}catch(e){}
   var h=(location.hash||'').slice(1);
   ui.page=pageFromHash(h);
@@ -79,15 +81,25 @@ function txSheet(id,force,pre){
   var a0=t?t.acct:(pre.acct&&acc.indexOf(pre.acct)>=0?pre.acct:defAcct(txType));
   var to0=(t&&t.to)||(pre.to&&acc.indexOf(pre.to)>=0&&pre.to!==a0?pre.to:acc.filter(function(a){return a!==a0;})[0]);
   openSheet('<h2>'+esc(t?'İşlemi düzenle':(pre.title||'Yeni işlem'))+'</h2><div class="seg" id="f-type"><button data-act="tx-type" data-v="exp" aria-pressed="'+(txType==='exp')+'">Gider</button><button data-act="tx-type" data-v="inc" aria-pressed="'+(txType==='inc')+'">Gelir</button>'+(canTrf?'<button data-act="tx-type" data-v="trf" aria-pressed="'+trf+'">Transfer</button>':'')+'</div>'
-   +'<div class="field"><label for="f-amt" id="lb-amt">Tutar (₺)</label><input id="f-amt" inputmode="decimal" placeholder="0,00" value="'+(t?nv(t.amt):'')+'"></div>'
-   +'<div class="two"><div class="field" id="row-cat"'+(trf?' hidden':'')+'><label for="f-cat">Kategori</label><select id="f-cat">'+(t&&!trf?optsKeep(cats,t.cat):opts(cats,pre.cat&&cats.indexOf(pre.cat)>=0?pre.cat:lastSel(txType,'cat',cats)))+'</select></div><div class="field"><label for="f-acct" id="lb-acct">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="f-acct">'+acctOpts(a0)+'</select></div><div class="field" id="row-to"'+(trf?'':' hidden')+'><label for="f-to">Giriş hesabı</label><select id="f-to">'+acctOpts(to0)+'</select></div></div>'
+   +'<div class="field"><label for="f-amt" id="lb-amt">Tutar (₺)</label><input id="f-amt" class="amtin" inputmode="decimal" placeholder="0,00" value="'+(t?nv(t.amt):'')+'"></div>'
+   +'<div class="field" id="row-cat"'+(trf?' hidden':'')+'><span class="flbl">Kategori</span><select id="f-cat" hidden aria-hidden="true">'+(t&&!trf?optsKeep(cats,t.cat):opts(cats,pre.cat&&cats.indexOf(pre.cat)>=0?pre.cat:lastSel(txType,'cat',cats)))+'</select><div class="catchips" id="f-catchips" role="group" aria-label="Kategori"></div></div>'
+   +'<div class="two"><div class="field"><label for="f-acct" id="lb-acct">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="f-acct">'+acctOpts(a0)+'</select></div><div class="field" id="row-to"'+(trf?'':' hidden')+'><label for="f-to">Giriş hesabı</label><select id="f-to">'+acctOpts(to0)+'</select></div></div>'
    +'<div class="field" id="row-amt2" hidden><label for="f-amt2" id="lb-amt2">Giriş tutarı</label><input id="f-amt2" inputmode="decimal" placeholder="0,00" value="'+(t&&t.amt2?nv(t.amt2):'')+'"></div>'
-   +'<div class="two"><div class="field"><label for="f-date">Tarih</label><input id="f-date" type="date" value="'+(t?t.date:todayS())+'"></div><div class="field"><label for="f-note">Not</label><input id="f-note" placeholder="İsteğe bağlı" value="'+esc(t?t.note:'')+'"></div></div>'
+   +'<div class="field"><label for="f-date">Tarih</label><div class="datew"><input id="f-date" type="date" value="'+(t?t.date:todayS())+'"><button class="chip" data-act="date-pick" data-v="0">Bugün</button><button class="chip" data-act="date-pick" data-v="1">Dün</button></div></div>'
+   +'<div class="field"><label for="f-note">Not</label><input id="f-note" placeholder="İsteğe bağlı, örn. market alışverişi" value="'+esc(t?t.note:'')+'"></div>'
    +'<div class="balprev" id="f-bal" aria-live="polite"></div><div class="err" id="f-err"></div>'
    +'<button class="btn" data-act="save-tx" data-id="'+(t?t.id:'')+'">Kaydet</button>'+(t?'<button class="btn ghost" data-act="dup-tx" data-id="'+t.id+'">Bugüne kopyala</button>'+delBtn('del-tx',t.id):''));
-  syncCcy();
+  catChips();dateChips();syncCcy();
   if(!t)setTimeout(function(){var e=document.getElementById('f-amt');if(e)e.focus();},60);
 }
+/* kategoriler tek dokunuşla: en çok kullanılanlar önde; gizli seçim kutusuyla eşlenir */
+function catOrder(type,list){var c={},from=new Date(today0());from.setDate(from.getDate()-120);var fs=isoDate(from);S.tx.forEach(function(t){if(t.type===type&&t.date>=fs)c[t.cat]=(c[t.cat]||0)+1;});
+  return list.map(function(x,i){return [x,i];}).sort(function(a,b){return ((c[b[0]]||0)-(c[a[0]]||0))||a[1]-b[1];}).map(function(x){return x[0];});}
+function catChips(){var sel=document.getElementById('f-cat'),box=document.getElementById('f-catchips');if(!sel||!box)return;
+  var list=Array.prototype.map.call(sel.options,function(o){return o.value;}),ord=catOrder(txType,list);
+  box.innerHTML=ord.map(function(c){return '<button class="chip" data-act="cat-pick" data-v="'+esc(c)+'" aria-pressed="'+(sel.value===c)+'"><span class="dot" style="background:'+color(c)+'"></span>'+esc(c)+'</button>';}).join('');}
+function syncCatChips(){var sel=document.getElementById('f-cat');if(!sel)return;document.querySelectorAll('#f-catchips .chip').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===sel.value));});}
+function dateChips(){var d=val('f-date'),t0=todayS(),y=new Date(today0());y.setDate(y.getDate()-1);var ys=isoDate(y);document.querySelectorAll('[data-act="date-pick"]').forEach(function(b){b.setAttribute('aria-pressed',String((b.dataset.v==='0'&&d===t0)||(b.dataset.v==='1'&&d===ys)));});}
 /* işlem penceresinde bakiye önizlemesi: kaydedince hesabın ne olacağı anında görünür */
 function balPreview(){
   var box=document.getElementById('f-bal');if(!box)return;

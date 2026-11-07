@@ -12,6 +12,14 @@ ACT.mnext=function(){ui.month=addMonth(ui.month,1);render();};
 ACT.filter=function(el,id,v){ui.filter=v;render();};
 ACT['acct-clear']=function(){ui.acctF='';render();};
 ACT.plan=function(el,id,v){ui.plan=v;persistUi();render();};
+ACT.sv=function(el,id,v){ui.sv=v;persistUi();render();};
+ACT.an=function(el,id,v){ui.an=v;persistUi();render();};
+ACT['sv-go']=function(el,id,v){goSec(v);};
+ACT['an-go']=function(el,id,v){ui.an=v;goSec('analiz');};
+ACT.alerts=function(){alertSheet();};
+ACT['al-pay']=function(el,id,v){var r=byId(S.recurring,id);if(!r)return;payRec(r,v||curP());if(alertItems().length)alertSheet();else closeSheet();};
+ACT['cat-pick']=function(el,id,v){var s=document.getElementById('f-cat');if(!s)return;s.value=v;s.dataset.manual='1';syncCatChips();};
+ACT['date-pick']=function(el,id,v){var e=document.getElementById('f-date');if(!e)return;var d=new Date(today0());d.setDate(d.getDate()-(+v||0));e.value=isoDate(d);dateChips();};
 ACT['al-all']=function(){ui.alAll=!ui.alAll;render();};
 ACT['trend-pick']=function(el,id,v){ui.trPick=ui.trPick===v?null:v;render();};
 ACT['go-month']=function(el,id,v){ui.month=v;ui.trPick=null;render();};
@@ -40,8 +48,6 @@ ACT['qa-inv']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-inv'
 ACT['qa-save']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-save');birSheet();};
 ACT['qa-asset']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-asset');hSheet(null,'asset');};
 ACT['qa-calc']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-calc');openPage({k:'araclar'},'araclar');};
-ACT['qa-inv-view']=function(){goSec('portfoy');};
-ACT['qa-asset-view']=function(){goSec('portfoy');};
 
 /* işlemler */
 ACT['new-tx']=function(){txSheet();};
@@ -52,12 +58,12 @@ ACT['tx-type']=function(el,id,v){
   var trf=v==='trf';
   document.getElementById('row-cat').hidden=trf;document.getElementById('row-to').hidden=!trf;
   document.getElementById('lb-acct').textContent=trf?'Çıkış hesabı':'Hesap';
-  if(!trf){var c=document.getElementById('f-cat'),cl=v==='exp'?EXPC():INCC(),keep=txOrig&&txOrig.type===v?txOrig.cat:lastSel(v,'cat',cl);c.innerHTML=txOrig&&txOrig.type===v?optsKeep(cl,keep):opts(cl,keep);delete c.dataset.manual;if(!txOrig){var ac=document.getElementById('f-acct'),as=lastSel(v,'acct',ACCS());if(as)ac.value=as;}}
+  if(!trf){var c=document.getElementById('f-cat'),cl=v==='exp'?EXPC():INCC(),keep=txOrig&&txOrig.type===v?txOrig.cat:lastSel(v,'cat',cl);c.innerHTML=txOrig&&txOrig.type===v?optsKeep(cl,keep):opts(cl,keep);delete c.dataset.manual;catChips();if(!txOrig){var ac=document.getElementById('f-acct'),as=lastSel(v,'acct',ACCS());if(as)ac.value=as;}}
   else{var fa=document.getElementById('f-acct'),ft=document.getElementById('f-to');if(ft&&fa&&ft.value===fa.value){var o=ACCS().filter(function(a){return a!==fa.value;})[0];if(o)ft.value=o;}}
   syncCcy();
 };
 ACT['save-tx']=function(el,id){
-  var amt=r2(num(val('f-amt')));if(amt<=0){ferr('Tutarı sıfırdan büyük gir.');return;}
+  var amt=r2(num(val('f-amt')));if(amt<=0){ferr('Tutarı sıfırdan büyük gir.');return;}if(tooBig(amt)||tooBig(num(val('f-amt2')))){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   var d=val('f-date');if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ferr('Tarih seç.');return;}
   var o={type:txType,amt:amt,acct:val('f-acct'),date:d,note:val('f-note').trim()};
   if(ACCS().indexOf(o.acct)<0){ferr('Hesap seç.');return;}
@@ -71,6 +77,7 @@ ACT['save-tx']=function(el,id){
   if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct));
 };
 ACT['save-mv']=function(el,id){var t=byId(S.tx,id);if(!t)return;var amt=r2(num(val('m-amt')));
+  if(tooBig(amt)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   if(t.type==='adj'?amt===0:amt<=0){ferr(t.type==='adj'?'Tutar sıfır olamaz.':'Tutarı sıfırdan büyük gir.');return;}var d=val('m-date');if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ferr('Tarih seç.');return;}
   if(t.acct!==val('m-acct'))delete t.fx;t.amt=amt;t.acct=val('m-acct');t.date=d;t.note=val('m-note').trim();delete t.sample;if(pk(d)!==ui.month)ui.month=pk(d);save();closeSheet();render();};
 var toastT=null;
@@ -92,7 +99,7 @@ ACT['acct-rec']=function(el,id){recSheet(id);};
 ACT['acct-all']=function(el,id){ui.acctF=id;ui.filter='all';ui.tq='';goSec('islem');};
 ACT['rc-mode']=function(el){el.setAttribute('aria-checked',String(el.getAttribute('aria-checked')!=='true'));};
 ACT['rc-save']=function(el,a){
-  if(ACCS().indexOf(a)<0)return;var real=r2(num(val('rc-amt'))),cur=acctBal(a),diff=r2(real-cur);
+  if(ACCS().indexOf(a)<0)return;var real=r2(num(val('rc-amt'))),cur=acctBal(a),diff=r2(real-cur);if(tooBig(real)||tooBig(diff)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   if(Math.abs(diff)<0.005){closeSheet();toast('Bakiye zaten doğru');return;}
   var asTx=document.getElementById('rc-mode').getAttribute('aria-checked')==='true',t={id:uid(),acct:a,date:todayS(),note:'Bakiye eşitleme'};
   if(asTx){t.type=diff<0?'exp':'inc';t.amt=Math.abs(diff);t.cat=diff<0?(EXPC().indexOf('Diğer')>=0?'Diğer':EXPC()[EXPC().length-1]):(INCC().indexOf('Diğer gelir')>=0?'Diğer gelir':INCC()[INCC().length-1]);}
@@ -106,7 +113,7 @@ ACT['save-a']=function(el,id){
   if(badName(nm)||(nm!==id&&ACCS().indexOf(nm)>-1)){ferr('Bu ad kullanılamaz ya da zaten var.');return;}
   var type=val('a-type'),dueS=val('a-due').trim(),due=parseInt(dueS,10),lim=r2(num(val('a-limit')));
   if(type==='kart'&&dueS&&!(due>=1&&due<=31)){ferr('Son ödeme günü 1 ile 31 arasında olmalı.');return;}
-  var op=r2(num(val('a-open'))),cs=document.getElementById('a-ccy');
+  var op=r2(num(val('a-open'))),cs=document.getElementById('a-ccy');if(tooBig(op)||tooBig(lim)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   if(ex&&nm!==id)renameAcct(id,nm);else if(!ex)S.accounts.push(nm);
   var x=S.accx[nm]=S.accx[nm]||{};x.type=type;
   if(cs&&!acctUsed(nm))x.ccy=cs.value;
@@ -126,6 +133,7 @@ ACT['save-h']=function(el,id,v){
   else{var q=num(val('h-qty'));if(q<=0){ferr('Miktarı gir.');return;}var co=num(val('h-cost')),cc=val('h-ccy');if(co<0||num(val('h-price'))<0){ferr('Maliyet ve fiyat eksi olamaz.');return;}if(co<=0&&!cc&&num(val('h-price'))<=0){ferr('Maliyet ya da güncel fiyat gir.');return;}
     h={name:nm,type:val('h-type'),kind:'inv',ccy:cc,qty:q,cost:co||(cc?rateOf(cc):num(val('h-price'))),price:num(val('h-price'))||co||rateOf(cc)};}
   var acct=val('h-acct');
+  if(tooBig(h.qty*h.cost)||tooBig(h.qty*h.price)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   if(!x&&acct&&!(r2(fromTL(h.qty*h.cost,acct))>0)){ferr(rateOf(ccyOf(acct))>0?'Tutar bu hesabın para biriminde çok küçük.':'Hesabın kuru yok; önce kurları güncelle.');return;}
   if(x){Object.assign(x,h);delete x.sample;}else{h.id=uid();S.holdings.push(h);
     if(acct&&ACCS().indexOf(acct)>=0&&r2(fromTL(h.qty*h.cost,acct))>0){var tl=h.qty*h.cost;S.tx.push({id:uid(),type:'inv',side:'buy',hold:h.id,hname:h.name,qty:h.qty,amt:r2(fromTL(tl,acct)),acct:acct,date:todayS(),note:''});}}
@@ -138,7 +146,7 @@ ACT.trade=function(el,id,side){
   if(!(q>0)){ferr('Miktarı gir.');return;}if(!(p>0)){ferr(ast?'Satış tutarını gir.':'Birim fiyatı gir.');return;}
   if(side==='sell'&&q>x.qty+1e-9){ferr('Elindekinden fazla satamazsın ('+NUM2.format(x.qty)+').');return;}
   if(acct&&!(rateOf(ccyOf(acct))>0)){ferr('Hesabın kuru yok; önce kurları güncelle.');return;}
-  var tl=q*p;if(acct&&!(r2(fromTL(tl,acct))>0)){ferr('Tutar bu hesabın para biriminde çok küçük.');return;}
+  var tl=q*p;if(tooBig(tl)||tooBig((x.qty+q)*x.cost)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}if(acct&&!(r2(fromTL(tl,acct))>0)){ferr('Tutar bu hesabın para biriminde çok küçük.');return;}
   if(side==='buy'){x.cost=(x.qty*x.cost+tl)/(x.qty+q);x.qty=x.qty+q;if(!x.ccy)x.price=p;}
   else{var pl=r2((p-x.cost)*q);S.realized.push({id:uid(),name:x.name,qty:q,pl:pl,date:d});x.qty=x.qty-q;if(!x.ccy)x.price=p;
     if(x.qty<=1e-9)S.holdings=S.holdings.filter(function(h){return h.id!==x.id;});}
@@ -151,7 +159,7 @@ ACT.trade=function(el,id,side){
 /* borçlar */
 ACT['new-d']=function(){dSheet();};ACT['edit-d']=function(el,id){dSheet(id);};
 ACT['save-d']=function(el,id){
-  var n=val('d-name').trim(),a=r2(num(val('d-amt')));if(!n){ferr('Bir ad yaz.');return;}if(a<=0){ferr('Tutarı gir.');return;}
+  var n=val('d-name').trim(),a=r2(num(val('d-amt')));if(!n){ferr('Bir ad yaz.');return;}if(a<=0){ferr('Tutarı gir.');return;}if(tooBig(a)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   var o={name:n,type:val('d-type'),amt:a};
   if(id){var d0=byId(S.debts,id);Object.assign(d0,o);delete d0.sample;}
   else{o.id=uid();S.debts.push(o);var acct=val('d-acct');if(acct&&ACCS().indexOf(acct)>=0&&r2(fromTL(a,acct))>0)S.tx.push({id:uid(),type:'dbt',side:'in',debt:o.id,dname:n,amt:r2(fromTL(a,acct)),acct:acct,date:todayS(),note:''});}
@@ -159,7 +167,7 @@ ACT['save-d']=function(el,id){
 };
 ACT['pay-d']=function(el,id){
   var d=byId(S.debts,id);if(!d)return;var p=r2(num(val('dp-amt'))),it=r2(num(val('dp-int'))),acct=val('dp-acct'),dt=val('dp-date')||todayS();
-  if(p<=0&&it<=0){msg('Ödeme tutarını gir.',false,'f-err2');return;}
+  if(p<=0&&it<=0){msg('Ödeme tutarını gir.',false,'f-err2');return;}if(tooBig(p)||tooBig(it)){msg('Tutar çok büyük.',false,'f-err2');return;}
   var left=debtLeft(d);if(p>left+0.005){msg('Anapara kalan borçtan ('+TRY0.format(left)+') fazla olamaz.',false,'f-err2');return;}
   if(ACCS().indexOf(acct)<0||!(rateOf(ccyOf(acct))>0)){msg('Ödeme hesabını seç.',false,'f-err2');return;}
   if((p>0&&!(r2(fromTL(p,acct))>0))||(it>0&&!(r2(fromTL(it,acct))>0))){msg('Tutar bu hesabın para biriminde çok küçük.',false,'f-err2');return;}
@@ -172,7 +180,7 @@ ACT['del-d']=function(el,id){if(!armed(el))return;S.debts=S.debts.filter(functio
 /* hedefler */
 ACT['new-g']=function(){gSheet();};ACT['edit-g']=function(el,id){gSheet(id);};
 ACT['save-g']=function(el,id){
-  var gn=val('g-name').trim(),gt=num(val('g-target'));if(!gn){ferr('Bir ad yaz.');return;}if(gt<=0){ferr('Hedef tutarı gir.');return;}
+  var gn=val('g-name').trim(),gt=num(val('g-target'));if(!gn){ferr('Bir ad yaz.');return;}if(gt<=0){ferr('Hedef tutarı gir.');return;}if(tooBig(gt)||tooBig(num(val('g-saved')))){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   var ga=val('g-acct'),go={name:gn,target:r2(gt),saved:r2(num(val('g-saved'))),date:val('g-date'),acct:ACCS().indexOf(ga)>=0?ga:''};
   if(id){var g0=byId(S.goals,id);Object.assign(g0,go);delete g0.sample;}else{go.id=uid();S.goals.push(go);}
   save();closeSheet();render();
@@ -180,7 +188,7 @@ ACT['save-g']=function(el,id){
 ACT['del-g']=function(el,id){if(!armed(el))return;S.goals=S.goals.filter(function(x){return x.id!==id;});save();closeSheet();render();};
 ACT['goal-add']=function(el,id){gaddSheet(id);};
 ACT['ga-save']=function(el,id){
-  var g=byId(S.goals,id);if(!g)return;var a=r2(num(val('ga-amt')));if(a<=0){ferr('Tutarı gir.');return;}
+  var g=byId(S.goals,id);if(!g)return;var a=r2(num(val('ga-amt')));if(a<=0){ferr('Tutarı gir.');return;}if(tooBig(a)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   if(g.acct&&ACCS().indexOf(g.acct)>=0){var from=val('ga-from');if(ACCS().indexOf(from)<0||from===g.acct){ferr('Başka bir hesap seç.');return;}
     var t={id:uid(),type:'trf',amt:r2(fromTL(a,from)),acct:from,to:g.acct,cat:'Transfer',date:todayS(),note:g.name+' hedefine'};if(ccyOf(from)!==ccyOf(g.acct))t.amt2=r2(fromTL(a,g.acct));if(!(t.amt>0)){ferr('Hesabın kuru yok.');return;}S.tx.push(t);}
   else g.saved=r2((+g.saved||0)+a);
@@ -191,16 +199,18 @@ ACT['ga-save']=function(el,id){
 ACT['new-r']=function(){rSheet();};ACT['edit-r']=function(el,id){rSheet(id);};
 ACT['save-r']=function(el,id){
   var rn=val('r-name').trim(),ra=r2(num(val('r-amt'))),rd=Math.round(num(val('r-day')));
-  if(!rn){ferr('Bir ad yaz.');return;}if(ra<=0){ferr('Tutarı gir.');return;}if(rd<1||rd>31){ferr('Gün 1 ile 31 arasında olmalı.');return;}
+  if(!rn){ferr('Bir ad yaz.');return;}if(ra<=0){ferr('Tutarı gir.');return;}if(tooBig(ra)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}if(rd<1||rd>31){ferr('Gün 1 ile 31 arasında olmalı.');return;}
   var ro={name:rn,amt:ra,day:rd,cat:val('r-cat'),acct:val('r-acct')},db=val('r-debt');
   if(id){var r0=byId(S.recurring,id);Object.assign(r0,ro);if(db)r0.debt=db;else delete r0.debt;delete r0.sample;}else{ro.id=uid();ro.paid={};if(db)ro.debt=db;S.recurring.push(ro);}
   save();closeSheet();render();
 };
 ACT['del-r']=function(el,id){if(!armed(el))return;S.recurring=S.recurring.filter(function(x){return x.id!==id;});save();closeSheet();render();};
-ACT.rpay=function(el,id){var r=byId(S.recurring,id);if(!r)return;var d=r.debt&&byId(S.debts,r.debt),tx;
-  if(d&&debtLeft(d)>0)tx={id:uid(),type:'dbt',side:'out',debt:d.id,dname:d.name,amt:r.amt,acct:r.acct,note:r.name,date:dueDate(r,ui.month)};
-  else tx={id:uid(),type:'exp',amt:r.amt,cat:r.cat,acct:r.acct,note:r.name,date:dueDate(r,ui.month)};
-  S.tx.push(tx);r.paid=r.paid||{};r.paid[ui.month]=tx.id;save();render();toast(r.name+' ödendi · '+r.acct+': '+moneyIn(acctBal(r.acct),r.acct));};
+/* düzenli ödemeyi bir dönem için öde: işlem eklenir, bakiye düşer (borca bağlıysa borçtan düşer) */
+function payRec(r,k){var d=r.debt&&byId(S.debts,r.debt),tx;
+  if(d&&debtLeft(d)>0)tx={id:uid(),type:'dbt',side:'out',debt:d.id,dname:d.name,amt:r.amt,acct:r.acct,note:r.name,date:dueDate(r,k)};
+  else tx={id:uid(),type:'exp',amt:r.amt,cat:r.cat,acct:r.acct,note:r.name,date:dueDate(r,k)};
+  S.tx.push(tx);r.paid=r.paid||{};r.paid[k]=tx.id;save();render();toast(r.name+' ödendi · '+r.acct+': '+moneyIn(acctBal(r.acct),r.acct));}
+ACT.rpay=function(el,id){var r=byId(S.recurring,id);if(r)payRec(r,ui.month);};
 ACT.rundo=function(el,id){var r=byId(S.recurring,id);if(r&&r.paid){var pid=r.paid[ui.month];S.tx=S.tx.filter(function(x){return x.id!==pid;});delete r.paid[ui.month];save();render();}};
 
 /* notlar */
@@ -473,6 +483,7 @@ document.addEventListener('change',function(e){
   if(t.id==='fi-tccy'){var old=S.fire.tccy,nwc=t.value,tv=+S.fire.target;if(tv>0&&rateOf(old)>0&&rateOf(nwc)>0)S.fire.target=r2(tv*rateOf(old)/rateOf(nwc));S.fire.tccy=nwc;save();render();return;}
   if(t.id==='c-from'||t.id==='c-to'){ui[t.id==='c-from'?'cfrom':'cto']=t.value;var co=document.getElementById('calc-out');if(co)co.innerHTML=calcOut();return;}
   if(t.id==='f-acct'||t.id==='f-to'){syncCcy();}
+  if(t.id==='f-date')dateChips();
   if(t.id==='r-acct'){var lr=document.getElementById('lb-ramt');if(lr)lr.textContent='Tutar ('+CSYM[ccyOf(t.value)]+')';}
   if(t.id==='h-ccy'||t.id==='h-acct')syncH();
   if(t.id==='g-acct')syncG();
@@ -487,9 +498,9 @@ document.addEventListener('change',function(e){
     if(d.bind.indexOf('fx.')===0){S.fxTs=Date.now();if(S.fxChg)delete S.fxChg[d.bind.slice(3)];}
     save();render();return;
   }
-  if(d.budget!==undefined){var n=r2(num(t.value));if(n>0)S.budgets[d.budget]=n;else delete S.budgets[d.budget];S.sampleExtras=false;save();render();}
+  if(d.budget!==undefined){var n=r2(num(t.value));if(tooBig(n))n=0;if(n>0)S.budgets[d.budget]=n;else delete S.budgets[d.budget];S.sampleExtras=false;save();render();}
   else if(d.price!==undefined){var h=byId(S.holdings,d.price),pv=num(t.value);if(h&&pv>=0){h.price=pv;delete h.sample;save();render();}}
-  else if(t.id==='f-cat'){t.dataset.manual='1';}
+  else if(t.id==='f-cat'){t.dataset.manual='1';syncCatChips();}
   else if(t.id==='im-file'||t.id==='rs-file'){var f=t.files&&t.files[0],ta=document.getElementById(t.id==='im-file'?'im-txt':'rs-txt'),nm=document.getElementById(t.id+'-name');
     if(f){if(nm)nm.textContent=f.name;var fr=new FileReader();fr.onload=function(){if(ta)ta.value=String(fr.result||'');};fr.onerror=function(){if(nm)nm.textContent='Dosya okunamadı.';};fr.readAsText(f);}}
 });
@@ -507,7 +518,7 @@ document.addEventListener('input',function(e){
   else if(t.id==='f-note'&&txType!=='trf'){
     var txt=fold(t.value),sel=document.getElementById('f-cat');
     if(sel&&!sel.dataset.manual){var r=S.rules.filter(function(x){return x.kw&&txt.indexOf(fold(x.kw))>-1;})[0];
-      if(r&&Array.prototype.some.call(sel.options,function(o){return o.value===r.cat;}))sel.value=r.cat;}
+      if(r&&Array.prototype.some.call(sel.options,function(o){return o.value===r.cat;})){sel.value=r.cat;syncCatChips();}}
   }
 });
 /* net servet grafiğinde dokunma ve parmak kaydırma */

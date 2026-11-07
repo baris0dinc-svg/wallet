@@ -62,7 +62,7 @@ function catChanges(){
   if(!cats.length)return '<div class="small muted">Bu dönemde ve önceki 3 dönemde harcama yok.</div>';
   var mx=Math.max.apply(null,cats.map(function(c){return Math.max(cur[c]||0,avg[c]||0);}))||1;
   return '<div class="list">'+cats.slice(0,10).map(function(c){var v=cur[c]||0,a=avg[c]||0,d=a>0?(v-a)/a*100:null;
-    return '<button class="crow" data-act="cat-tx" data-v="'+esc(c)+'"><div class="crt"><span class="dot" style="background:'+color(c)+'"></span><span class="mid ell">'+esc(c)+'</span><b class="num">'+DC0.format(v)+'</b>'+(d==null?'<span class="small muted cchg">yeni</span>':'<span class="small cchg '+(d>10?'exp':(d<-10?'inc':'muted'))+'">'+(d>=0?'▲':'▼')+'%'+Math.round(Math.abs(d))+'</span>')+'</div><div class="cbar"><i style="width:'+(v/mx*100)+'%;background:'+color(c)+'"></i><s style="left:'+(a/mx*100)+'%"></s></div></button>';}).join('')+'</div><p class="small muted" style="margin:8px 0 0">Çizgi önceki 3 dönemin ortalamasıdır. Bir kategoriye dokunarak işlemlerini gör.</p>';
+    return '<button class="crow" data-act="cat-tx" data-v="'+esc(c)+'"><div class="crt"><span class="dot" style="background:'+color(c)+'"></span><span class="mid ell">'+esc(c)+'</span><b class="num">'+DC0.format(v)+'</b>'+(d==null?'<span class="small muted cchg">yeni</span>':'<span class="small cchg '+(d>10?'exp':(d<-10?'inc':'muted'))+'">'+(d>=0?'▲':'▼')+'%'+Math.round(Math.abs(d))+'</span>')+'</div><div class="cbar"><i style="width:'+(v/mx*100)+'%;background:'+color(c)+'"></i><s style="left:'+(a/mx*100)+'%"></s></div></button>';}).join('')+'</div><p class="small muted" style="margin:8px 0 0">Çizgi: önceki 3 dönemin ortalaması.</p>';
 }
 var WDN=['pazartesi','salı','çarşamba','perşembe','cuma','cumartesi','pazar'];
 function weekdayCard(){
@@ -111,31 +111,40 @@ function insights(){
   return '<div class="card"><h2>Öne çıkanlar</h2><div class="list">'+out.slice(0,6).map(function(x){return '<div class="item"><span class="dot" style="background:var(--'+(x[0]==='muted'?'ink2':x[0])+')"></span><span class="mid"><div class="wrap-t">'+esc(x[1])+'</div></span></div>';}).join('')+'</div></div>';
 }
 function analizBody(){
-  var W=wealth(),k=ui.month,m=monthTx(k);
-  var big=m.filter(function(t){return t.type==='exp';}).sort(function(a,b){return txTL(b)-txTL(a);}).slice(0,5);
-  var byA={};m.forEach(function(t){if(t.type==='exp')byA[t.acct]=(byA[t.acct]||0)+txTL(t);});
-  var h=monthNav()+(k===curP()?insights():'')+healthCard()+flowCard();
-  h+='<div class="card"><div class="ghead" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Gelir ve gider trendi</h2><div class="seg mini" role="group" aria-label="Süre"><button data-act="trn" data-v="6" aria-pressed="'+(ui.tr===6)+'">6 ay</button><button data-act="trn" data-v="12" aria-pressed="'+(ui.tr===12)+'">12 ay</button></div></div>'+trendSvg(ui.tr)+'</div>';
-  h+='<div class="card"><h2>Kategoriler</h2>'+catChanges()+'</div>';
-  var sbc=spentByCat(k);h+='<div class="card"><h2>Harcama dağılımı</h2>'+donut(Object.keys(sbc).map(function(c){return [c,sbc[c]];}),'Bu dönemde harcama yok.','cat-tx')+'</div>';
-  if(big.length)h+='<div class="card" style="padding-top:12px"><h2>En büyük harcamalar</h2><div class="list">'+big.map(txRow).join('')+'</div></div>';
-  var ak=Object.keys(byA);if(ak.length>1)h+='<div class="card"><h2>Hesaplara göre harcama</h2>'+donut(ak.map(function(a){return [a,byA[a]];}),'')+'</div>';
-  h+=weekdayCard()+nwHistCard();
+  var v=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet',W=wealth(),k=ui.month,m=monthTx(k),h=segTabs(ANS,v,'an','Analiz');
+  if(v==='ozet'){
+    h+=monthNav()+(k===curP()?insights():'')+healthCard()+flowCard();
+    h+='<div class="card"><div class="ghead" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Gelir ve gider</h2><div class="seg mini" role="group" aria-label="Süre"><button data-act="trn" data-v="6" aria-pressed="'+(ui.tr===6)+'">6 ay</button><button data-act="trn" data-v="12" aria-pressed="'+(ui.tr===12)+'">12 ay</button></div></div>'+trendSvg(ui.tr)+'</div>';
+    return h;
+  }
+  if(v==='harcama'){
+    var big=m.filter(function(t){return t.type==='exp';}).sort(function(a,b){return txTL(b)-txTL(a);}).slice(0,5);
+    var byA={};m.forEach(function(t){if(t.type==='exp')byA[t.acct]=(byA[t.acct]||0)+txTL(t);});
+    h+=monthNav()+'<div class="card"><h2>Kategoriler</h2>'+catChanges()+'</div>';
+    var sbc=spentByCat(k);h+='<div class="card"><h2>Dağılım</h2>'+donut(Object.keys(sbc).map(function(c){return [c,sbc[c]];}),'Bu dönemde harcama yok.','cat-tx')+'</div>';
+    if(big.length)h+='<div class="card" style="padding-top:12px"><h2>En büyük harcamalar</h2><div class="list">'+big.map(txRow).join('')+'</div></div>';
+    var ak=Object.keys(byA);if(ak.length>1)h+='<div class="card"><h2>Hesaplara göre</h2>'+donut(ak.map(function(a){return [a,byA[a]];}),'')+'</div>';
+    return h+weekdayCard();
+  }
+  h+=nwHistCard()+fireCard();
   h+='<div class="card"><h2>Varlık dağılımı</h2>'+donut(W.items,'Henüz varlık yok.')+'<div class="small num muted" style="margin-top:8px">Toplam '+DC0.format(W.assets)+'</div></div>';
-  h+='<div class="card"><h2>Borç dağılımı</h2>'+donut(W.debts,'Borç kaydı yok.')+'<div class="small num muted" style="margin-top:8px">Toplam '+DC0.format(W.debt)+'</div></div>';
-  if(S.realized.length){var rp=S.realized.reduce(function(a,x){return a+(+x.pl||0);},0);h+='<div class="card"><h2>Gerçekleşen yatırım kâr/zararı</h2><p class="big '+(rp>=0?'inc':'exp')+'" style="font-size:1.5rem">'+sgnD(rp)+'</p><div class="small muted">'+S.realized.length+' satış işleminden</div></div>';}
-  return h+fireCard();
+  if(W.debts.length)h+='<div class="card"><h2>Borç dağılımı</h2>'+donut(W.debts,'Borç kaydı yok.')+'<div class="small num muted" style="margin-top:8px">Toplam '+DC0.format(W.debt)+'</div></div>';
+  if(S.realized.length){var rp=S.realized.reduce(function(a,x){return a+(+x.pl||0);},0);h+='<div class="card"><h2>Gerçekleşen yatırım kâr/zararı</h2><p class="big '+(rp>=0?'inc':'exp')+'" style="font-size:1.5rem">'+sgnD(rp)+'</p><div class="small muted">'+S.realized.length+' satıştan</div></div>';}
+  return h;
 }
 
 /* ---------- Portföy ---------- */
 function rateTile(l,v,c){return '<span class="rt"><span class="lbl">'+l+'</span><span class="num">'+fx1(v)+'</span>'+(v>0&&c!=null&&isFinite(c)?'<span class="small num '+(c>=0?'inc':'exp')+'">'+(c>=0?'+':'−')+'%'+NUM2.format(Math.abs(c))+'</span>':'')+'</span>';}
 function fmtTs(t){return new Date(t).toLocaleString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});}
 function qtyTxt(x){var q=NUM2.format(x.qty);return {XAU:q+' gr',XAG:q+' gr',CEY:q+' adet',USD:'$'+q,EUR:'€'+q,GBP:'£'+q,CHF:'CHF '+q}[x.ccy]||q+' adet';}
-function debtsCard(){
-  var tot=debtManual();
-  return '<div class="card stack" style="gap:10px"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><h2 style="margin:0">Borçlar</h2><span class="num exp">'+TRY0.format(tot)+'</span></div>'
-   +(S.debts.length?'<div class="list">'+S.debts.map(function(d){var l=debtLeft(d),p=d.amt>0?clamp((d.amt-l)/d.amt*100,0,100):0;return '<button class="item" data-act="edit-d" data-id="'+d.id+'"><span class="dot" style="background:'+color(d.name)+'"></span><span class="mid"><div class="t">'+esc(d.name)+'</div><div class="small muted">'+esc(d.type)+(p>0?' · %'+Math.round(p)+' ödendi':'')+'</div></span>'+(l>0?'<span class="num exp">'+TRY0.format(l)+'</span>':'<span class="pill ok">Bitti</span>')+'</button>';}).join('')+'</div>':'<div class="small muted">Kredi, taksit ya da kişisel borçlarını ekle.</div>')
-   +'<button class="btn ghost" data-act="new-d">Borç ekle</button><p class="small muted" style="margin:0">Borca dokunarak ödeme yapabilirsin; ödeme hesabından düşer, borç azalır. Kredi kartı borçları Hesaplar bölümünde görünür.</p></div>';
+function borcBody(){
+  var tot=debtManual(),cards=ACCS().filter(function(a){return acctType(a)==='kart'&&acctBal(a)<0;}),cd=r2(cards.reduce(function(x,a){return x+toTL(-acctBal(a),a);},0));
+  var h='<div class="card"><div class="lbl">Toplam borç</div><p class="big exp">'+TRY0.format(tot+cd)+'</p>'+(cd>0?'<div class="small muted">Kredi kartları '+TRY0.format(cd)+' · krediler ve diğer '+TRY0.format(tot)+'</div>':'')+'</div>';
+  h+='<button class="btn" data-act="new-d">Borç ekle</button>';
+  if(S.debts.length)h+='<div class="card" style="padding-top:6px"><div class="list">'+S.debts.map(function(d){var l=debtLeft(d),p=d.amt>0?clamp((d.amt-l)/d.amt*100,0,100):0;return '<button class="item" data-act="edit-d" data-id="'+d.id+'"><span class="dot" style="background:'+color(d.name)+'"></span><span class="mid"><div class="t">'+esc(d.name)+'</div><div class="bar" style="margin:6px 0 2px"><i style="width:'+p+'%"></i></div><div class="small muted">'+esc(d.type)+' · %'+Math.round(p)+' ödendi</div></span>'+(l>0?'<span class="num exp">'+TRY0.format(l)+'</span>':'<span class="pill ok">Bitti</span>')+'</button>';}).join('')+'</div></div>';
+  else h+='<div class="empty">Kredi, taksit ya da kişisel borç yok. Eklersen ödemeler hesabından düşer, borç azalır.</div>';
+  if(cards.length)h+='<div class="card" style="padding-top:12px"><h2>Kredi kartları</h2><div class="list">'+cards.map(acctLine).join('')+'</div></div>';
+  return h;
 }
 function holdCard(x){
   var p=hVal(x)-hCost(x),pp=hCost(x)?p/hCost(x)*100:0,linked=x.ccy&&+S.fx[x.ccy]>0,ast=hKind(x)==='asset';
@@ -143,19 +152,22 @@ function holdCard(x){
    +(linked?'':'<label class="pin-in"><span class="small muted">Güncel '+(ast?'değer':'fiyat')+' (₺)</span><input inputmode="decimal" data-price="'+x.id+'" value="'+nv(x.price)+'" aria-label="'+esc(x.name)+' güncel '+(ast?'değer':'fiyat')+' (₺)"></label>')
    +'<div class="hrow"><span class="num small '+(p>=0?'inc':'exp')+'">'+sgn(p)+(hCost(x)?' ('+(pp>=0?'+':'−')+'%'+NUM2.format(Math.abs(pp))+')':'')+'</span><span class="hbtn">'+(ast?'':'<button class="btn small ghost" data-act="h-buy" data-id="'+x.id+'">Al</button>')+'<button class="btn small ghost" data-act="h-sell" data-id="'+x.id+'">Sat</button></span></div></div>';
 }
-function vPortfoy(){
-  var pf=pfTotals('inv'),pa=pfTotals('asset'),pl=pf.v-pf.c,plp=pf.c?pl/pf.c*100:0,h='',dist='',inv=S.holdings.filter(function(x){return hKind(x)==='inv';}),ast=S.holdings.filter(function(x){return hKind(x)==='asset';});
+function rateCard(){var ch=S.fxChg||{},bi=S.mkt&&S.mkt.BIST;
+  return '<button class="card ratecard" data-act="open-set" data-id="kurlar"><span class="rgrid">'+rateTile('USD/TL',S.fx.USD,ch.USD)+rateTile('EUR/TL',S.fx.EUR,ch.EUR)+rateTile('Gram altın',S.fx.XAU,ch.XAU)+rateTile('BIST 100',bi?bi.price:0,bi?bi.chg:null)+'</span><span class="small muted" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>'+(S.fxTs?'Güncelleme: '+esc(fmtTs(S.fxTs)):'Kur verisi henüz yok')+'</span><span>Tüm kurlar ›</span></span></button>';}
+function yatirimBody(){
+  var pf=pfTotals('inv'),pl=pf.v-pf.c,plp=pf.c?pl/pf.c*100:0,h='',dist='',inv=S.holdings.filter(function(x){return hKind(x)==='inv';});
   if(pf.v>0){var by={};inv.forEach(function(x){by[x.type]=(by[x.type]||0)+hVal(x);});var ks=Object.keys(by).sort(function(a,b){return by[b]-by[a];});
     dist='<div class="stackbar" style="margin-top:14px">'+ks.map(function(k,i){return '<i style="width:'+(by[k]/pf.v*100)+'%;background:'+dcol(i)+'"></i>';}).join('')+'</div><div class="legend">'+ks.map(function(k,i){return '<span style="--c:'+dcol(i)+'">'+esc(k)+' %'+NUM2.format(by[k]/pf.v*100)+'</span>';}).join('')+'</div>';}
-  h+='<div class="card hero"><div class="lbl">Yatırımlarının değeri</div><p class="big">'+TRY0.format(pf.v)+'</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">'+TRY0.format(pf.c)+'</span></div><div><div class="lbl">Kâr / zarar</div><span class="num">'+sgn(pl)+'</span><div class="small '+(plp>=0?'inc':'exp')+'">'+(plp>=0?'+':'−')+'%'+NUM2.format(Math.abs(plp))+'</div></div></div>'+dist+'</div>';
-  h+='<div class="two"><button class="btn" data-act="new-h" data-v="inv">Yatırım ekle</button><button class="btn ghost" data-act="new-h" data-v="asset">Varlık ekle</button></div>';
-  if(!inv.length)h+='<div class="empty">Henüz yatırım yok. Hisse, fon, altın, gümüş, döviz, kripto ya da mevduat ekleyebilirsin.</div>';
-  else h+=inv.map(holdCard).join('');
-  h+='<h2 style="margin:6px 2px -4px">Diğer varlıklar'+(pa.v>0?' · '+TRY0.format(pa.v):'')+'</h2>';
-  h+=ast.length?ast.map(holdCard).join(''):'<div class="small muted" style="padding:0 2px">Ev, araba gibi varlıklarını ekleyerek net servetine kat.</div>';
-  var ch=S.fxChg||{},bi=S.mkt&&S.mkt.BIST;
-  h+='<button class="card ratecard" data-act="open-set" data-id="kurlar"><span class="rgrid">'+rateTile('USD/TL',S.fx.USD,ch.USD)+rateTile('EUR/TL',S.fx.EUR,ch.EUR)+rateTile('Gram altın',S.fx.XAU,ch.XAU)+rateTile('BIST 100',bi?bi.price:0,bi?bi.chg:null)+'</span><span class="small muted" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>'+(S.fxTs?'Güncelleme: '+esc(fmtTs(S.fxTs)):'Kur verisi henüz yok')+'</span><span>Tüm kurlar ›</span></span></button>';
-  return h+debtsCard()+(S.holdings.length?'<p class="small muted">Kura bağlı varlıklar (döviz, altın, gümüş) kendiliğinden güncellenir. Diğerlerinin güncel fiyatını kutuya yazınca değer ve kâr/zarar yenilenir. Al/Sat ile işlem yaparsan seçtiğin hesabın bakiyesi de değişir.</p>':'');
+  h+='<div class="card"><div class="lbl">Yatırımlarının değeri</div><p class="big">'+TRY0.format(pf.v)+'</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">'+TRY0.format(pf.c)+'</span></div><div><div class="lbl">Kâr / zarar</div><span class="num '+(pl>=0.5?'inc':(pl<=-0.5?'exp':''))+'">'+sgn(pl)+'</span>'+(pf.c?'<div class="small '+(plp>=0?'inc':'exp')+'">'+(plp>=0?'+':'−')+'%'+NUM1.format(Math.abs(plp))+'</div>':'')+'</div></div>'+dist+'</div>';
+  h+='<button class="btn" data-act="new-h" data-v="inv">Yatırım ekle</button>';
+  h+=inv.length?inv.map(holdCard).join(''):'<div class="empty">Hisse, fon, altın, gümüş, döviz, kripto ya da mevduat ekle. Kura bağlı olanlar kendiliğinden güncellenir.</div>';
+  return h+rateCard();
+}
+function varlikBody(){
+  var pa=pfTotals('asset'),ast=S.holdings.filter(function(x){return hKind(x)==='asset';});
+  var h='<div class="card"><div class="lbl">Diğer varlıklar</div><p class="big">'+TRY0.format(pa.v)+'</p>'+(pa.c&&Math.abs(pa.v-pa.c)>=0.5?'<div class="small muted">Alış değerine göre '+sgn(pa.v-pa.c)+'</div>':'')+'</div>';
+  h+='<button class="btn" data-act="new-h" data-v="asset">Varlık ekle</button>';
+  return h+(ast.length?ast.map(holdCard).join(''):'<div class="empty">Ev, araba gibi varlıklarını ekleyerek net servetine kat.</div>');
 }
 
 /* ---------- Notlar ---------- */

@@ -329,3 +329,23 @@ button.lg .mid{text-decoration:underline;text-decoration-color:var(--line);text-
 .smsit{display:grid;gap:8px;background:var(--bg)}
 .smsit .btn.small{padding:10px}
 .alerts .linkbtn{padding:6px 0 0}
+/* ---------- 3.2: sade düzen ---------- */
+.tabs6.n5 .secin{grid-template-columns:repeat(5,minmax(0,1fr))}
+.tabs6.n5 .tab6 span{font-size:.75rem}
+.seg button{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alertbar{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:.875rem;color:var(--ink)}
+.alertbar .ic{width:18px;height:18px;color:var(--ink2);flex:none}
+.alertbar .pill{flex:none}
+.catchips{display:flex;flex-wrap:wrap;gap:6px}
+.catchips .chip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;font-size:.84375rem}
+.catchips .chip .dot{width:8px;height:8px}
+.datew{display:flex;gap:6px;align-items:center}
+.datew input{flex:1}
+.datew .chip{flex:none;padding:8px 11px}
+input.amtin{font-size:1.375rem;font-weight:700;padding:10px 12px;font-variant-numeric:tabular-nums}
+.day{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.day .num{font-size:.8125rem}
+.setgrp{font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);margin:6px 4px -4px}
+.setgrp:first-child{margin-top:0}
+@media (max-width:360px){.seg button{font-size:.8125rem;padding:9px 4px}}
+.two:has(> [hidden]){grid-template-columns:1fr}

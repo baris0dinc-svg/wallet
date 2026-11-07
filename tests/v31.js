@@ -23,17 +23,17 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  chk(near(at(end(m1))[1],base+5000-2000-500-10*41.31),'ay sonu '+m1);chk(near(s[s.length-1][1],T.wealth().net)&&s[s.length-1][0]===T.todayS(),'bugün canlı değer');
  const hc=T.histChange(30);chk(hc&&hc.days>0,'30 gün değişimi '+JSON.stringify(hc));
  // 3 Analiz etkileşimleri
- act('sub',null,'analiz');const g=document.querySelector('g[data-act="trend-pick"][data-v="'+m2+'"]');chk(!!g,'trend grubu');g.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+ act('sub',null,'analiz');act('an',null,'ozet');const g=document.querySelector('g[data-act="trend-pick"][data-v="'+m2+'"]');chk(!!g,'trend grubu');g.dispatchEvent(new MouseEvent('click',{bubbles:true}));
  o.pick=$('.pickbox').innerText;chk(T.ui.trPick===m2&&/Gider/.test(o.pick),'trend seçimi '+o.pick);act('go-month',null,m2);chk(T.ui.month===m2,'döneme git');
- const crow=document.querySelector('button.crow[data-v="Market"]');chk(!!crow,'kategori satırı düğme');crow.click();chk(/Market/.test(($('.sheet h2')||{}).innerText||'')&&document.querySelectorAll('.sheet [data-act="edit-tx"]').length===1,'kategori işlemleri penceresi');act('close');
- T.ui.month=cur;T.render();const ch=$('.nwchart');chk(!!ch,'net servet grafiği');const bx=ch.getBoundingClientRect();
+ act('an',null,'harcama');const crow=document.querySelector('button.crow[data-v="Market"]');chk(!!crow,'kategori satırı düğme');crow.click();chk(/Market/.test(($('.sheet h2')||{}).innerText||'')&&document.querySelectorAll('.sheet [data-act="edit-tx"]').length===1,'kategori işlemleri penceresi');act('close');
+ T.ui.month=cur;act('an',null,'servet');const ch=$('.nwchart');chk(!!ch,'net servet grafiği');const bx=ch.getBoundingClientRect();
  ch.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:bx.left+2,clientY:bx.top+10}));o.scrub=$('#nwpick').innerText;chk(/hesaplandı/.test(o.scrub),'ilk nokta tahmini '+o.scrub);
  ch.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:bx.right-1,clientY:bx.top+10}));chk(new RegExp(new Date().getFullYear()).test($('#nwpick').innerText)&&!$('.nwdot').hidden,'son nokta');
- const wk=document.querySelector('[data-act="wk-pick"][data-v="0"]');if(wk){wk.click();chk(/pazartesi/.test(document.body.innerText),'gün seçimi');}
+ act('an',null,'harcama');const wk=document.querySelector('[data-act="wk-pick"][data-v="0"]');if(wk){wk.click();chk(/pazartesi/.test(document.body.innerText),'gün seçimi');}
  // 4 Planlama
- act('sub',null,'plan');chk(T.ui.sub==='plan'&&!!$('[data-act="plan"][data-v="butce"][aria-pressed="true"]'),'planlama bütçe');chk(!$('#fab').hidden,'bütçede + düğmesi');
- act('plan',null,'duzenli');chk(!!$('#secbody [data-act="new-r"]')&&$('#fab').hidden,'düzenli ödemeler');act('plan',null,'hedef');chk(!!$('#secbody [data-act="new-g"]'),'hedefler');
- const sb=$('#secbar');chk(sb.scrollWidth<=sb.clientWidth+1,'6 sekme kaydırmadan sığar '+sb.scrollWidth+'/'+sb.clientWidth);
+ act('sub',null,'plan');act('plan',null,'butce');chk(T.ui.sub==='plan'&&!!$('[data-act="plan"][data-v="butce"][aria-pressed="true"]'),'planlama bütçe');
+ act('plan',null,'duzenli');chk(!!$('#secbody [data-act="new-r"]'),'düzenli ödemeler');act('plan',null,'hedef');chk(!!$('#secbody [data-act="new-g"]'),'hedefler');
+ const sb=$('#secbar');chk(sb.scrollWidth<=sb.clientWidth+1,'5 sekme kaydırmadan sığar '+sb.scrollWidth+'/'+sb.clientWidth);
  // 5 şifreli yedek
  await T.setBkPw('gizli-sifre');const txt=await T.backupText();const ob=JSON.parse(txt);chk(ob.wallet===1&&ob.d&&!/Market/.test(txt),'yedek şifreli');
  const dec=JSON.parse(await T.decText(ob,'gizli-sifre'));chk(dec.tx.length===T.S.tx.length&&!dec.bkKey&&!dec.pin,'yedek açıldı, anahtar yedekte yok');
@@ -43,7 +43,14 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  chk(qs[0]==='qa-calc'&&qs[1]==='qa-save'&&qs[2]==='qa-inc','daire sırası '+qs.slice(0,3));
  // 7 uyarılar kısalır
  T.S.recurring=[1,2,3,4,5].map(i=>({id:'r'+i,name:'Ödeme '+i,amt:10,day:new Date().getDate(),cat:'Fatura',acct:'Banka',paid:{}}));T.render();
- chk(document.querySelectorAll('.alerts .item').length===3&&/2 uyarı daha/.test($('.alerts').innerText),'uyarılar 3 + devamı');act('al-all');chk(document.querySelectorAll('.alerts .item').length===5,'tümü açılır');
+ chk(!!$('.alertbar')&&/\+4/.test($('.alertbar').innerText),'uyarı şeridi tek satır +4');act('alerts');chk(document.querySelectorAll('.sheet .item').length===5&&document.querySelectorAll('.sheet [data-act="al-pay"]').length===5,'uyarı penceresi 5 + Ödendi');act('close');
+ // hızlı kategori ve tarih
+ act('qa-exp');const cc=[...document.querySelectorAll('#f-catchips .chip')];chk(cc.length===T.S.cats.exp.length&&cc[0].dataset.v==='Market','kategori düğmeleri sık kullanılan önde '+(cc[0]&&cc[0].dataset.v));
+ document.querySelector('#f-catchips [data-v="Kira"]').click();chk($('#f-cat').value==='Kira'&&$('#f-catchips [data-v="Kira"]').getAttribute('aria-pressed')==='true','kategori düğmesi seçer');
+ act('date-pick',null,'1');const yd=new Date(T.today0());yd.setDate(yd.getDate()-1);chk($('#f-date').value===T.isoDate(yd),'Dün kısayolu');
+ const fa=$('#f-amt');fa.value='42';$('.sheet [data-act="save-tx"]').click();chk(T.S.tx.some(t=>t.amt===42&&t.cat==='Kira'&&t.date===T.isoDate(yd)),'kısayollarla kayıt');
+ // gün toplamı
+ act('sub',null,'islem');T.ui.month=T.pk(T.isoDate(yd));T.render();chk([...document.querySelectorAll('.day')].some(d=>/−₺42/.test(d.innerText)||/−₺/.test(d.innerText)),'gün toplamı');
  return {F,o};});
 console.log(JSON.stringify(r.o).slice(0,600));
 console.log(r.F.length?'FAIL\n'+r.F.join('\n'):'ALL PASS');console.log(errs.length?errs.join('\n'):'no page errors');await b.close();})();

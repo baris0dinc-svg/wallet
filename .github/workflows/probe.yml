@@ -5,9 +5,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Kaynakları dene
+        shell: bash {0}
         run: |
           UA="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36"
-          t(){ echo "=== $1"; curl -sS -m 25 -A "$UA" -D /tmp/h -o /tmp/b "${@:2}"; head -1 /tmp/h; grep -i "access-control-allow-origin" /tmp/h; head -c ${LEN:-700} /tmp/b; echo; }
+          t(){ echo "=== $1"; curl -sS -m 25 -A "$UA" -D /tmp/h -o /tmp/b "${@:2}"; head -1 /tmp/h; grep -i "access-control-allow-origin" /tmp/h || true; head -c ${LEN:-700} /tmp/b; echo; }
           t yahoo_chart "https://query1.finance.yahoo.com/v8/finance/chart/THYAO.IS?range=5d&interval=1d"
           t yahoo_chart_q2 "https://query2.finance.yahoo.com/v8/finance/chart/USDTRY=X?range=1d&interval=1h"
           t yahoo_search "https://query1.finance.yahoo.com/v1/finance/search?q=aselsan&quotesCount=6&newsCount=0"

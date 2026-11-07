@@ -235,7 +235,7 @@ function mDraw(){var c=mCur;if(!c)return;var k=c.k,r=c.r,box=document.getElement
 /* ---------- eylemler ---------- */
 function mOpenPage(){openPage({k:'piyasa'},'piyasa');bistList().then(function(){if((ui.mq||'').trim())mUpd();});refreshMarket({}).then(mAfter);}
 ACT['open-mkt']=function(){mOpenPage();};
-ACT['qa-mkt']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-mkt');mOpenPage();};
+ACT['qa-mkt']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-mkt');mOpenPage();};
 ACT['m-open']=function(el,k){mSheet(k);};
 ACT['m-pick']=function(el,k){
   if(ui.mlink){var x=byId(S.holdings,ui.mlink);if(!x){ui.mlink=null;mUpd();return;}

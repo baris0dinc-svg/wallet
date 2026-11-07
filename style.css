@@ -245,6 +245,11 @@ body.locked .wrap,body.locked .fab,body.locked #sheet-root{display:none}
 .qa.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));overflow:visible;padding:0;gap:4px}
 .qa.grid4 button{width:auto}
 .qa.grid4 .c{width:48px;height:48px}
+.qa.grid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible;padding:2px 10px;gap:0}
+.qa.grid5 button{width:auto;min-width:0}
+.qa.grid5 .t{max-width:100%}
+#qaall{row-gap:14px}
+.nwgrid.n1,.nwgrid.n2,.nwgrid.n4{grid-template-columns:repeat(2,minmax(0,1fr))}
 /* hesaplar */
 .ghead{display:flex;align-items:center;gap:10px;min-width:0}
 .ghead .num{white-space:nowrap}
@@ -301,6 +306,7 @@ body.locked .wrap,body.locked .fab,body.locked #sheet-root{display:none}
 @media (max-width:360px){
   .big{font-size:1.875rem}
   .qa button{width:68px}
+  .qa.grid5 .c{width:48px;height:48px}
 }
 @media (max-width:340px){.row3 .num{font-size:.875rem}}
 header .icon-btn+h1{font-size:1.25rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}

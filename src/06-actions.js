@@ -38,16 +38,16 @@ ACT.setv=function(el,id,v){var x=el.dataset.x;if(/^-?\d+(\.\d+)?$/.test(x))x=Num
 
 /* hızlı işlem daireleri; kullanım sayısı sırayı belirler */
 function qaCount(k){S.qaUse=S.qaUse||{};S.qaUse[k]=(+S.qaUse[k]||0)+1;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
-ACT['qa-inc']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-inc');txSheet(null,'inc',{title:'Gelir ekle'});};
-ACT['qa-exp']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-exp');txSheet(null,'exp',{title:'Gider ekle'});};
-ACT['qa-cash']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-cash');grpSheet('nakit');};
-ACT['qa-bank']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-bank');grpSheet('banka');};
-ACT['qa-trf']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-trf');txSheet(null,'trf',{title:'Transfer'});};
-ACT['qa-debt']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-debt');debtListSheet();};
-ACT['qa-inv']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-inv');hSheet(null,'inv');};
-ACT['qa-save']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-save');birSheet();};
-ACT['qa-asset']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-asset');hSheet(null,'asset');};
-ACT['qa-calc']=function(el){if(el&&el.closest&&el.closest('#qa'))qaCount('qa-calc');openPage({k:'araclar'},'araclar');};
+ACT['qa-inc']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-inc');txSheet(null,'inc',{title:'Gelir ekle'});};
+ACT['qa-exp']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-exp');txSheet(null,'exp',{title:'Gider ekle'});};
+ACT['qa-cash']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-cash');grpSheet('nakit');};
+ACT['qa-bank']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-bank');grpSheet('banka');};
+ACT['qa-trf']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-trf');txSheet(null,'trf',{title:'Transfer'});};
+ACT['qa-debt']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-debt');debtListSheet();};
+ACT['qa-inv']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-inv');hSheet(null,'inv');};
+ACT['qa-save']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-save');birSheet();};
+ACT['qa-asset']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-asset');hSheet(null,'asset');};
+ACT['qa-calc']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-calc');openPage({k:'araclar'},'araclar');};
 
 /* işlemler */
 ACT['new-tx']=function(){txSheet();};

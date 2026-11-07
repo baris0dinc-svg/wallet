@@ -3,13 +3,15 @@ const {chromium}=require('playwright');
 (async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:390,height:800}});const p=await ctx.newPage();
 const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8766/index.html');await p.waitForTimeout(900);
-const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>document.querySelector(s);const chk=(c,m)=>{if(!c)F.push(m);};
+const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>document.querySelector(s),$$q=s=>[...document.querySelectorAll(s)];const chk=(c,m)=>{if(!c)F.push(m);};
  const click=s=>{const e=$(s);if(!e){F.push('bulunamadı '+s);return false;}e.click();return true;};
  const sheetT=()=>($('.sheet h2')||{}).innerText||'';const page=()=>T.ui.page&&T.ui.page.k;const back=()=>window.walletBack();
- // daireler
+ // daireler: ana ekranda ilk 4 + Tümü; diğerleri Tümü penceresinde
+ const qa=k=>{if($('#qa [data-act="'+k+'"]'))return click('#qa [data-act="'+k+'"]');if(!click('#qa [data-act="qa-more"]'))return false;chk(/Ne yapmak/.test(sheetT()),'Tümü penceresi');return click('#qaall [data-act="'+k+'"]');};
+ chk($$q('#qa button').length===5,'ana ekranda 5 daire');
  const want={'qa-inc':/Gelir ekle/,'qa-exp':/Gider ekle/,'qa-cash':/Nakit/,'qa-bank':/Banka/,'qa-trf':/Transfer/,'qa-debt':/Borç/,'qa-inv':/Yatırım ekle/,'qa-save':/Birikim/,'qa-asset':/Varlık ekle/};
- for(const k in want){click('#qa [data-act="'+k+'"]');chk(want[k].test(sheetT()),k+' → '+sheetT());if(k==='qa-inc')chk($('#f-type [aria-pressed="true"]').dataset.v==='inc','gelir türü seçili');if(k==='qa-exp')chk($('#f-type [aria-pressed="true"]').dataset.v==='exp','gider türü');back();chk(!$('#sheet-root').innerHTML,k+' geri kapatır');}
- click('#qa [data-act="qa-calc"]');chk(page()==='araclar'&&location.hash==='#araclar','hesaplayıcılar sayfası');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'hesaplayıcılardan geri');
+ for(const k in want){qa(k);chk(want[k].test(sheetT()),k+' → '+sheetT());if(k==='qa-inc')chk($('#f-type [aria-pressed="true"]').dataset.v==='inc','gelir türü seçili');if(k==='qa-exp')chk($('#f-type [aria-pressed="true"]').dataset.v==='exp','gider türü');back();chk(!$('#sheet-root').innerHTML,k+' geri kapatır');}
+ qa('qa-calc');chk(page()==='araclar'&&location.hash==='#araclar','hesaplayıcılar sayfası');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'hesaplayıcılardan geri');
  // kutucuklar
  click('.nwt[data-v="yatirim"]');chk(T.ui.sub==='servet'&&T.ui.sv==='yatirim','yatırım kutucuğu Servetim › Yatırımlar');
  click('.nwt[data-v="borc"]');chk(T.ui.sub==='servet'&&T.ui.sv==='borc'&&!!document.querySelector('#secbody [data-act="new-d"]'),'borç kutucuğu Servetim › Borçlar');

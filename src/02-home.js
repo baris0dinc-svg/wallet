@@ -92,12 +92,16 @@ function nwCard(W){
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
   if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">son '+ch.days+' günde</span></div>';
   var tiles=[['Nakit',g.nakit,'hesap'],['Banka',g.banka,'hesap'],['Birikim',g.birikim,'hesap'],['Yatırım',g.inv,'yatirim'],['Varlık',g.asset,'varlik'],['Borç',r2(g.cardDebt+g.debts),'borc',1]];
-  h+='<div class="nwgrid">'+tiles.map(function(x){return '<button class="nwt" data-act="sv-go" data-v="'+x[2]+'" aria-label="'+x[0]+': '+DC0.format(x[1])+'"><span class="lbl">'+x[0]+'</span><span class="num'+((x[3]&&x[1]>0.5)||x[1]<-0.5?' exp':'')+'">'+compactD(x[1])+'</span></button>';}).join('')+'</div>';
+  tiles=tiles.filter(function(x){return Math.abs(x[1])>=0.5;});
+  if(tiles.length)h+='<div class="nwgrid n'+tiles.length+'">'+tiles.map(function(x){return '<button class="nwt" data-act="sv-go" data-v="'+x[2]+'" aria-label="'+x[0]+': '+DC0.format(x[1])+'"><span class="lbl">'+x[0]+'</span><span class="num'+((x[3]&&x[1]>0.5)||x[1]<-0.5?' exp':'')+'">'+compactD(x[1])+'</span></button>';}).join('')+'</div>';
   return h+'</div>';
 }
 /* sık kullanılan daireler öne gelir; sıra yalnızca uygulama açılışında değişir */
 function qaOrder(){if(!ui.qaOrd){var u=S.qaUse||{},tot=Object.keys(u).reduce(function(a,k){return a+(+u[k]||0);},0);ui.qaOrd=tot<8?QA.slice():QA.map(function(q,i){return [q,i];}).sort(function(a,b){return ((+u[b[0][0]]||0)-(+u[a[0][0]]||0))||a[1]-b[1];}).map(function(x){return x[0];});}return ui.qaOrd;}
-function qaRow(){return '<div class="qawrap" id="qawrap"><div class="qa" id="qa" role="toolbar" aria-label="Hızlı işlemler">'+qaOrder().map(function(q){return '<button data-act="'+q[0]+'"><span class="c" style="--c:'+q[3]+'">'+ic(q[2])+'</span><span class="t">'+q[1]+'</span></button>';}).join('')+'</div></div>';}
+/* ana ekranda en çok kullanılan 4 işlem + "Tümü"; geri kalanlar tek dokunuşla açılan pencerede */
+function qaBtn(q){return '<button data-act="'+q[0]+'"><span class="c" style="--c:'+q[3]+'">'+ic(q[2])+'</span><span class="t">'+q[1]+'</span></button>';}
+function qaRow(){return '<div class="qawrap" id="qawrap"><div class="qa grid5" id="qa" role="toolbar" aria-label="Hızlı işlemler">'+qaOrder().slice(0,4).map(qaBtn).join('')+'<button data-act="qa-more" aria-label="Tüm işlemler"><span class="c" style="--c:var(--ink2)">'+ic('grid')+'</span><span class="t">Tümü</span></button></div></div>';}
+ACT['qa-more']=function(){openSheet('<h2>Ne yapmak istersin?</h2><div class="qa grid4" id="qaall">'+QA.map(qaBtn).join('')+'</div>');};
 function periodHead(withSum){
   if(!withSum)return monthNav();
   var mt=monthTx(ui.month),inc=sum(mt,'inc'),exp=sum(mt,'exp'),net=inc-exp,cmp='';

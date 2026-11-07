@@ -9,3 +9,8 @@ for p in POST_NOTIFICATIONS RECEIVE_SMS READ_SMS; do adb shell pm grant app.wall
 adb shell am start -n app.wallet.personal/app.wallet.MainActivity
 sleep 15
 APK="$APK" node tests/android/e2e.js
+code=$?
+echo "----- çökme kayıtları -----"
+adb logcat -d -b crash | tail -80
+adb logcat -d | grep -iE "AndroidRuntime|FATAL EXCEPTION|app\.wallet" | tail -80
+exit $code

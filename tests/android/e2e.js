@@ -14,12 +14,13 @@ async function connect(){
       try{const l=await getJson('http://127.0.0.1:9222/json');const t=l.find(x=>/github\.io\/wallet/.test(x.url)&&x.webSocketDebuggerUrl);
         if(t){ws=new WebSocket(t.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.on('open',r);ws.on('error',j);});
           ws.on('message',m=>{const o=JSON.parse(m);if(o.id&&pend[o.id]){pend[o.id](o);delete pend[o.id];}});
+          ws.on('close',()=>{Object.keys(pend).forEach(k=>{pend[k]({result:{exceptionDetails:'bağlantı kapandı'}});delete pend[k];});ws=null;});
           for(let k=0;k<40;k++){if(await ev('return !!(document.getElementById("hdr")&&document.getElementById("hdr").innerHTML)')===true)return true;await sleep(500);}return true;}}catch(e){}}
     await sleep(1500);}
   return false;
 }
 /* sayfada async fonksiyon gövdesi çalıştırır; değer 'return' ile döner */
-function ev(body){return new Promise(res=>{const id=++seq;pend[id]=o=>{const r=o.result&&o.result.result;res(o.result&&o.result.exceptionDetails?{__err:JSON.stringify(o.result.exceptionDetails).slice(0,300)}:(r?r.value:undefined));};
+function ev(body){if(!ws)return Promise.resolve({__err:'bağlantı yok'});return new Promise(res=>{const id=++seq;pend[id]=o=>{const r=o.result&&o.result.result;res(o.result&&o.result.exceptionDetails?{__err:JSON.stringify(o.result.exceptionDetails).slice(0,300)}:(r?r.value:undefined));};
   ws.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression:'(async()=>{'+body+'\n})()',awaitPromise:true,returnByValue:true}}));setTimeout(()=>{if(pend[id]){delete pend[id];res({__err:'zaman aşımı'});}},60000);});}
 const ACTJS='const act=(a,id,v)=>{const e=document.createElement("button");e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};const setv=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event("input",{bubbles:true}));e.dispatchEvent(new Event("change",{bubbles:true}));};';
 async function restart(){ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1500);sh('adb shell am start -n '+ACT);await sleep(6000);return connect();}
@@ -64,7 +65,10 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   await ev(ACTJS+'act("back");return 1');
   // 8 SMS
   await ev('AndroidBridge.smsSet(true);return 1');
-  sh('adb emu sms send 5551234 "4543 ile biten kartinizla 07.11.2026 tarihinde MIGROS KADIKOY isyerinden 250,40 TL tutarinda islem yapilmistir."');
+  const pid0=sh('adb shell pidof '+PKG).trim();sh('adb logcat -c');
+  console.log('ℹ sms gönderimi: '+sh('adb emu sms send 5551234 "4543 ile biten kartinizla 07.11.2026 tarihinde MIGROS KADIKOY isyerinden 250,40 TL tutarinda islem yapilmistir."').trim());
+  await sleep(4000);const pid1=sh('adb shell pidof '+PKG).trim();ok('SMS geldiğinde uygulama çalışmaya devam etti',pid1&&pid1===pid0,pid0+' → '+pid1);
+  if(!ws||pid1!==pid0){console.log(sh('adb logcat -d -b crash | tail -60'));console.log(sh('adb logcat -d | grep -iE "AndroidRuntime|FATAL|wallet|SmsIn|chromium" | tail -60'));if(pid1!==pid0){sh('adb shell am start -n '+ACT);await sleep(6000);}await connect();}
   let pend=0;for(let i=0;i<20&&!pend;i++){await sleep(1500);d=await data();pend=(d.sms&&d.sms.pend||[]).filter(x=>x.oamt===250.4).length;}
   ok('gelen banka SMS’i işlem önerisi oldu',pend>0,JSON.stringify((d.sms&&d.sms.pend||[]).map(x=>[x.kind,x.oamt,x.note])));
   ok('SMS bildirimi gösterildi',/Banka işlemi algılandı/.test(sh('adb shell dumpsys notification --noredact')));

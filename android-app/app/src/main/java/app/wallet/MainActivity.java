@@ -75,6 +75,18 @@ public class MainActivity extends Activity {
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
                 return true;
             }
+
+            /** Telefon belleği azalınca WebView işlemi kapanırsa uygulama çökmez, sayfa yeniden kurulur (veriler cihazda). */
+            @Override
+            public boolean onRenderProcessGone(WebView v, android.webkit.RenderProcessGoneDetail d) {
+                if (v == web) {
+                    try { ((android.view.ViewGroup) v.getParent()).removeView(v); } catch (Exception ignored) { }
+                    v.destroy();
+                    web = null;
+                    recreate();
+                }
+                return true;
+            }
         });
         // Yedek ve CSV için "Dosya seç" düğmesi: WebView bunu kendiliğinden açmaz
         web.setWebChromeClient(new WebChromeClient() {
@@ -96,7 +108,7 @@ public class MainActivity extends Activity {
         });
         web.addJavascriptInterface(new Bridge(), "AndroidBridge");
 
-        if (state != null) web.restoreState(state); else web.loadUrl(URL_APP);
+        if (state == null || web.restoreState(state) == null) web.loadUrl(URL_APP);
     }
 
     static SharedPreferences prefs(Context c) {
@@ -119,7 +131,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
-        web.saveState(out);
+        if (web != null) web.saveState(out);
     }
 
     @Override
@@ -155,11 +167,12 @@ public class MainActivity extends Activity {
     /** Geri tuşu: önce uygulamadaki açık pencereyi/sayfayı kapatır, en son uygulamadan çıkar. */
     @Override
     public void onBackPressed() {
+        if (web == null) { finish(); return; }
         web.evaluateJavascript("(window.walletBack&&window.walletBack())?'1':'0'", new ValueCallback<String>() {
             @Override
             public void onReceiveValue(String v) {
                 if ("\"1\"".equals(v)) return;
-                if (web.canGoBack()) web.goBack(); else finish();
+                if (web != null && web.canGoBack()) web.goBack(); else finish();
             }
         });
     }

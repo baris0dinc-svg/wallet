@@ -11,11 +11,11 @@ async function connect(){
   for(let i=0;i<40;i++){
     const pid=sh('adb shell pidof '+PKG).trim();
     if(pid){sh('adb forward --remove-all');sh('adb forward tcp:9222 localabstract:webview_devtools_remote_'+pid);
-      try{const l=await getJson('http://127.0.0.1:9222/json');const t=l.find(x=>/github\.io\/wallet/.test(x.url)&&x.webSocketDebuggerUrl);
+      try{const l=await getJson('http://127.0.0.1:9222/json');const t=l.find(x=>x.type==='page'&&/github\.io\/wallet\/(index\.html)?([#?].*)?$/.test(x.url)&&x.webSocketDebuggerUrl);
         if(t){ws=new WebSocket(t.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.on('open',r);ws.on('error',j);});
           ws.on('message',m=>{const o=JSON.parse(m);if(o.id&&pend[o.id]){pend[o.id](o);delete pend[o.id];}});
           ws.on('close',()=>{Object.keys(pend).forEach(k=>{pend[k]({result:{exceptionDetails:'bağlantı kapandı'}});delete pend[k];});ws=null;});
-          for(let k=0;k<40;k++){if(await ev('return !!(document.getElementById("hdr")&&document.getElementById("hdr").innerHTML)')===true)return true;await sleep(500);}return true;}}catch(e){}}
+          for(let k=0;k<40;k++){if(await ev('return !!(document.getElementById("hdr")&&document.getElementById("hdr").innerHTML)')===true)return true;await sleep(500);}ws&&ws.close();}}catch(e){}}
     await sleep(1500);}
   return false;
 }

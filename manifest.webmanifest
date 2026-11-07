@@ -1,7 +1,7 @@
 {
   "name": "Wallet",
   "short_name": "Wallet",
-  "description": "Kişisel finans: gelir-gider, bütçe, portföy, notlar, FIRE ve hesaplayıcılar.",
+  "description": "Kişisel finans: net servet, hesaplar, gelir-gider, bütçe, analiz, portföy, fatura hatırlatıcısı, notlar, FIRE ve hesaplayıcılar.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -268,6 +268,12 @@ body.locked .wrap,body.locked .fab,body.locked #sheet-root{display:none}
 .ring{width:64px;height:64px;flex:none}
 .hparts{display:grid;gap:12px;margin-top:12px}
 .hp{display:grid;gap:4px}
+button.hp{width:100%;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;border-radius:8px}
+button.hp:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+button.item{width:100%;text-align:left;background:none;font:inherit;color:inherit;cursor:pointer}
+button.plain{background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-width:0}
+label.chk{display:flex;align-items:center;gap:10px;font-weight:600;cursor:pointer}
+label.chk input{width:20px;height:20px;accent-color:var(--accent);margin:0}
 .hpt{display:flex;justify-content:space-between;gap:10px;font-size:.875rem;font-weight:600}
 .crow{padding:8px 0;border-bottom:1px solid var(--line);display:grid;gap:5px}
 .crow:last-child{border-bottom:0}

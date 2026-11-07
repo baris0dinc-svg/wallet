@@ -288,6 +288,9 @@ function hasSample(){return S.tx.some(function(t){return t.sample;})||S.holdings
 function debtPaid(d){var p=0;S.tx.forEach(function(t){if(t.type==='dbt'&&t.side==='out'&&t.debt===d.id)p+=txTL(t);});return r2(p);}
 function debtLeft(d){return r2(Math.max((+d.amt||0)-debtPaid(d),0));}
 function debtManual(){return r2(S.debts.reduce(function(a,d){return a+debtLeft(d);},0));}
+/* acil durum fonu: kullanıcı bir hedefi işaretlerse (ya da adı "acil" içeriyorsa) gösterge o hedefin birikimini kullanır */
+function isEm(g){return g.em===true||(g.em==null&&/acil|emergency/i.test(g.name||''));}
+function emGoal(){return S.goals.filter(isEm)[0]||null;}
 function goalSaved(g){if(g.acct&&ACCS().indexOf(g.acct)>=0)return r2(Math.max(toTL(acctBal(g.acct),g.acct),0));return +g.saved||0;}
 function snap(){if(hasSample())return;var k=todayS(),n=r2(wealth().net);if(S.hist[k]===n)return;S.hist[k]=n;var ks=Object.keys(S.hist).sort();while(ks.length>1100)delete S.hist[ks.shift()];save();}
 function wealth(){

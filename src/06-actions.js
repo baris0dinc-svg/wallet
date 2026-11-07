@@ -179,11 +179,13 @@ ACT['pay-d']=function(el,id){
 ACT['del-d']=function(el,id){if(!armed(el))return;S.debts=S.debts.filter(function(x){return x.id!==id;});S.recurring.forEach(function(r){if(r.debt===id)delete r.debt;});save();closeSheet();render();};
 
 /* hedefler */
-ACT['new-g']=function(){gSheet();};ACT['edit-g']=function(el,id){gSheet(id);};
+ACT['new-g']=function(){gSheet();};
+ACT['em-open']=function(){var g=emGoal();if(g)gSheet(g.id);else gSheet(null,{em:true});};ACT['edit-g']=function(el,id){gSheet(id);};
 ACT['save-g']=function(el,id){
   var gn=val('g-name').trim(),gt=num(val('g-target'));if(!gn){ferr('Bir ad yaz.');return;}if(gt<=0){ferr('Hedef tutarı gir.');return;}if(tooBig(gt)||tooBig(num(val('g-saved')))){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
-  var ga=val('g-acct'),go={name:gn,target:r2(gt),saved:r2(num(val('g-saved'))),date:val('g-date'),acct:ACCS().indexOf(ga)>=0?ga:''};
-  if(id){var g0=byId(S.goals,id);Object.assign(g0,go);delete g0.sample;}else{go.id=uid();S.goals.push(go);}
+  var ga=val('g-acct'),ge=document.getElementById('g-em'),go={name:gn,target:r2(gt),saved:r2(num(val('g-saved'))),date:val('g-date'),acct:ACCS().indexOf(ga)>=0?ga:'',em:!!(ge&&ge.checked)};
+  var sv;if(id){sv=byId(S.goals,id);if(!sv)return;Object.assign(sv,go);delete sv.sample;}else{go.id=uid();S.goals.push(go);sv=go;}
+  if(go.em)S.goals.forEach(function(x){if(x!==sv&&isEm(x))x.em=false;});  // tek acil durum fonu
   save();closeSheet();render();
 };
 ACT['del-g']=function(el,id){if(!armed(el))return;S.goals=S.goals.filter(function(x){return x.id!==id;});save();closeSheet();render();};

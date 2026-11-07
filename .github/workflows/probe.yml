@@ -4,34 +4,25 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Kaynakları dene
+      - name: Liste
         shell: bash {0}
         run: |
           UA="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36"
-          t(){ echo "=== $1"; curl -sS -m 25 -A "$UA" -D /tmp/h -o /tmp/b "${@:2}"; head -1 /tmp/h; grep -i "access-control-allow-origin\|content-type" /tmp/h || true; head -c ${LEN:-500} /tmp/b; echo; }
-          I="https://www.isyatirim.com.tr/_layouts/15/IsYatirim.Website/Common"
-          t isy_one "$I/Data.aspx/OneEndeks?endeks=THYAO"
-          t isy_one_x "$I/Data.aspx/OneEndeks?endeks=XU100"
-          LEN=900 t isy_intra "$I/ChartData.aspx/IntradayDelay?period=120&code=THYAO.E.BIST"
-          LEN=300 t isy_tekil_son "$I/../Common/Data.aspx/HisseTekil?hisse=ASELS&startdate=05-11-2026&enddate=07-11-2026"
-          t stooq_q "https://stooq.com/q/l/?s=aapl.us&f=sd2t2ohlcv&h&e=csv"
-          t stooq_h "https://stooq.com/q/d/l/?s=aapl.us&i=d"
-          LEN=200 t gfin "https://www.google.com/finance/quote/AAPL:NASDAQ"; grep -o 'YMlKec fxKbKc">[^<]*' /tmp/b | head -2
-          LEN=300 t fintables "https://fintables.com/fonlar/AFT"
-          LEN=300 t isy_list "https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Temel-Degerler-Ve-Oranlar.aspx"; grep -o 'hisse=[A-Z0-9]\{3,6\}' /tmp/b | sort -u | wc -l
-          LEN=400 t kap_list "https://www.kap.org.tr/tr/api/kapmembers/IGS/A"
-      - uses: actions/setup-node@v4
-        with: { node-version: 20 }
-      - name: TEFAS tarayıcıyla
-        shell: bash {0}
-        run: |
-          mkdir p && cd p && npm i -s playwright@1.47.2 >/dev/null 2>&1 && npx playwright install --with-deps chromium >/dev/null 2>&1
-          cat > t.js <<'JS'
-          const {chromium}=require('playwright');
-          (async()=>{const b=await chromium.launch();const p=await b.newPage();
-          p.on('response',async r=>{const u=r.url();if(/\.(png|gif|jpg|css|woff|svg)/.test(u))return;let t='';try{t=(await r.text()).slice(0,250).replace(/\s+/g,' ');}catch(e){}console.log(r.status(),r.request().method(),u.slice(0,160),'|',t);});
-          for(const u of ['https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=AFT']){try{await p.goto(u,{timeout:60000,waitUntil:'networkidle'});}catch(e){console.log('ERR',e.message)}
-            await p.waitForTimeout(4000);const tx=await p.evaluate(()=>document.body.innerText.slice(0,600));console.log('TEXT:',tx.replace(/\s+/g,' '));}
-          await b.close();})();
-          JS
-          timeout 150 node t.js | head -60
+          curl -sS -m 40 -A "$UA" -o /tmp/b "https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Temel-Degerler-Ve-Oranlar.aspx"
+          grep -n -m3 'hisse=THYAO' /tmp/b | cut -c1-400
+          L=$(grep -n -m1 'hisse=THYAO' /tmp/b | cut -d: -f1); sed -n "$((L-3)),$((L+12))p" /tmp/b | cut -c1-300
+          python3 - <<'PY'
+          import re,json
+          s=open('/tmp/b',encoding='utf-8',errors='replace').read()
+          rows=re.findall(r'<tr[^>]*>(.*?)</tr>',s,re.S)
+          out={}
+          for r in rows:
+            m=re.search(r'hisse=([A-Z0-9]{3,6})',r)
+            if not m: continue
+            cells=[re.sub(r'<[^>]+>','',c).strip() for c in re.findall(r'<td[^>]*>(.*?)</td>',r,re.S)]
+            out.setdefault(m.group(1),cells[:4])
+          print(len(out)); print(json.dumps(dict(list(out.items())[:8]),ensure_ascii=False))
+          open('/tmp/bist.json','w').write(json.dumps(out,ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with: { name: bist, path: /tmp/bist.json }

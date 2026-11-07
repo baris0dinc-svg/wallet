@@ -29,7 +29,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
 (async()=>{
   ok('uygulamaya bağlanıldı',await connect());
   const br=await ev('return Object.keys(window.AndroidBridge||{}).filter(k=>typeof AndroidBridge[k]==="function").sort().join(",")');
-  ok('yerel köprü işlevleri',/saveData/.test(br)&&/schedule/.test(br)&&/smsQueue/.test(br)&&/shareFile/.test(br),br);
+  ok('yerel köprü işlevleri',/saveData/.test(br)&&/schedule/.test(br)&&/smsQueue/.test(br)&&/shareFile/.test(br)&&/http/.test(br)&&/webText/.test(br)&&/ntfState/.test(br)&&/shareText/.test(br)&&/copyText/.test(br)&&/openUrl/.test(br),br);
   // 1 veri kaydı ve yerel kopya
   await ev(ACTJS+'act("sample-clear");return 1');await sleep(500);
   await ev(ACTJS+'act("qa-exp");setv("f-amt","123,45");document.querySelector(".sheet [data-act=\\"save-tx\\"]").click();return 1');await sleep(800);
@@ -75,6 +75,34 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   const sc=await ev('return JSON.parse(AndroidBridge.smsScan(30)).length');console.log('ℹ gelen kutusu taraması: '+sc+' mesaj (emülatörde varsayılan SMS uygulamasına bağlı)');
   const add=await ev(ACTJS+'act("sms-review");await new Promise(r=>setTimeout(r,300));const b=document.querySelector(".sheet [data-act=\\"sms-add\\"]");if(b)b.click();await new Promise(r=>setTimeout(r,500));return JSON.parse(localStorage.getItem("kumbara-v1")).tx.some(t=>t.amt===250.4&&t.note==="Migros Kadikoy")');
   ok('SMS işlemi onaylanıp eklendi',add===true,add);
+  // 8b banka uygulaması bildirimi (bildirim dinleyicisi)
+  console.log('ℹ dinleyici izni: '+sh('adb shell cmd notification allow_listener '+PKG+'/app.wallet.NotifIn').trim());await sleep(2500);
+  ok('bildirim erişimi verildi',(await ev('return AndroidBridge.ntfState()'))==='granted');
+  await ev(ACTJS+'AndroidBridge.ntfSet(true,"shell");return 1');
+  console.log('ℹ bildirim: '+sh("adb shell cmd notification post -S bigtext -t Akbank e2etag 'Kartinizdan MIGROS ATASEHIR isyerine 175,25 TL harcama yapilmistir'").trim());
+  let np=0;for(let i=0;i<20&&!np;i++){await sleep(1500);d=await data();np=(d.sms&&d.sms.pend||[]).filter(x=>x.oamt===175.25).length;}
+  ok('banka uygulaması bildirimi işlem önerisi oldu',np===1,JSON.stringify((d.sms&&d.sms.pend||[]).map(x=>[x.kind,x.oamt,x.from,x.note])));
+  console.log('ℹ aynı bildirim tekrar: '+sh("adb shell cmd notification post -S bigtext -t Akbank e2etag2 'Kartinizdan MIGROS ATASEHIR isyerine 175,25 TL harcama yapilmistir'").trim());
+  await sleep(4000);d=await data();ok('aynı bildirim iki kez sayılmadı',(d.sms&&d.sms.pend||[]).filter(x=>x.oamt===175.25).length===1);
+  await ev('AndroidBridge.ntfSet(false,"");return 1');
+  console.log('ℹ kapalıyken bildirim: '+sh("adb shell cmd notification post -S bigtext -t Akbank e2etag3 'Kartinizdan A101 isyerine 33,10 TL harcama yapilmistir'").trim());
+  await sleep(4000);d=await data();ok('kapalıyken bildirim okunmadı',!(d.sms&&d.sms.pend||[]).some(x=>x.oamt===33.1));
+  // 8c piyasa verisi (doğrudan istek)
+  const hx=(u,m,b)=>ev('return await new Promise(r=>{const id="e"+Math.random();const o=window.walletHttp;window.walletHttp=(i,c,t)=>{if(i===id){window.walletHttp=o;r([c,(t||"").slice(0,400)]);}else o&&o(i,c,t);};AndroidBridge.http(id,'+JSON.stringify(u)+',"GET","","{}");setTimeout(()=>r(["süre",""]),25000);})');
+  const isy=await hx('https://www.isyatirim.com.tr/_layouts/15/IsYatirim.Website/Common/Data.aspx/OneEndeks?endeks=THYAO');
+  ok('Borsa İstanbul fiyatı alındı (İş Yatırım)',isy&&isy[0]===200&&/"last"/.test(isy[1]),JSON.stringify(isy).slice(0,200));
+  const cg=await hx('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=try');ok('kripto fiyatı alındı (CoinGecko)',cg&&cg[0]===200&&/bitcoin/.test(cg[1]),JSON.stringify(cg).slice(0,120));
+  const yh=await hx('https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d');console.log('ℹ Yahoo (sunucu IP’lerini sınırlıyor): '+JSON.stringify(yh).slice(0,160));
+  const bad=await hx('https://example.com/');ok('izin listesi dışındaki adrese istek gönderilmedi',bad&&bad[0]===0,JSON.stringify(bad));
+  const tf=await ev('return await new Promise(r=>{const id="t"+Math.random();const o=window.walletHttp;window.walletHttp=(i,c,t)=>{if(i===id){window.walletHttp=o;r([c,(t||"").slice(0,300)]);}else o&&o(i,c,t);};AndroidBridge.webText(id,"https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=AFT","Son Fiyat",20000);setTimeout(()=>r(["süre",""]),40000);})');
+  console.log('ℹ TEFAS (sunucu IP’lerini reddediyor olabilir): '+JSON.stringify(tf).slice(0,240));ok('TEFAS okuyucusu zamanında döndü, uygulama çökmedi',tf&&tf[0]!=='süre'&&!!sh('adb shell pidof '+PKG).trim(),tf&&tf[0]);
+  const wbad=await ev('return await new Promise(r=>{const id="t2";const o=window.walletHttp;window.walletHttp=(i,c,t)=>{if(i===id){window.walletHttp=o;r(c);}else o&&o(i,c,t);};AndroidBridge.webText(id,"https://example.com/","x",5000);setTimeout(()=>r("süre"),9000);})');
+  ok('görünmez sayfa yalnızca izinli sitelerde açılır',wbad===0,wbad);
+  const mk=await ev(ACTJS+'act("open-mkt");await new Promise(r=>setTimeout(r,500));const b=document.createElement("button");b.dataset.act="m-sug";b.dataset.id="bist:THYAO";document.body.appendChild(b);b.click();b.remove();for(let i=0;i<30;i++){await new Promise(r=>setTimeout(r,500));const q=JSON.parse(localStorage.getItem("kumbara-v1")).quotes||{};if(q["bist:THYAO"]&&q["bist:THYAO"].p>0&&q["fx:USD"]&&q["fx:USD"].p>0)break;}const q=JSON.parse(localStorage.getItem("kumbara-v1")).quotes||{};return [q["fx:USD"]&&q["fx:USD"].p,q["bist:THYAO"]&&q["bist:THYAO"].p,document.getElementById("mres").innerText.slice(0,200)]');
+  ok('Piyasalar: takip listesi canlı fiyatlarla doldu',mk&&mk[0]>0&&mk[1]>0,JSON.stringify(mk));
+  await ev(ACTJS+'act("back");return 1');
+  // 8d Claude'a sor: kopyalama
+  const cp=await ev('return AndroidBridge.copyText("Wallet E2E pano")');ok('panoya kopyalama',cp==='ok',cp);
   // 9 ekran gizliliği
   await ev('AndroidBridge.setSecure(true);return 1');await sleep(1200);const win=sh('adb shell dumpsys window windows');ok('ekran gizliliği açıldı',/SECURE/.test(win));
   await ev('AndroidBridge.setSecure(false);return 1');

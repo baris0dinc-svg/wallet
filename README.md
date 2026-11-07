@@ -1,10 +1,10 @@
 # Wallet
 
-Kişisel finans uygulaması: net servet, hesaplar (cüzdan, banka, kart, birikim), gelir-gider, transfer, bütçe, analiz ve finansal sağlık puanı, hedefler, düzenli ödemeler ve fatura hatırlatıcısı, yatırım/varlık/borç takibi, notlar (arşiv ve çöp kutusu), FIRE ve finans hesaplayıcıları.
+Kişisel finans uygulaması: net servet, hesaplar (cüzdan, banka, kart, birikim), gelir-gider, transfer, bütçe, analiz ve finansal sağlık puanı, hedefler, düzenli ödemeler ve fatura hatırlatıcısı, yatırım/varlık/borç takibi, piyasalar ve takip listesi (hisse, fon, döviz, altın, kripto), banka SMS'i ve uygulama bildiriminden otomatik işlem, Excel/CSV ekstre içe aktarma, Claude'a sor, notlar (arşiv ve çöp kutusu), FIRE ve finans hesaplayıcıları.
 
 - Düz HTML/CSS/JS, derleme gerekmez. PWA: ana ekrana eklenir, çevrimdışı çalışır.
 - Veriler cihazda tutulur (`localStorage`, anahtar `kumbara-v1`); depoda kişisel veri yoktur. Android uygulamasında ayrıca uygulama içi bir kopya (`wallet-data.json`) ve isteğe bağlı otomatik yedek (`İndirilenler/Wallet/Wallet-otomatik-yedek.json`) yazılır; açılışta hangisi daha yeniyse (`savedAt`) o kullanılır.
-- Kaynak `src/` altında parçalara bölünmüştür (`01-core` veri ve hesap, `02-home` ana ekran, `03-analysis`, `04-settings`, `05-sheets`, `06-actions`, `07-sms`, `99-init`). `python3 tools/build.py` bunları `app.js` olarak birleştirir; CI `--check` ile denetler.
+- Kaynak `src/` altında parçalara bölünmüştür (`01-core` veri ve hesap, `02-home` ana ekran, `03-analysis`, `04-settings`, `05-sheets`, `06-actions`, `07-sms`, `08-market` piyasalar, `09-import` Excel/CSV okuma, `10-claude`, `99-init`). `python3 tools/build.py` bunları `app.js` olarak birleştirir; CI `--check` ile denetler.
 - Testler `tests/` altında: `bash tests/run.sh` (Playwright + Chromium) bakiye matematiği, SMS ayrıştırma, gezinme, Android köprüsü taklidi, taşma taraması, rastgele kullanım (monkey) ve güncelleme akışını dener. `main`'e her push'ta önce testler çalışır, geçmezse yayınlanmaz.
 - `tests/android/` Android E2E: `android-e2e.yml` gerçek APK'yı Android 14 emülatöründe kurup WebView'a DevTools ile bağlanır; veri kalıcılığı, güncelleme, alarm hatırlatıcısı, bildirim, otomatik yedek, SMS, canlı kur ve tam silmeyi dener.
 - Dosyalar: `index.html`, `style.css`, `app.js` (üretilir), `sw.js`, `manifest.webmanifest`, `icons/`; Android sarmalayıcı `android-app/`.
@@ -27,7 +27,7 @@ Borcun kalanı = girilen tutar − bağlı `dbt/out` ödemeleri; ödeme silinirs
 
 ## Android köprüsü (`window.AndroidBridge`)
 
-`saveData/loadData` (kalıcı kopya), `autoBackup`, `shareFile` (yedeği paylaş), `smsState/askSms/smsSet/smsQueue/smsAck/smsScan` (banka SMS'leri; ayrıştırma `src/07-sms.js` içinde), `wipe` (her şeyi siler), `schedule` (fatura hatırlatmaları AlarmManager ile; telefon yeniden başlayınca yeniden kurulur), `notifState/askNotif/testNotif`, `bioAvail/bioAuth` (parmak izi), `setSecure` (ekran gizliliği), `fetchRates` (kurları doğrudan Truncgil'den alır), `save` (İndirilenler'e dosya). Eski APK'da olmayan işlevler web tarafında sessizce atlanır.
+`saveData/loadData` (kalıcı kopya), `autoBackup`, `shareFile` (yedeği paylaş), `smsState/askSms/smsSet/smsQueue/smsAck/smsScan` (banka SMS'leri; ayrıştırma `src/07-sms.js` içinde), `wipe` (her şeyi siler), `schedule` (fatura hatırlatmaları AlarmManager ile; telefon yeniden başlayınca yeniden kurulur), `notifState/askNotif/testNotif`, `bioAvail/bioAuth` (parmak izi), `setSecure` (ekran gizliliği), `fetchRates` (kurları doğrudan Truncgil'den alır), `http` (izinli piyasa sitelerine istek: İş Yatırım, Yahoo Finance, CoinGecko, Truncgil, TEFAS), `webText` (tarayıcı doğrulaması isteyen sayfayı — TEFAS — görünmez WebView'da açıp metnini okur), `ntfState/ntfAsk/ntfSet` (banka uygulaması bildirimleri, `NotifIn`), `openUrl/shareText/copyText` (Claude'a sor), `save` (İndirilenler'e dosya). Eski APK'da olmayan işlevler web tarafında sessizce atlanır.
 
 ## Canlı kur
 
@@ -35,7 +35,19 @@ Android uygulaması kurları doğrudan kaynaktan alır; tarayıcıda `pages.yml`
 
 ## Banka SMS'leri
 
-Android uygulaması tutar içeren gelen SMS'leri kuyruğa alır (`SmsIn`), web tarafı `smsParse` ile türü (gider, gelir, ATM'den nakit, kart borcu ödemesi), tutarı, para birimini, işyerini ve kartın son 4 hanesini çıkarır. Şifre/doğrulama, ekstre ve reklam mesajları yok sayılır. Onaylanan her işlemde kart → hesap eşlemesi ve değiştirilen kategori kuralı öğrenilir. Yeni bir banka biçimi `src/07-sms.js` ve `tests/sms.js` içine eklenir; APK güncellemesi gerekmez.
+Android uygulaması tutar içeren gelen SMS'leri kuyruğa alır (`SmsIn`), web tarafı `smsParse` ile türü (gider, gelir, ATM'den nakit, kart borcu ödemesi), tutarı, para birimini, işyerini ve kartın son 4 hanesini çıkarır. Şifre/doğrulama, ekstre ve reklam mesajları yok sayılır. Onaylanan her işlemde kart → hesap eşlemesi ve değiştirilen kategori kuralı öğrenilir. Yeni bir banka biçimi `src/07-sms.js` ve `tests/sms.js` içine eklenir; APK güncellemesi gerekmez. Banka uygulaması bildirimleri (`NotifIn`, kullanıcı bildirim erişimi verirse) aynı kuyruğa `src: "app"` ile girer; hangi uygulamalara bakılacağı `NTF_KW` anahtar kelimeleriyle web tarafından belirlenir. Aynı işlem 20 dakika içinde hem SMS hem bildirim olarak gelirse bir kez sayılır.
+
+## Piyasalar ve takip listesi
+
+`src/08-market.js`. Anahtar biçimi `kaynak:sembol`: `fx:USD` (Truncgil; döviz, altın türleri, BIST 100), `bist:THYAO` (İş Yatırım `OneEndeks` anlık ~15 dk gecikmeli, `HisseTekil` günlük kapanış geçmişi), `cg:bitcoin` (CoinGecko), `yh:AAPL` (Yahoo Finance, deneysel: sunucu IP'lerini sınırladığı için CI'da denenemiyor), `fon:AFT` (TEFAS fon sayfası `webText` ile okunur, deneysel: veri servisi kapalı, sunucu IP'lerini reddediyor). Tarayıcı CORS nedeniyle yalnızca Truncgil ve CoinGecko'ya erişir; hisseler için `bist.json` (her yayında `tools/bist_list.py` ile yenilenen hisse listesi ve son fiyat) kullanılır. Yatırımlar `mk` alanıyla bir sembole bağlanırsa değeri bu fiyattan hesaplanır (`hPrice`).
+
+## Ekstre içe aktarma
+
+`src/09-import.js`: `.xlsx` (ZIP + XML, `DecompressionStream`), eski `.xls` (BIFF8, paylaşılan metin tablosu CONTINUE bölünmeleri dahil), HTML biçimli `.xls`, CSV (UTF-8, UTF-16, Windows-1254). Tablo CSV metnine çevrilir; `csvImport` ilk 40 satırda başlık satırını (Tarih + Tutar ya da Borç/Alacak) bulur, tarihsiz satırları (Toplam) atlar, kredi kartı hesabında artı tutarı harcama sayar. Örnek dosyalar `tests/fixtures/`.
+
+## Claude'a sor
+
+`src/10-claude.js`: aylık gelir-gider, kategori ortalamaları, servet dağılımı, borçlar, hedefler ve sağlık göstergelerinden bir özet çıkarır (hesap adları ve işlem notları girmez). Kullanıcı düzenleyip panoya kopyalar ve `claude.ai/new?q=…` açılır ya da Claude uygulamasıyla paylaşır; uygulama kendisi veri göndermez.
 
 ## Kurlar ve raporlar
 

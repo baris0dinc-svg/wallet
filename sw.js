@@ -1,6 +1,6 @@
 /* Çevrimdışı çalışma: önce önbellek, ağdan gelen yeni sürümü arka planda günceller. */
-const CACHE = 'wallet-v23';
-const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png'];
+const CACHE = 'wallet-v24';
+const FILES = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'bist.json', 'icons/icon-192.png', 'icons/icon-512.png'];
 self.addEventListener('install', e => {
   // cache:'reload' → tarayıcı önbelleğindeki eski kopyayı değil, sunucudaki yeni dosyayı al
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));

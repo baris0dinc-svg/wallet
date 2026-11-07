@@ -19,8 +19,8 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  // bütçe → analiz bağlantısı
  click('[data-act="sub"][data-v="plan"]');click('[data-act="plan"][data-v="butce"]');chk(T.ui.sub==='plan'&&T.ui.plan==='butce','Planlama › Bütçe');click('#secbody .linkbtn[data-act="an-go"]');chk(T.ui.sub==='analiz'&&T.ui.an==='harcama','bütçeden analize');
  click('[data-act="sub"][data-v="plan"]');click('[data-act="plan"][data-v="hedef"]');chk(!!document.querySelector('#secbody [data-act="new-g"]'),'Planlama › Hedefler');T.ui.sub='islem';T.render();
- // portföy kur kartı → kurlar → geri portföy
- click('[data-act="sub"][data-v="servet"]');click('[data-act="sv"][data-v="yatirim"]');click('.ratecard');chk(page()==='set'&&T.ui.page.s==='kurlar','kur kartı kurlar ayarına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='servet'&&T.ui.sv==='yatirim','kurlardan geri yatırımlara');
+ // yatırımlar piyasa kartı → Piyasalar → geri yatırımlar
+ click('[data-act="sub"][data-v="servet"]');click('[data-act="sv"][data-v="yatirim"]');click('.ratecard');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa kartı Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='servet'&&T.ui.sv==='yatirim','Piyasalar’dan geri yatırımlara');
  // hesap → tüm hareketler
  click('[data-act="sub"][data-v="servet"]');click('[data-act="sv"][data-v="hesap"]');click('#secbody [data-act="acct-open"]');const an=$('.sheet h2').innerText;chk(!!an,'hesap detayı');click('.sheet [data-act="acct-all"]');
  chk(T.ui.sub==='islem'&&T.ui.acctF===an&&!$('#sheet-root').innerHTML,'tüm hareketler İşlemler’e filtreli: '+T.ui.acctF);
@@ -44,5 +44,5 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  return {F,o};});
 console.log(r.F.length?'FAIL\n'+r.F.join('\n'):'ALL PASS');
 // adres çubuğu ile açılış
-for(const h of ['araclar','fire','ayar-bild','ayarlar','yok']){await p.goto('http://localhost:8766/index.html#'+h);await p.waitForTimeout(500);const t=await p.evaluate(()=>[document.querySelector('header h1').innerText,location.hash].join(' '));console.log('#'+h,'→',t);}
+for(const h of ['araclar','fire','piyasa','ayar-bild','ayarlar','yok']){await p.goto('http://localhost:8766/index.html#'+h);await p.waitForTimeout(500);const t=await p.evaluate(()=>[document.querySelector('header h1').innerText,location.hash].join(' '));console.log('#'+h,'→',t);}
 console.log(errs.length?errs.join('\n'):'no page errors');await b.close();})();

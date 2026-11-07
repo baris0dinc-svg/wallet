@@ -37,7 +37,7 @@ public class SmsIn extends BroadcastReceiver {
         for (Map.Entry<String, StringBuilder> e : body.entrySet()) {
             String text = e.getValue().toString();
             if (!TX.matcher(text).find()) continue;
-            queue(c, e.getKey(), text, System.currentTimeMillis());
+            queue(c, e.getKey(), text, System.currentTimeMillis(), "sms");
             n++;
             String first = text.length() > 90 ? text.substring(0, 90) + "…" : text;
             Reminders.show(c, 5000 + (int) (System.currentTimeMillis() % 1000), "Banka işlemi algılandı · " + e.getKey(), first + "\nWallet’ta onaylamak için dokun.");
@@ -45,7 +45,7 @@ public class SmsIn extends BroadcastReceiver {
         if (n > 0) MainActivity.notifyJs("window.walletSms&&window.walletSms()");
     }
 
-    static synchronized void queue(Context c, String from, String text, long ts) {
+    static synchronized void queue(Context c, String from, String text, long ts, String src) {
         SharedPreferences p = MainActivity.prefs(c);
         try {
             JSONArray a = new JSONArray(p.getString("smsQ", "[]"));
@@ -54,6 +54,7 @@ public class SmsIn extends BroadcastReceiver {
             o.put("from", from);
             o.put("body", text);
             o.put("ts", ts);
+            o.put("src", src);
             a.put(o);
             JSONArray out = new JSONArray();
             for (int k = Math.max(0, a.length() - 200); k < a.length(); k++) out.put(a.get(k));

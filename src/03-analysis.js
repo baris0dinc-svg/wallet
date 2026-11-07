@@ -113,7 +113,7 @@ function insights(){
 function analizBody(){
   var v=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet',W=wealth(),k=ui.month,m=monthTx(k),h=segTabs(ANS,v,'an','Analiz');
   if(v==='ozet'){
-    h+=monthNav()+(k===curP()?insights():'')+healthCard()+flowCard();
+    h+=monthNav()+(k===curP()?insights():'')+healthCard()+aiCard()+flowCard();
     h+='<div class="card"><div class="ghead" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Gelir ve gider</h2><div class="seg mini" role="group" aria-label="Süre"><button data-act="trn" data-v="6" aria-pressed="'+(ui.tr===6)+'">6 ay</button><button data-act="trn" data-v="12" aria-pressed="'+(ui.tr===12)+'">12 ay</button></div></div>'+trendSvg(ui.tr)+'</div>';
     return h;
   }
@@ -147,21 +147,19 @@ function borcBody(){
   return h;
 }
 function holdCard(x){
-  var p=hVal(x)-hCost(x),pp=hCost(x)?p/hCost(x)*100:0,linked=x.ccy&&+S.fx[x.ccy]>0,ast=hKind(x)==='asset';
-  return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="'+x.id+'"><span class="dot" style="background:'+color(x.type)+'"></span><span class="mid"><div class="t" style="font-weight:600">'+esc(x.name)+'</div><div class="small muted">'+esc(x.type)+(ast?'':' · '+qtyTxt(x)+' · ort. '+TRY2.format(x.cost))+(linked?' · '+esc(FXL[x.ccy])+' '+TRY2.format(hPrice(x)):'')+'</div></span></button><span class="num" style="font-size:1.0625rem">'+TRY0.format(hVal(x))+'</span></div>'
+  var p=hVal(x)-hCost(x),pp=hCost(x)?p/hCost(x)*100:0,linked=!!x.mk||!!(x.ccy&&+S.fx[x.ccy]>0),ast=hKind(x)==='asset',mq=x.mk&&mQ(x.mk);
+  return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="'+x.id+'"><span class="dot" style="background:'+color(x.type)+'"></span><span class="mid"><div class="t" style="font-weight:600">'+esc(x.name)+'</div><div class="small muted">'+esc(x.type)+(ast?'':' · '+qtyTxt(x)+' · ort. '+TRY2.format(x.cost))+(linked?' · '+esc(x.mk?(x.mks||mSym(x.mk)):FXL[x.ccy])+' '+TRY2.format(hPrice(x)):'')+(mq&&mq.c!=null?' '+chgSpan(mq.c):'')+'</div></span></button><span class="num" style="font-size:1.0625rem">'+TRY0.format(hVal(x))+'</span></div>'
    +(linked?'':'<label class="pin-in"><span class="small muted">Güncel '+(ast?'değer':'fiyat')+' (₺)</span><input inputmode="decimal" data-price="'+x.id+'" value="'+nv(x.price)+'" aria-label="'+esc(x.name)+' güncel '+(ast?'değer':'fiyat')+' (₺)"></label>')
    +'<div class="hrow"><span class="num small '+(p>=0?'inc':'exp')+'">'+sgn(p)+(hCost(x)?' ('+(pp>=0?'+':'−')+'%'+NUM2.format(Math.abs(pp))+')':'')+'</span><span class="hbtn">'+(ast?'':'<button class="btn small ghost" data-act="h-buy" data-id="'+x.id+'">Al</button>')+'<button class="btn small ghost" data-act="h-sell" data-id="'+x.id+'">Sat</button></span></div></div>';
 }
-function rateCard(){var ch=S.fxChg||{},bi=S.mkt&&S.mkt.BIST;
-  return '<button class="card ratecard" data-act="open-set" data-id="kurlar"><span class="rgrid">'+rateTile('USD/TL',S.fx.USD,ch.USD)+rateTile('EUR/TL',S.fx.EUR,ch.EUR)+rateTile('Gram altın',S.fx.XAU,ch.XAU)+rateTile('BIST 100',bi?bi.price:0,bi?bi.chg:null)+'</span><span class="small muted" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>'+(S.fxTs?'Güncelleme: '+esc(fmtTs(S.fxTs)):'Kur verisi henüz yok')+'</span><span>Tüm kurlar ›</span></span></button>';}
 function yatirimBody(){
   var pf=pfTotals('inv'),pl=pf.v-pf.c,plp=pf.c?pl/pf.c*100:0,h='',dist='',inv=S.holdings.filter(function(x){return hKind(x)==='inv';});
   if(pf.v>0){var by={};inv.forEach(function(x){by[x.type]=(by[x.type]||0)+hVal(x);});var ks=Object.keys(by).sort(function(a,b){return by[b]-by[a];});
     dist='<div class="stackbar" style="margin-top:14px">'+ks.map(function(k,i){return '<i style="width:'+(by[k]/pf.v*100)+'%;background:'+dcol(i)+'"></i>';}).join('')+'</div><div class="legend">'+ks.map(function(k,i){return '<span style="--c:'+dcol(i)+'">'+esc(k)+' %'+NUM2.format(by[k]/pf.v*100)+'</span>';}).join('')+'</div>';}
   h+='<div class="card"><div class="lbl">Yatırımlarının değeri</div><p class="big">'+TRY0.format(pf.v)+'</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">'+TRY0.format(pf.c)+'</span></div><div><div class="lbl">Kâr / zarar</div><span class="num '+(pl>=0.5?'inc':(pl<=-0.5?'exp':''))+'">'+sgn(pl)+'</span>'+(pf.c?'<div class="small '+(plp>=0?'inc':'exp')+'">'+(plp>=0?'+':'−')+'%'+NUM1.format(Math.abs(plp))+'</div>':'')+'</div></div>'+dist+'</div>';
   h+='<button class="btn" data-act="new-h" data-v="inv">Yatırım ekle</button>';
-  h+=inv.length?inv.map(holdCard).join(''):'<div class="empty">Hisse, fon, altın, gümüş, döviz, kripto ya da mevduat ekle. Kura bağlı olanlar kendiliğinden güncellenir.</div>';
-  return h+rateCard();
+  h+=inv.length?inv.map(holdCard).join(''):'<div class="empty">Hisse, fon, altın, gümüş, döviz, kripto ya da mevduat ekle. Hisse, fon ve kriptoyu aşağıdaki Piyasalar’dan eklersen fiyatları kendiliğinden güncellenir.</div>';
+  return h+mCard();
 }
 function varlikBody(){
   var pa=pfTotals('asset'),ast=S.holdings.filter(function(x){return hKind(x)==='asset';});

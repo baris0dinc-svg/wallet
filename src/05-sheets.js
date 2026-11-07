@@ -4,6 +4,7 @@ function pageInfo(){
   var p=ui.page;
   if(p.k==='fire')return {title:'Finansal özgürlük',body:vFire};
   if(p.k==='araclar')return {title:'Hesaplayıcılar',body:vArac};
+  if(p.k==='piyasa')return {title:'Piyasalar',body:vPiyasa};
   if(p.k==='ayarlar')return {title:'Ayarlar',body:vAyarlar};
   if(p.k==='set'&&p.s==='notlar')return {title:'Not ayarları',body:setNotlar};
   if(p.k==='set'){var s=SETS.filter(function(x){return x.id===p.s;})[0]||SETS[SETS.length-1];return {title:s.t,body:function(){return setBody(s.id);}};}
@@ -51,7 +52,7 @@ function restoreUi(){
   if(h&&!ui.page){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
 }
 /* adres çubuğundaki #… ile sayfa eşleşmesi (tarayıcı/telefon geri tuşu için) */
-function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='ayarlar')return {k:'ayarlar'};if(/^ayar-[a-z]+$/.test(h))return {k:'set',s:h.slice(5)};return null;}
+function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='ayarlar')return {k:'ayarlar'};if(/^ayar-[a-z]+$/.test(h))return {k:'set',s:h.slice(5)};return null;}
 function openPage(p,hash){closeSheet();ui.page=p;try{if(hash)location.hash=hash;}catch(e){}render();window.scrollTo(0,0);}
 function finishPage(){if(ui.page&&ui.page.k==='note')saveNote();}
 function closePage(){finishPage();var p=ui.page;ui.page=(p&&p.k==='set'&&p.from==='ayarlar')?{k:'ayarlar'}:null;render();try{if(location.hash.length>1)history.back();}catch(e){}}
@@ -176,8 +177,8 @@ function dSheet(id){
    +(d?'':'<div class="field"><label for="d-acct">Para bir hesaba girdi mi?</label><select id="d-acct">'+acctOpts('', 'Hayır, eski borç')+'</select></div><p class="small muted" style="margin:0">Yeni çektiğin kredi ya da aldığın borç para bir hesaba yattıysa seç: o hesabın bakiyesi artar, net servetin değişmez.</p>')
    +'<div class="err" id="f-err"></div><button class="btn'+(d?' ghost':'')+'" data-act="save-d" data-id="'+(d?d.id:'')+'">'+(d?'Bilgileri kaydet':'Kaydet')+'</button>'+(d?delBtn('del-d',d.id,'Borcu sil'):''));
 }
-function hSheet(id,kind){
-  var x=id?byId(S.holdings,id):null;kind=x?hKind(x):(kind==='asset'?'asset':'inv');
+function hSheet(id,kind,pre){
+  var x=id?byId(S.holdings,id):null;kind=x?hKind(x):(kind==='asset'?'asset':'inv');pre=pre||{};
   if(kind==='asset'){
     openSheet('<h2>'+(x?'Varlığı düzenle':'Varlık ekle')+'</h2><div class="field"><label for="h-name">Ad</label><input id="h-name" placeholder="Örn. Ev, araba" value="'+esc(x?x.name:'')+'"></div>'
      +'<div class="two"><div class="field"><label for="h-type">Tür</label><select id="h-type">'+optsKeep(ASTT,x&&x.type)+'</select></div><div class="field"><label for="h-price">Güncel değer (₺)</label><input id="h-price" inputmode="decimal" value="'+(x?nv(x.price):'')+'"></div></div>'
@@ -186,16 +187,19 @@ function hSheet(id,kind){
      +'<div class="err" id="f-err"></div><button class="btn" data-act="save-h" data-id="'+(x?x.id:'')+'" data-v="asset">Kaydet</button>'+(x?'<button class="btn ghost" data-act="h-sell" data-id="'+x.id+'">Sat</button>'+delBtn('del-h',x.id):''));
     return;
   }
-  var co='<option value=""'+(x&&x.ccy?'':' selected')+'>Elle girilen fiyat</option>'+FXK.map(function(k){return '<option value="'+k+'"'+(x&&x.ccy===k?' selected':'')+'>'+FXL[k]+' kuru</option>';}).join('');
-  openSheet('<h2>'+(x?'Yatırımı düzenle':'Yatırım ekle')+'</h2><div class="field"><label for="h-name">Ad</label><input id="h-name" placeholder="Örn. Gram altın, THYAO" value="'+esc(x?x.name:'')+'"></div>'
-   +'<div class="two"><div class="field"><label for="h-type">Tür</label><select id="h-type">'+optsKeep(INVT,x&&x.type)+'</select></div><div class="field"><label for="h-ccy">Fiyat kaynağı</label><select id="h-ccy">'+co+'</select></div></div>'
-   +'<div class="two"><div class="field"><label for="h-qty" id="lb-hqty">Adet / miktar</label><input id="h-qty" inputmode="decimal" value="'+(x?nv(x.qty):'')+'"></div><div class="field"><label for="h-cost">Ortalama maliyet (₺)</label><input id="h-cost" inputmode="decimal" value="'+(x?nv(x.cost):'')+'"></div></div>'
+  var mkk=x?x.mk:pre.mk,cc0=x?x.ccy:(pre.ccy||''),mkp=mkk?mTL(mkk):0;
+  var co='<option value=""'+(cc0||mkk?'':' selected')+'>Elle girilen fiyat</option>'+(mkk?'<option value="mk:'+esc(mkk)+'" selected>Piyasa: '+esc((x&&x.mks)||mSym(mkk))+'</option>':'')+FXK.map(function(k){return '<option value="'+k+'"'+(!mkk&&cc0===k?' selected':'')+'>'+FXL[k]+' kuru</option>';}).join('');
+  openSheet('<h2>'+(x?'Yatırımı düzenle':'Yatırım ekle')+'</h2><div class="field"><label for="h-name">Ad</label><input id="h-name" placeholder="Örn. Gram altın, THYAO" value="'+esc(x?x.name:(pre.name||''))+'"></div>'
+   +'<div class="two"><div class="field"><label for="h-type">Tür</label><select id="h-type">'+optsKeep(INVT,x?x.type:pre.type)+'</select></div><div class="field"><label for="h-ccy">Fiyat kaynağı</label><select id="h-ccy">'+co+'</select></div></div>'
+   +(mkk&&mkp>0?'<div class="small muted" id="h-mkp">Güncel piyasa fiyatı: <b class="num">'+TRY2.format(mkp)+'</b></div>':'')
+   +'<div class="two"><div class="field"><label for="h-qty" id="lb-hqty">Adet / miktar</label><input id="h-qty" inputmode="decimal" value="'+(x?nv(x.qty):'')+'"></div><div class="field"><label for="h-cost">Ortalama maliyet (₺)</label><input id="h-cost" inputmode="decimal" placeholder="'+(mkp>0?'Boşsa güncel fiyat':'')+'" value="'+(x?nv(x.cost):'')+'"></div></div>'
    +'<div class="field" id="row-hprice"><label for="h-price">Güncel fiyat (₺)</label><input id="h-price" inputmode="decimal" placeholder="Boş bırakırsan maliyet kullanılır" value="'+(x?nv(x.price):'')+'"></div>'
-   +(x?'':'<div class="field"><label for="h-acct">Ödeme hesabı</label><select id="h-acct">'+acctOpts('','Hesaptan düşme (zaten sahibim)')+'</select></div><p class="small muted" style="margin:0" id="h-hint"></p>')
+   +(x&&!x.mk?'<button class="btn ghost small" data-act="m-linkmode" data-id="'+x.id+'">'+ic('pulse')+' Fiyatı piyasadan al (hisse, fon, kripto…)</button>':'')
+   +(x?'':'<div class="field"><label for="h-acct">Ödeme hesabı</label><select id="h-acct">'+acctOpts('','Hesaptan düşme (zaten sahibim)')+'</select></div><p class="small muted" style="margin:0" id="h-hint"></p>'+(mkk?'':'<p class="small muted" style="margin:0">Hisse, fon ya da kripto fiyatının kendiliğinden güncellenmesi için <button class="pill linkp" data-act="open-mkt">Piyasalar’da ara</button> ve oradan ekle.</p>'))
    +'<div class="err" id="f-err"></div><button class="btn" data-act="save-h" data-id="'+(x?x.id:'')+'" data-v="inv">Kaydet</button>'+(x?'<div class="two"><button class="btn ghost" data-act="h-buy" data-id="'+x.id+'">Al</button><button class="btn ghost" data-act="h-sell" data-id="'+x.id+'">Sat</button></div>'+delBtn('del-h',x.id):''));
   syncH();
 }
-function syncH(){var c=val('h-ccy'),r=document.getElementById('row-hprice'),q=document.getElementById('lb-hqty');if(r)r.hidden=!!c;if(q)q.textContent=({XAU:'Miktar (gram)',XAG:'Miktar (gram)',CEY:'Adet',USD:'Miktar ($)',EUR:'Miktar (€)',GBP:'Miktar (£)',CHF:'Miktar (CHF)'})[c]||'Adet / miktar';
+function syncH(){var c=val('h-ccy'),r=document.getElementById('row-hprice'),q=document.getElementById('lb-hqty'),mp=document.getElementById('h-mkp');if(r)r.hidden=!!c;if(mp)mp.hidden=c.indexOf('mk:')!==0;if(q)q.textContent=({XAU:'Miktar (gram)',XAG:'Miktar (gram)',CEY:'Adet',USD:'Miktar ($)',EUR:'Miktar (€)',GBP:'Miktar (£)',CHF:'Miktar (CHF)'})[c]||'Adet / miktar';
   var hh=document.getElementById('h-hint');if(hh){var qn=num(val('h-qty')),cs=num(val('h-cost'));hh.textContent=val('h-acct')&&qn>0&&cs>0?'Seçtiğin hesaptan '+TRY2.format(qn*cs)+' düşülecek.':'';}}
 function tradeSheet(id,side){
   var x=byId(S.holdings,id);if(!x)return;var ast=hKind(x)==='asset',p=hPrice(x);

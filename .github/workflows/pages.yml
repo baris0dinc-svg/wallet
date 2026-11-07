@@ -60,6 +60,9 @@ jobs:
           else:
               print("UYARI: nesne bulunamadi; ust anahtarlar:", list(j.keys())[:20])
           PY
+      - name: Borsa İstanbul hisse listesini yenile (başarısız olursa depodaki bist.json kalır)
+        continue-on-error: true
+        run: python3 tools/bist_list.py bist.json
       - name: Kaynak denetimi
         run: python3 tools/build.py --check
       - uses: actions/configure-pages@v5

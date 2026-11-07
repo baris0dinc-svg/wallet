@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.2';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.3';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -12,6 +12,8 @@ var CCYS=['TRY','USD','EUR','GBP','CHF','XAU'];
 var CSYM={TRY:'₺',USD:'$',EUR:'€',GBP:'£',CHF:'CHF',XAU:'gr'};
 var CCYN={TRY:'Türk lirası',USD:'Dolar',EUR:'Euro',GBP:'Sterlin',CHF:'İsviçre frangı',XAU:'Gram altın'};
 var CCYS_SHORT={TRY:'₺ TL',USD:'$ USD',EUR:'€ EUR',GBP:'£ GBP',CHF:'CHF',XAU:'Altın (gr)'};
+/* takip listesinin ilk hali (Piyasalar) */
+var WDEF=[{k:'fx:USD',n:'ABD doları',s:'USD'},{k:'fx:EUR',n:'Euro',s:'EUR'},{k:'fx:GRA',n:'Gram altın',s:'GRA'},{k:'fx:XU100',n:'BIST 100 endeksi',s:'XU100'}];
 var FXK=['USD','EUR','GBP','CHF','XAU','XAG','CEY'];
 var FXL={USD:'USD/TL',EUR:'EUR/TL',GBP:'GBP/TL',CHF:'CHF/TL',XAU:'Gram altın',XAG:'Gram gümüş',CEY:'Çeyrek altın'};
 var R0=new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:0});
@@ -71,6 +73,7 @@ var ICONS={
   cal:'M4 5h16v15H4z M4 9h16 M8 3v4M16 3v4 M8 13h3M8 16.5h6',
   msg:'M4 5h16v11H9l-5 4z M8 9h8M8 12h5',
   share:'M12 15V3M8 7l4-4 4 4 M5 12v8h14v-8',
+  pulse:'M3 12h4l3-7 4 14 3-7h4',
   sparkles:'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z'
 };
 function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="'+ICONS[n]+'"/></svg>';}
@@ -80,14 +83,14 @@ var SECS=[['islem','İşlemler','list'],['servet','Servetim','wallet'],['plan','
 var WEALTH=[['hesap','Hesaplar'],['yatirim','Yatırımlar'],['varlik','Varlıklar'],['borc','Borçlar']];
 var ANS=[['ozet','Özet'],['harcama','Harcama'],['servet','Servet']];
 var PLANS=[['butce','Bütçe'],['duzenli','Düzenli'],['hedef','Hedefler']];
-var QA=[['qa-inc','Gelir','inc','var(--inc)'],['qa-exp','Gider','exp','var(--exp)'],['qa-cash','Nakit','cash','var(--warn)'],['qa-bank','Banka','bank','var(--blue)'],['qa-trf','Transfer','swap','var(--accent)'],['qa-debt','Borç','card','var(--exp)'],['qa-inv','Yatırım','trend','var(--inc)'],['qa-save','Birikim','coins','var(--warn)'],['qa-asset','Varlık','home','var(--blue)'],['qa-calc','Hesaplayıcı','calc','var(--ink2)']];
+var QA=[['qa-inc','Gelir','inc','var(--inc)'],['qa-exp','Gider','exp','var(--exp)'],['qa-cash','Nakit','cash','var(--warn)'],['qa-bank','Banka','bank','var(--blue)'],['qa-trf','Transfer','swap','var(--accent)'],['qa-debt','Borç','card','var(--exp)'],['qa-inv','Yatırım','trend','var(--inc)'],['qa-mkt','Piyasalar','pulse','var(--blue)'],['qa-save','Birikim','coins','var(--warn)'],['qa-asset','Varlık','home','var(--blue)'],['qa-calc','Hesaplayıcı','calc','var(--ink2)']];
 var SETS=[
  {g:'Genel',id:'profil',t:'Profil ve dönem',d:'Adın ve maaş günün',i:'user',c:'var(--inc)'},
  {g:'Genel',id:'gor',t:'Görünüm',d:'Tema, yazı boyutu, tutarları gizleme',i:'palette',c:'var(--blue)'},
  {g:'Genel',id:'kurlar',t:'Para birimi ve kurlar',d:'Görüntüleme para birimi, canlı döviz ve altın',i:'trend',c:'var(--inc)'},
  {g:'Para',id:'hesap',t:'Hesaplar',d:'Hesap ekle ve düzenle, varsayılan hesap',i:'bank',c:'var(--blue)'},
  {g:'Para',id:'kat',t:'Kategoriler ve kurallar',d:'Gelir ve gider kategorileri, otomatik kurallar',i:'shapes',c:'var(--warn)'},
- {g:'Otomasyon',id:'oto',t:'Otomatik işlemler',d:'Banka SMS’lerinden harcama ve gelirleri yakala',i:'sparkles',c:'var(--accent)'},
+ {g:'Otomasyon',id:'oto',t:'Otomatik işlemler',d:'Banka SMS’leri ve uygulama bildirimlerinden harcama ve gelirleri yakala',i:'sparkles',c:'var(--accent)'},
  {g:'Otomasyon',id:'bild',t:'Bildirimler ve hatırlatıcılar',d:'Fatura ve ödeme hatırlatıcısı, bütçe uyarıları',i:'bell',c:'var(--warn)'},
  {g:'Güvenlik ve veri',id:'guv',t:'Güvenlik ve gizlilik',d:'PIN kilidi, parmak izi, ekran gizliliği',i:'shield',c:'var(--inc)'},
  {g:'Güvenlik ve veri',id:'veri',t:'Veri ve yedek',d:'Otomatik yedek, yedekten yükleme, CSV, sıfırlama',i:'server',c:'var(--blue)'}
@@ -177,7 +180,8 @@ function norm(d){
   d.cats=d.cats||{};d.cats.exp=(d.cats.exp&&d.cats.exp.length)?d.cats.exp:D_EXP.slice();d.cats.inc=(d.cats.inc&&d.cats.inc.length)?d.cats.inc:D_INC.slice();
   d.rules=d.rules||[];d.payday=d.payday||1;d.name=d.name||'';d.fs=d.fs||1;d.hide=!!d.hide;d.theme=d.theme||'auto';
   d.dccy=CCYS.indexOf(d.dccy)>=0?d.dccy:'TRY';d.defAcct=d.defAcct||'';
-  d.sms=Object.assign({on:false,auto:false,pend:[],seen:[],map:{}},d.sms||{});if(!Array.isArray(d.sms.pend))d.sms.pend=[];if(!Array.isArray(d.sms.seen))d.sms.seen=[];if(!d.sms.map||typeof d.sms.map!=='object')d.sms.map={};d.qaUse=d.qaUse||{};
+  d.sms=Object.assign({on:false,ntf:false,auto:false,pend:[],seen:[],map:{},recent:[]},d.sms||{});if(!Array.isArray(d.sms.recent))d.sms.recent=[];
+  d.watch=Array.isArray(d.watch)?d.watch.filter(function(w){return w&&typeof w.k==='string'&&w.k.indexOf(':')>0;}):WDEF.map(function(w){return Object.assign({},w);});d.quotes=d.quotes&&typeof d.quotes==='object'?d.quotes:{};if(!Array.isArray(d.sms.pend))d.sms.pend=[];if(!Array.isArray(d.sms.seen))d.sms.seen=[];if(!d.sms.map||typeof d.sms.map!=='object')d.sms.map={};d.qaUse=d.qaUse||{};
   d.autoBk=d.autoBk!==false;d.bio=!!d.bio;d.secure=!!d.secure;d.bkTs=+d.bkTs||0;
   d.alerts=Object.assign({budget:true,rec:true,thr:80,days:3,push:true,hour:9},d.alerts||{});
   d.nset=Object.assign({sort:'edited',view:'card',lines:3,date:true,pinFirst:true,confirmDel:true},d.nset||{});
@@ -229,7 +233,7 @@ function dueDate(r,k){var p=k.split('-'),y=+p[0],m=+p[1],pd=pStartDay(y,m),day=r
 function daysLeft(k){return daysBetween(todayS(),pEnd(k))+1;}
 function pDays(k){return daysBetween(pStart(k),pEnd(k))+1;}
 
-var ui={tab:'cuzdan',sub:'islem',plan:'butce',sv:'hesap',an:'ozet',nwr:6,trPick:null,wk:null,alAll:false,qaOrd:null,month:curP(),filter:'all',acctF:'',calc:'kredi',cv:{},nq:'',sq:'',tq:'',nv:'act',tr:6,page:null,locked:!!S.pin,pinBuf:'',fails:0,lockUntil:0,forgot:false,hiddenAt:0};
+var ui={tab:'cuzdan',sub:'islem',plan:'butce',sv:'hesap',an:'ozet',nwr:6,trPick:null,wk:null,alAll:false,qaOrd:null,month:curP(),filter:'all',acctF:'',calc:'kredi',cv:{},nq:'',sq:'',tq:'',nv:'act',tr:6,page:null,locked:!!S.pin,pinBuf:'',fails:0,lockUntil:0,forgot:false,hiddenAt:0,mq:'',mlink:null};
 
 /* ---------- hesap ---------- */
 var MC={v:-1};
@@ -275,7 +279,7 @@ function acctBal(a){var b=+S.opening[a]||0;for(var i=0;i<S.tx.length;i++)b+=txDe
 function accTotal(){return r2(ACCS().reduce(function(a,x){return a+toTL(acctBal(x),x);},0));}
 function acctUsed(a){return S.tx.some(function(t){return t.acct===a||t.to===a;})||S.recurring.some(function(r){return r.acct===a;})||S.goals.some(function(g){return g.acct===a;});}
 function hKind(h){return h.kind==='asset'?'asset':'inv';}
-function hPrice(h){var r=h.ccy&&S.fx&&+S.fx[h.ccy];return r>0?r:(+h.price||0);}
+function hPrice(h){if(h.mk){var p=mTL(h.mk);if(p>0)return p;}var r=h.ccy&&S.fx&&+S.fx[h.ccy];return r>0?r:(+h.price||0);}
 function hVal(h){return r2(h.qty*hPrice(h));} function hCost(h){return r2(h.qty*h.cost);}
 function pfTotals(kind){var v=0,c=0;S.holdings.forEach(function(h){if(kind&&hKind(h)!==kind)return;v+=hVal(h);c+=hCost(h);});return {v:r2(v),c:r2(c)};}
 function hasSample(){return S.tx.some(function(t){return t.sample;})||S.holdings.some(function(h){return h.sample;})||S.notes.some(function(n){return n.sample;})||S.goals.some(function(n){return n.sample;})||S.recurring.some(function(n){return n.sample;})||S.debts.some(function(n){return n.sample;})||!!S.sampleExtras;}

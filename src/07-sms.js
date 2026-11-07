@@ -85,6 +85,11 @@ function smsIngest(list,opt){
     var body=String(m.body||''),key=fold(m.from||'')+'|'+isoDate(new Date(+m.ts||Date.now()))+'|'+smsHash(body);
     if(seen[key])return;seen[key]=1;S.sms.seen.push(key);
     var p=smsParse(body,m.from,m.ts);if(!p||p.skip)return;
+    /* aynı işlem hem SMS hem uygulama bildirimi olarak gelebilir: 20 dakika içinde aynı tür ve tutar tek sayılır */
+    var ts=+m.ts||Date.now(),ch=m.src==='app'?'app':'sms',mf=fold(p.merchant),ti=-1;
+    S.sms.recent.some(function(r,i){if(r.k===p.kind&&r.a===p.amt&&r.c===p.ccy&&Math.abs(r.t-ts)<12e5&&r.s!==ch&&(!r.m||!mf||r.m===mf)){ti=i;return true;}return false;});
+    if(ti>=0){S.sms.recent.splice(ti,1);return;}
+    S.sms.recent.push({k:p.kind,a:p.amt,c:p.ccy,t:ts,s:ch,m:mf});if(S.sms.recent.length>40)S.sms.recent=S.sms.recent.slice(-30);
     var g=smsGuessAcct(p),acc=ACCS(),cash=acc.filter(function(x){return acctType(x)==='nakit';})[0],kart=acc.filter(function(x){return acctType(x)==='kart';})[0];
     var it={id:uid(),key:key,kind:p.kind,oamt:p.amt,occy:p.ccy,date:p.date,note:p.merchant,from:p.from,last4:p.last4,raw:p.raw,acct:g.a,sure:g.sure};
     if(p.kind==='atm'){it.to=cash||'';it.acct=g.sure?g.a:(acc.filter(function(x){return acctType(x)==='banka';})[0]||g.a);}
@@ -119,10 +124,10 @@ function pullSms(){
   var l;try{l=JSON.parse(raw);}catch(e){l=[];}if(!l.length)return;
   var r=smsIngest(l);try{NB.smsAck(JSON.stringify(l.map(function(m){return m.id;})));}catch(e){}
   if((r.added||r.auto)&&!busy()&&!ui.page)render();
-  if(r.auto)toast(r.auto+' işlem banka SMS’inden eklendi');
+  if(r.auto)toast(r.auto+' işlem banka mesajından eklendi');
 }
 window.walletSms=function(){pullSms();};
-function smsBanner(){var n=S.sms.pend.length;if(!n)return '';return '<button class="banner smsb" data-act="sms-review"><span class="sic sm" style="--c:var(--accent)">'+ic('msg')+'</span><span class="mid"><b>'+n+' işlem</b> banka SMS’lerinden bulundu</span><span class="pill">İncele ›</span></button>';}
+function smsBanner(){var n=S.sms.pend.length;if(!n)return '';return '<button class="banner smsb" data-act="sms-review"><span class="sic sm" style="--c:var(--accent)">'+ic('msg')+'</span><span class="mid"><b>'+n+' işlem</b> banka mesajlarından bulundu</span><span class="pill">İncele ›</span></button>';}
 function smsItem(it){
   var acc=ACCS(),lbl={exp:'Gider',inc:'Gelir',atm:'ATM’den nakit',cardpay:'Kart borcu ödemesi'}[it.kind],trf=it.kind==='atm'||it.kind==='cardpay',cl=it.kind==='inc'?'inc':(trf?'':'exp');
   var cats=it.kind==='inc'?INCC():EXPC();
@@ -132,12 +137,12 @@ function smsItem(it){
    +(trf?'':'<div class="field"><label for="sc-'+it.id+'">Kategori</label><select id="sc-'+it.id+'">'+optsKeep(cats,it.cat)+'</select></div>')+'</div>'
    +'<div class="two"><div class="field"><label for="sa-'+it.id+'">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="sa-'+it.id+'">'+acctOpts(it.acct)+'</select></div>'
    +(trf?'<div class="field"><label for="st-'+it.id+'">Giriş hesabı</label><select id="st-'+it.id+'">'+acctOpts(it.to,'Seç')+'</select></div>':'')+'</div>'
-   +'<details><summary class="small muted">SMS metni</summary><p class="small muted" style="margin:4px 0 0;overflow-wrap:anywhere">'+esc(it.raw)+'</p></details>'
+   +'<details><summary class="small muted">Mesaj metni</summary><p class="small muted" style="margin:4px 0 0;overflow-wrap:anywhere">'+esc(it.raw)+'</p></details>'
    +'<div class="err" id="se-'+it.id+'"></div><div class="two"><button class="btn small" style="width:100%" data-act="sms-add" data-id="'+it.id+'">Ekle</button><button class="btn small ghost" style="width:100%" data-act="sms-skip" data-id="'+it.id+'">Yoksay</button></div></div>';
 }
 function smsSheet(){
   var l=S.sms.pend;if(!l.length){closeSheet();return;}
-  openSheet('<h2>SMS’ten bulunan işlemler</h2><p class="small muted" style="margin:0">Kontrol et, gerekirse hesabı ya da kategoriyi değiştir ve ekle. Seçtiğin hesap bu kart için hatırlanır.</p>'
+  openSheet('<h2>Banka mesajlarından bulunan işlemler</h2><p class="small muted" style="margin:0">Kontrol et, gerekirse hesabı ya da kategoriyi değiştir ve ekle. Seçtiğin hesap bu kart için hatırlanır.</p>'
    +l.slice(0,25).map(smsItem).join('')+(l.length>25?'<div class="small muted">+'+(l.length-25)+' işlem daha</div>':'')
    +'<div class="two"><button class="btn" data-act="sms-all">Hepsini ekle</button><button class="btn ghost" data-act="sms-none">Hepsini yoksay</button></div>');
 }
@@ -166,6 +171,11 @@ ACT['sms-parse']=function(){
 };
 ACT['sms-map-del']=function(el,id){delete S.sms.map[id];save();render();};
 function smsState(){if(nb('smsState')){try{return NB.smsState();}catch(e){}}return 'yok';}
+/* banka uygulaması bildirimleri: anahtar kelimeler web tarafında tutulur, yeni banka eklemek için APK güncellemesi gerekmez */
+var NTF_KW='bank,banka,garanti,akbank,ykb,yapikredi,iscep,isbank,ziraat,vakif,halkbank,enpara,finansbank,qnb,teb,deniz,ingbank,ingmobil,kuveyt,albaraka,papara,odeabank,fibabanka,sekerbank,anadolubank,hsbc,burgan,aktifbank,emlak,tosla,ininal,walletnfcrel';
+function ntfState(){if(nb('ntfState')){try{return NB.ntfState();}catch(e){}}return 'yok';}
+function ntfSync(){if(nb('ntfSet')){try{NB.ntfSet(!!S.sms.ntf,NTF_KW+(S.sms.ntfKw?','+S.sms.ntfKw:''));}catch(e){}}}
+ACT['ntf-perm']=function(){if(nb('ntfAsk')){try{NB.ntfAsk();}catch(e){}}};
 function setOto(){
   var st=smsState(),native=nb('smsQueue'),mk=Object.keys(S.sms.map);
   var main=native?tgl('sms.on','Banka SMS’lerini yakala','Kart harcaması, gelen para, ATM ve kart borcu ödemesi SMS’leri işlem önerisi olur')
@@ -173,7 +183,11 @@ function setOto(){
       +tgl('sms.auto','Onay beklemeden ekle','Daha önce hesabını eşleştirdiğin kartların harcamaları doğrudan eklenir')
       +'<button class="btn ghost" data-act="sms-scan">Son 30 günün SMS’lerini tara</button><div class="err" id="f-sms"></div>'
     :'<p class="small muted" style="margin:0">Otomatik yakalama Android uygulamasında çalışır. Burada bir banka SMS’ini yapıştırarak tanımayı deneyebilirsin.</p>';
+  var nst=ntfState(),ntf=nb('ntfSet')?tgl('sms.ntf','Banka uygulaması bildirimlerini yakala','Garanti, Akbank, İşCep, Ziraat, Enpara, Papara, Google Cüzdan gibi uygulamaların harcama ve para girişi bildirimleri işlem önerisi olur')
+      +(nst==='granted'?'<div class="small inc">Bildirim erişimi verildi.</div>':'<button class="btn ghost" data-act="ntf-perm">Bildirim erişimi ver</button><div class="small muted">Açılan ekranda Wallet’ı aç. İzin verilmiyorsa: Telefon Ayarları › Uygulamalar › Wallet › sağ üstteki ⋮ › “Kısıtlanmış ayarlara izin ver”, sonra tekrar dene.</div>')
+    :'<p class="small muted" style="margin:0">'+(native?'Bu özellik için Android uygulamasının yeni sürümünü kur.':'Android uygulamasında çalışır.')+'</p>';
   return sec('Banka SMS’lerinden otomatik işlem',main,'SMS’ler yalnızca telefonunda okunur, hiçbir yere gönderilmez. Şifre ve doğrulama kodu içeren mesajlar yok sayılır.')
+   +sec('Banka uygulaması bildirimlerinden',ntf,'Yalnızca banka ve ödeme uygulamalarının bildirimlerine bakılır; tutar içermeyenler ve doğrulama kodları yok sayılır. Bulunan işlemler SMS’lerle aynı listede onayını bekler. Aynı işlem hem SMS hem bildirim olarak gelirse bir kez sayılır.')
    +sec('SMS metnini yapıştır','<div class="field"><label for="sms-from">Gönderen</label><input id="sms-from" placeholder="Örn. AKBANK"></div><div class="field"><label for="sms-txt">Mesaj</label><textarea id="sms-txt" placeholder="Bankadan gelen harcama ya da para girişi SMS’ini buraya yapıştır"></textarea></div><div class="err" id="f-sms2"></div><button class="btn ghost" data-act="sms-parse">Çözümle ve ekle</button>','Tanınmayan bir mesaj olursa bana gönder; biçimi eklenir.')
    +(mk.length?sec('Kart ve hesap eşleşmeleri','<div class="list">'+mk.map(function(k){var p=k.split('|');return '<div class="item"><span class="mid"><div class="t">'+esc(p[0].toLocaleUpperCase('tr-TR'))+(p[1]?' · *'+esc(p[1]):'')+'</div><div class="small muted">'+esc(S.sms.map[k])+'</div></span><button class="btn small ghost" data-act="sms-map-del" data-id="'+esc(k)+'">Sil</button></div>';}).join('')+'</div>','Eklediğin her SMS işleminde seçtiğin hesap bu karta bağlanır.'):'');
 }

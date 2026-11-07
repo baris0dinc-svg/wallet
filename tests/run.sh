@@ -9,14 +9,14 @@ node --check app.js || exit 1
 SITE=${SITE:-/tmp/wallet-site}; SITE2=${SITE2:-/tmp/wallet-site2}
 python3 tests/build_site.py "$SITE" >/dev/null
 rm -rf "$SITE2"; cp -r "$SITE" "$SITE2"
-(cd "$SITE" && python3 -m http.server 8766 >/dev/null 2>&1) & S1=$!
-(cd "$SITE2" && python3 -m http.server 8767 >/dev/null 2>&1) & S2=$!
+(cd "$SITE" && exec python3 -m http.server 8766 >/dev/null 2>&1) & S1=$!
+(cd "$SITE2" && exec python3 -m http.server 8767 >/dev/null 2>&1) & S2=$!
 trap 'kill $S1 $S2 2>/dev/null' EXIT
 sleep 1
 declare -A PASS=( [math]="ALL PASS" [nav]="ALL PASS" [native]="ALL PASS" [sms]="ALL PASS" [regress]="ALL PASS"
   [multiccy]="ALL PASS" [fire]="ALL PASS" [calc]="ALL PASS" [migrate]="no page errors" [overflow]="TAŞMA YOK"
-  [monkey]="HEPSİ TEMİZ" [update]="BUSY PROMPT PASS" [v31]="ALL PASS" )
-LIST=("$@"); [ ${#LIST[@]} -eq 0 ] && LIST=(math sms v31 nav native regress multiccy fire calc migrate overflow monkey update)
+  [monkey]="HEPSİ TEMİZ" [update]="BUSY PROMPT PASS" [v31]="ALL PASS" [v33]="ALL PASS" )
+LIST=("$@"); [ ${#LIST[@]} -eq 0 ] && LIST=(math sms v31 v33 nav native regress multiccy fire calc migrate overflow monkey update)
 FAILED=()
 for t in "${LIST[@]}"; do
   passed=0

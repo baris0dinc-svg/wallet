@@ -46,7 +46,7 @@ public class NotifIn extends NotificationListenerService {
                 Iterator<String> it = recent.keySet().iterator();
                 while (recent.size() > 60 && it.hasNext()) { it.next(); it.remove(); }
             }
-            SmsIn.queue(this, label, body, now);
+            SmsIn.queue(this, label, body, now, "app");
             MainActivity.notifyJs("window.walletSms&&window.walletSms()");
         } catch (Exception ignored) { }
     }

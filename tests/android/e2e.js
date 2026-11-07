@@ -24,12 +24,19 @@ function ev(body){if(!ws)return Promise.resolve({__err:'bağlantı yok'});return
   ws.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression:'(async()=>{'+body+'\n})()',awaitPromise:true,returnByValue:true}}));setTimeout(()=>{if(pend[id]){delete pend[id];res({__err:'zaman aşımı'});}},60000);});}
 const ACTJS='const act=(a,id,v)=>{const e=document.createElement("button");e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};const setv=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event("input",{bubbles:true}));e.dispatchEvent(new Event("change",{bubbles:true}));};';
 async function restart(){ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1500);sh('adb shell am start -n '+ACT);await sleep(6000);return connect();}
+
+/* küçük PNG okuyucu (8 bit RGB/RGBA, satır süzgeçleri): ekran görüntüsünden piksel rengi almak için */
+function png(buf){const zlib=require('zlib');let o=8,w,h,ct,idat=[];while(o<buf.length){const n=buf.readUInt32BE(o),t=buf.toString('ascii',o+4,o+8),d=buf.slice(o+8,o+8+n);if(t==='IHDR'){w=d.readUInt32BE(0);h=d.readUInt32BE(4);ct=d[9];}else if(t==='IDAT')idat.push(d);o+=12+n;}
+  const bpp=ct===6?4:3,raw=zlib.inflateSync(Buffer.concat(idat)),st=w*bpp,px=Buffer.alloc(h*st);
+  for(let y=0;y<h;y++){const f=raw[y*(st+1)],r=raw.slice(y*(st+1)+1,(y+1)*(st+1));for(let x=0;x<st;x++){const a=x>=bpp?px[y*st+x-bpp]:0,b=y?px[(y-1)*st+x]:0,c=(x>=bpp&&y)?px[(y-1)*st+x-bpp]:0;let v=r[x];
+    if(f===1)v+=a;else if(f===2)v+=b;else if(f===3)v+=(a+b)>>1;else if(f===4){const p=a+b-c,pa=Math.abs(p-a),pb=Math.abs(p-b),pc=Math.abs(p-c);v+=(pa<=pb&&pa<=pc)?a:(pb<=pc?b:c);}px[y*st+x]=v&255;}}
+  return {w,h,at:(x,y)=>{const i=(Math.round(y)*w+Math.round(x))*bpp;return [px[i],px[i+1],px[i+2]];}};}
 const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")');
 
 (async()=>{
   ok('uygulamaya bağlanıldı',await connect());
   const br=await ev('return Object.keys(window.AndroidBridge||{}).filter(k=>typeof AndroidBridge[k]==="function").sort().join(",")');
-  ok('yerel köprü işlevleri',/saveData/.test(br)&&/schedule/.test(br)&&/smsQueue/.test(br)&&/shareFile/.test(br)&&/http/.test(br)&&/webText/.test(br)&&/ntfState/.test(br)&&/shareText/.test(br)&&/copyText/.test(br)&&/openUrl/.test(br),br);
+  ok('yerel köprü işlevleri',/saveData/.test(br)&&/schedule/.test(br)&&/smsQueue/.test(br)&&/shareFile/.test(br)&&/http/.test(br)&&/webText/.test(br)&&/ntfState/.test(br)&&/shareText/.test(br)&&/copyText/.test(br)&&/openUrl/.test(br)&&/splashDone/.test(br),br);
   // 1 veri kaydı ve yerel kopya
   await ev(ACTJS+'act("sample-clear");return 1');await sleep(500);
   await ev(ACTJS+'act("qa-exp");setv("f-amt","123,45");document.querySelector(".sheet [data-act=\\"save-tx\\"]").click();return 1');await sleep(800);
@@ -39,6 +46,20 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   const files=sh('adb shell run-as '+PKG+' ls files');ok('veri dosyası cihazda',/wallet-data\.json/.test(files),files.trim());
   // 2 kapatıp açma
   ok('yeniden başlatıldı',await restart());d=await data();ok('kapatıp açınca veri duruyor',has(d));
+  // açılış ekranı: soğuk açılışta beyaz/gri yanıp sönme yok, logo lacivert zeminde, sonra uygulama renkleri
+  {ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1500);
+   sh('adb shell "rm -f /sdcard/sp*.png; am start -n '+ACT+'; sleep 0.5; screencap -p /sdcard/sp1.png; sleep 0.3; screencap -p /sdcard/sp2.png; sleep 0.3; screencap -p /sdcard/sp3.png; sleep 4; screencap -p /sdcard/sp4.png"');
+   const shots=[1,2,3,4].map(i=>{sh('adb pull /sdcard/sp'+i+'.png /tmp/sp'+i+'.png');try{return png(require('fs').readFileSync('/tmp/sp'+i+'.png'));}catch(e){return null;}});
+   const navy=c=>c&&c[0]<45&&c[1]<55&&c[2]<80&&c[2]>=c[0],light=c=>c&&c[0]>200&&c[1]>200&&c[2]>200,gold=c=>c&&c[0]>120&&c[0]>c[2]+40;
+   const desc=im=>im?JSON.stringify({ust:im.at(im.w/2,8),orta:im.at(20,im.h/2),alt:im.at(im.w/2,im.h-8)}):'yok';
+   shots.forEach((im,i)=>console.log('ℹ açılış '+(i+1)+': '+desc(im)));
+   const early=shots.slice(0,2).filter(Boolean);
+   ok('açılışta beyaz/gri ekran yanıp sönmedi',early.length===2&&early.every(im=>navy(im.at(20,im.h/2))&&navy(im.at(im.w/2,8))),early.map(desc).join(' | '));
+   const hasGold=im=>{if(!im)return false;for(let y=im.h*0.35;y<im.h*0.6;y+=3)for(let x=im.w*0.25;x<im.w*0.75;x+=3)if(gold(im.at(x,y)))return true;return false;};
+   ok('açılışta altın logo görünüyor',hasGold(shots[0])||hasGold(shots[1]));
+   ok('açılıştan sonra uygulama ve açık renk çubuklar',shots[3]&&light(shots[3].at(shots[3].w/2,8))&&light(shots[3].at(20,shots[3].h/2)),desc(shots[3]));
+   for(const i of [1,2,3,4])console.log('ℹ AÇILIŞ'+i+'PNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/sp'+i+'.png')).toString('base64'));
+   ok('açılıştan sonra bağlanıldı',await connect());}
   // 3 WebView deposu silinirse yerel kopyadan döner
   await ev('localStorage.removeItem("kumbara-v1");return 1');ok('yeniden başlatıldı (depo silindi)',await restart());d=await data();ok('depo silinse de veri geri geldi',has(d));
   // 4 güncelleme: aynı APK üstüne kurulum

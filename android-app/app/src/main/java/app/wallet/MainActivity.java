@@ -22,6 +22,9 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.provider.MediaStore;
+import android.content.res.Configuration;
+import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -61,6 +64,9 @@ public class MainActivity extends Activity {
     private static WeakReference<MainActivity> live = new WeakReference<>(null);
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
+    /** Açılış: sistem açılış ekranı sayfa çizilene kadar kalır; web açılışı bitince çubuk renkleri uygulamanınkine döner. */
+    private boolean pageShown = false, splashOver = false;
+    private final Handler ui = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle state) {
@@ -69,7 +75,21 @@ public class MainActivity extends Activity {
         // yalnızca test derlemesinde (webDebug=true) WebView uzaktan incelenebilir
         if (BuildConfig.WEB_DEBUG) WebView.setWebContentsDebuggingEnabled(true);
         web = new WebView(this);
+        web.setBackgroundColor(getColor(R.color.splash));  // sayfa çizilmeden önce beyaz yanıp sönmesin
         setContentView(web);
+        final View content = findViewById(android.R.id.content);
+        content.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                if (!pageShown) return false;
+                content.getViewTreeObserver().removeOnPreDrawListener(this);
+                return true;
+            }
+        });
+        // ağ yavaşsa bile açılış ekranı en fazla 2,5 sn bekler
+        ui.postDelayed(new Runnable() { public void run() { showPage(); } }, 2500);
+        // eski bir web sürümü haber vermezse çubuk renkleri yine de düzelir
+        ui.postDelayed(new Runnable() { public void run() { endSplash(); } }, 7000);
 
         WebSettings s = web.getSettings();
         s.setJavaScriptEnabled(true);
@@ -86,6 +106,9 @@ public class MainActivity extends Activity {
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
                 return true;
             }
+
+            @Override
+            public void onPageCommitVisible(WebView v, String url) { showPage(); }
 
             /** Telefon belleği azalınca WebView işlemi kapanırsa uygulama çökmez, sayfa yeniden kurulur (veriler cihazda). */
             @Override
@@ -120,6 +143,40 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Bridge(), "AndroidBridge");
 
         if (state == null || web.restoreState(state) == null) web.loadUrl(URL_APP);
+    }
+
+    private void showPage() {
+        if (pageShown) return;
+        pageShown = true;
+        View c = findViewById(android.R.id.content);
+        if (c != null) c.invalidate();
+    }
+
+    /** Web açılışı bitti: pencere ve sistem çubukları uygulamanın açık/koyu temasına döner. */
+    private void endSplash() {
+        splashOver = true;
+        showPage();
+        applyBars();
+    }
+
+    private void applyBars() {
+        if (!splashOver) return;
+        int bg = getColor(R.color.bg);
+        boolean night = (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES;
+        getWindow().setStatusBarColor(bg);
+        getWindow().setNavigationBarColor(bg);
+        getWindow().setBackgroundDrawableResource(R.color.bg);
+        if (web != null) web.setBackgroundColor(bg);
+        View d = getWindow().getDecorView();
+        int f = d.getSystemUiVisibility() & ~(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        if (!night) f |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        d.setSystemUiVisibility(f);
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration c) {
+        super.onConfigurationChanged(c);
+        applyBars();
     }
 
     static SharedPreferences prefs(Context c) {
@@ -250,6 +307,12 @@ public class MainActivity extends Activity {
 
     /** Web uygulamasının çağırdığı yerel işlevler. */
     private class Bridge {
+        /** Web açılış ekranı kapanırken çağrılır. */
+        @JavascriptInterface
+        public void splashDone() {
+            runOnUiThread(new Runnable() { public void run() { endSplash(); } });
+        }
+
         /** Yedek ve CSV dosyalarını İndirilenler klasörüne kaydeder. */
         @JavascriptInterface
         public String save(String name, String text) {

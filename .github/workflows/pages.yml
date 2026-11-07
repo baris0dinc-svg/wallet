@@ -43,6 +43,7 @@ jobs:
               json.dump(out, open("rates.json", "w", encoding="utf-8"), ensure_ascii=False)
               print("rates.json:", len(items), "kalem")
               print("ANAHTARLAR:", ", ".join(list(items.keys())[:80]))
+              print("ORNEK:", json.dumps({k: items.get(k) for k in ["USD", "GBP", "CHF", "GRA", "XU100", "DBITCOIN", "GUMUS", "ONS", "CEYREKALTIN", "HAS"]}, ensure_ascii=False))
           else:
               print("UYARI: nesne bulunamadi; ust anahtarlar:", list(j.keys())[:20])
           PY

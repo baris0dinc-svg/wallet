@@ -8,18 +8,30 @@ jobs:
         shell: bash {0}
         run: |
           UA="Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Mobile Safari/537.36"
-          t(){ echo "=== $1"; curl -sS -m 25 -A "$UA" -D /tmp/h -o /tmp/b "${@:2}"; head -1 /tmp/h; grep -i "access-control-allow-origin" /tmp/h || true; head -c ${LEN:-600} /tmp/b; echo; }
-          t bigpara_tek "https://bigpara.hurriyet.com.tr/api/v1/borsa/hisseyuzeysel/THYAO"
-          t bigpara_liste "https://bigpara.hurriyet.com.tr/api/v1/hisse/list"
-          t isy_tekil "https://www.isyatirim.com.tr/_layouts/15/Isyatirim.Website/Common/Data.aspx/HisseTekil?hisse=THYAO&startdate=01-11-2026&enddate=07-11-2026"
-          t genelpara "https://api.genelpara.com/embed/borsa.json"
-          LEN=300 t gfin "https://www.google.com/finance/quote/THYAO:IST"; grep -o 'data-last-price="[^"]*"' /tmp/b | head -2
-          t stooq "https://stooq.com/q/l/?s=aapl.us&f=sd2t2ohlcv&h&e=json"
-          curl -sS -m 20 -A "$UA" -c /tmp/cj -o /dev/null https://fc.yahoo.com/ ; CR=$(curl -sS -m 20 -A "$UA" -b /tmp/cj https://query2.finance.yahoo.com/v1/test/getcrumb); echo "crumb=$CR"
-          t yahoo_crumb -b /tmp/cj "https://query2.finance.yahoo.com/v7/finance/quote?symbols=THYAO.IS,AAPL&crumb=$CR"
-          t yahoo_chart3 -b /tmp/cj "https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d"
-          t fundturkey -X POST -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "X-Requested-With: XMLHttpRequest" --data "fontip=YAT&fonkod=AFT&bastarih=01.11.2026&bittarih=06.11.2026" "https://www.fundturkey.com.tr/api/DB/BindHistoryInfo"
-          t tefas_cmp -X POST -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "X-Requested-With: XMLHttpRequest" --data "calismatipi=2&fontip=YAT&sfontur=&kurucukod=&fongrup=&bastarih=Başlangıç&bittarih=Bitiş&fonturkod=&fonunvantip=&strperiod=1,1,1,1,1,1,1&islemdurum=1" "https://www.tefas.gov.tr/api/DB/BindComparisonFundReturns"
-          t tefas_root "https://www.tefas.gov.tr/"
-          echo "=== truncgil anahtarlar"; curl -sS -m 25 -A "$UA" https://finans.truncgil.com/v4/today.json | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d));print(sorted(set(v.get('Type') for v in d.values() if isinstance(v,dict))));print([k for k in d][:120])"
-          t cg_markets "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=try&days=30&interval=daily"
+          t(){ echo "=== $1"; curl -sS -m 25 -A "$UA" -D /tmp/h -o /tmp/b "${@:2}"; head -1 /tmp/h; grep -i "access-control-allow-origin\|content-type" /tmp/h || true; head -c ${LEN:-500} /tmp/b; echo; }
+          I="https://www.isyatirim.com.tr/_layouts/15/IsYatirim.Website/Common"
+          t isy_one "$I/Data.aspx/OneEndeks?endeks=THYAO"
+          t isy_one_x "$I/Data.aspx/OneEndeks?endeks=XU100"
+          LEN=900 t isy_intra "$I/ChartData.aspx/IntradayDelay?period=120&code=THYAO.E.BIST"
+          LEN=300 t isy_tekil_son "$I/../Common/Data.aspx/HisseTekil?hisse=ASELS&startdate=05-11-2026&enddate=07-11-2026"
+          t stooq_q "https://stooq.com/q/l/?s=aapl.us&f=sd2t2ohlcv&h&e=csv"
+          t stooq_h "https://stooq.com/q/d/l/?s=aapl.us&i=d"
+          LEN=200 t gfin "https://www.google.com/finance/quote/AAPL:NASDAQ"; grep -o 'YMlKec fxKbKc">[^<]*' /tmp/b | head -2
+          LEN=300 t fintables "https://fintables.com/fonlar/AFT"
+          LEN=300 t isy_list "https://www.isyatirim.com.tr/tr-tr/analiz/hisse/Sayfalar/Temel-Degerler-Ve-Oranlar.aspx"; grep -o 'hisse=[A-Z0-9]\{3,6\}' /tmp/b | sort -u | wc -l
+          LEN=400 t kap_list "https://www.kap.org.tr/tr/api/kapmembers/IGS/A"
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: TEFAS tarayıcıyla
+        shell: bash {0}
+        run: |
+          mkdir p && cd p && npm i -s playwright@1.47.2 >/dev/null 2>&1 && npx playwright install --with-deps chromium >/dev/null 2>&1
+          cat > t.js <<'JS'
+          const {chromium}=require('playwright');
+          (async()=>{const b=await chromium.launch();const p=await b.newPage();
+          p.on('response',async r=>{const u=r.url();if(/\.(png|gif|jpg|css|woff|svg)/.test(u))return;let t='';try{t=(await r.text()).slice(0,250).replace(/\s+/g,' ');}catch(e){}console.log(r.status(),r.request().method(),u.slice(0,160),'|',t);});
+          for(const u of ['https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=AFT']){try{await p.goto(u,{timeout:60000,waitUntil:'networkidle'});}catch(e){console.log('ERR',e.message)}
+            await p.waitForTimeout(4000);const tx=await p.evaluate(()=>document.body.innerText.slice(0,600));console.log('TEXT:',tx.replace(/\s+/g,' '));}
+          await b.close();})();
+          JS
+          timeout 150 node t.js | head -60

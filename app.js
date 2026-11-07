@@ -2111,7 +2111,9 @@ function mk(k){k=String(k||'');var i=k.indexOf(':');return {src:k.slice(0,i),sym
 function fxName(s){if(MGOLD[s])return MGOLD[s];var o=FXALL&&FXALL[s];if(o&&o.Type==='Palladium')return 'Paladyum';if(o&&o.Type==='Platinum')return 'Platin';
   try{var n=DNC&&DNC.of(s);if(n&&n!==s)return n.charAt(0).toLocaleUpperCase('tr-TR')+n.slice(1);}catch(e){}return s;}
 function mW(k){return S.watch.filter(function(w){return w.k===k;})[0]||null;}
-function mName(k){var w=mW(k),q=S.quotes[k],c=MCAND[k],m=mk(k);return (w&&w.n)||(c&&c.n)||(q&&q.n)||(m.src==='fx'?fxName(m.sym):m.sym);}
+function mName(k){var w=mW(k),q=S.quotes[k],c=MCAND[k],m=mk(k);
+  if(m.src==='fon')return (q&&q.n)||(w&&w.n)||m.sym+' fonu';
+  return (w&&w.n)||(c&&c.n)||(q&&q.n)||(m.src==='fx'?fxName(m.sym):m.sym);}
 function mSym(k){var w=mW(k),c=MCAND[k],m=mk(k);return String((w&&w.s)||(c&&c.s)||m.sym).toUpperCase();}
 function mSub(k){var m=mk(k),s=mSym(k);return (m.src==='fx'&&MGOLD[m.sym]?'':s+' · ')+MSRC[m.src];}
 /* son fiyat: önce indirilen değer, döviz ve altında uygulamanın kendi kurları yedek olur */
@@ -2234,7 +2236,7 @@ function mResults(){
   l.forEach(function(x){MCAND[x.k]=x;});
   var g={};l.forEach(function(x){var s=mk(x.k).src;(g[s]=g[s]||[]).push(x);});
   var h=['fx','bist','fon','cg','yh'].filter(function(s){return g[s];}).map(function(s){
-    return '<div class="lbl" style="margin:4px 2px 0">'+MSRC[s]+(s==='yh'||s==='fon'?' <span class="muted">(deneysel)</span>':'')+'</div><div class="card" style="padding-top:4px;padding-bottom:4px"><div class="list">'+g[s].map(function(x){
+    return '<div class="lbl" style="margin:4px 2px 0">'+MSRC[s]+'</div><div class="card" style="padding-top:4px;padding-bottom:4px"><div class="list">'+g[s].map(function(x){
       var inW=!!mW(x.k),sub=s==='fon'?'TEFAS fon kodu':(x.s?String(x.s).toUpperCase():'')+(x.x?' · '+x.x:'');
       return '<button class="item" data-act="m-pick" data-id="'+esc(x.k)+'"><span class="mid"><div class="t">'+esc(x.n)+'</div><div class="small muted ell">'+esc(sub)+'</div></span>'+(inW?'<span class="small inc">Takipte</span>':ic('r'))+'</button>';}).join('')+'</div></div>';}).join('');
   if(a&&a.busy)h+='<div class="small muted" style="text-align:center">Kripto ve yabancı borsalarda aranıyor…</div>';
@@ -2252,7 +2254,7 @@ function mWatch(){
   var sug=MSUG.filter(function(x){return !mW(x[0]);});
   if(sug.length)h+='<div class="lbl" style="margin:4px 2px 0">Hızlı ekle</div><div class="chips">'+sug.map(function(x){return '<button class="chip" data-act="m-sug" data-id="'+x[0]+'">+ '+esc(x[1])+'</button>';}).join('')+'</div>';
   var t=mLast();h+='<div class="small muted" id="m-ts">'+(t?'Son güncelleme: '+esc(fmtTs(t)):'')+'</div>';
-  h+='<p class="small muted" style="margin:0">Kaynaklar: döviz ve altın Truncgil; Borsa İstanbul İş Yatırım (yaklaşık 15 dk gecikmeli); kripto CoinGecko; yabancı borsalar Yahoo Finance ve fonlar TEFAS (ikisi de deneysel). Fon fiyatları günde bir kez açıklanır. Bilgi amaçlıdır, yatırım tavsiyesi değildir.</p>';
+  h+='<p class="small muted" style="margin:0">Kaynaklar: döviz ve altın Truncgil; Borsa İstanbul İş Yatırım (yaklaşık 15 dk gecikmeli); kripto CoinGecko; yabancı borsalar Yahoo Finance; fonlar TEFAS (fon fiyatı günde bir kez açıklanır). Bilgi amaçlıdır, yatırım tavsiyesi değildir.</p>';
   return h;}
 function mBody(){return (ui.mq||'').trim()?mResults():mWatch();}
 function vPiyasa(){
@@ -2308,7 +2310,7 @@ function mSheet(k){
    +'<div id="mchart" class="stack" style="gap:6px"><div class="small muted">Grafik yükleniyor…</div></div>'
    +'<div class="two"><button class="btn'+(inW?' ghost':'')+'" data-act="m-watch" data-id="'+esc(k)+'">'+(inW?'Takipten çıkar':'Takip listesine ekle')+'</button>'+(idx?'':'<button class="btn ghost" data-act="m-hold" data-id="'+esc(k)+'">Yatırımlarıma ekle</button>')+'</div>'
    +(url?'<a class="btn ghost" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(mSrcName(k))+' sayfasını aç</a>':''));
-  refreshMarket({keys:[k],force:true}).then(function(r){if(!mCur||mCur.k!==k)return;if(r.errs&&r.errs[k])mCur.err=mErrTxt(k,r.errs[k]);var d=document.getElementById('mdet');if(d&&document.querySelector('[data-mk="'+k+'"]'))d.innerHTML=mDet(k);mAfterQuiet();});
+  refreshMarket({keys:[k],force:true}).then(function(r){if(!mCur||mCur.k!==k)return;if(r.errs&&r.errs[k])mCur.err=mErrTxt(k,r.errs[k]);var hd=document.querySelector('[data-mk="'+k+'"]'),d=document.getElementById('mdet');if(hd){hd.textContent=mName(k);if(d)d.innerHTML=mDet(k);}mAfterQuiet();});
   mDraw();}
 function mErrTxt(k,e){var m=mk(k);if(/uygulamada/.test(e))return 'Bu veri yalnızca Android uygulamasında alınabiliyor.';if(m.src==='fon')return 'Fon fiyatı TEFAS’tan alınamadı. Fon kodunu kontrol et ya da TEFAS sayfasını aç.';return 'Fiyat alınamadı ('+e+'). İnternet bağlantını kontrol edip tekrar dene.';}
 function mAfterQuiet(){if(ui.page&&ui.page.k==='piyasa')mUpd();}
@@ -2336,7 +2338,7 @@ function mAdd(k,n,s){if(mW(k))return;if(S.watch.length>=40){toast('Takip listesi
   refreshMarket({keys:[k],force:true}).then(function(){mUpd();});}
 ACT['m-watch']=function(el,k){var w=mW(k);
   if(w){S.watch=S.watch.filter(function(x){return x.k!==k;});save();toast(mName(k)+' takipten çıkarıldı');}
-  else{var c=MCAND[k]||{};mAdd(k,c.n||mName(k),c.s||mSym(k));toast(mName(k)+' takip listesine eklendi');}
+  else{var c=MCAND[k]||{};mAdd(k,mk(k).src==='fon'?mName(k):(c.n||mName(k)),c.s||mSym(k));toast(mName(k)+' takip listesine eklendi');}
   closeSheet();ui.mq='';if(ui.page&&ui.page.k==='piyasa')render();else mUpd();};
 ACT['m-hold']=function(el,k){var m=mk(k),f=m.src==='fx'&&MFXK[m.sym];
   if(!f&&!(mTL(k)>0)){toast('Önce fiyat alınmalı; biraz bekleyip tekrar dene');return;}

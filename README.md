@@ -39,7 +39,7 @@ Android uygulaması tutar içeren gelen SMS'leri kuyruğa alır (`SmsIn`), web t
 
 ## Piyasalar ve takip listesi
 
-`src/08-market.js`. Anahtar biçimi `kaynak:sembol`: `fx:USD` (Truncgil; döviz, altın türleri, BIST 100), `bist:THYAO` (İş Yatırım `OneEndeks` anlık ~15 dk gecikmeli, `HisseTekil` günlük kapanış geçmişi), `cg:bitcoin` (CoinGecko), `yh:AAPL` (Yahoo Finance, deneysel: sunucu IP'lerini sınırladığı için CI'da denenemiyor), `fon:AFT` (TEFAS fon sayfası `webText` ile okunur, deneysel: veri servisi kapalı, sunucu IP'lerini reddediyor). Tarayıcı CORS nedeniyle yalnızca Truncgil ve CoinGecko'ya erişir; hisseler için `bist.json` (her yayında `tools/bist_list.py` ile yenilenen hisse listesi ve son fiyat) kullanılır. Yatırımlar `mk` alanıyla bir sembole bağlanırsa değeri bu fiyattan hesaplanır (`hPrice`).
+`src/08-market.js`. Anahtar biçimi `kaynak:sembol`: `fx:USD` (Truncgil; döviz, altın türleri, BIST 100), `bist:THYAO` (İş Yatırım `OneEndeks` anlık ~15 dk gecikmeli, `HisseTekil` günlük kapanış geçmişi), `cg:bitcoin` (CoinGecko), `yh:AAPL` (Yahoo Finance `v8/finance/chart` ve `v1/finance/search`; düz sunucu isteklerine 429 verir, uygulamanın WebView kimliğiyle çalışır), `fon:AFT` (TEFAS'ın veri servisi kapalı; yeni fon sayfası `tr/fon-detayli-analiz/KOD` görünmez WebView'da açılıp metninden son fiyat, günlük getiri ve fon adı okunur). Hepsi Android E2E'de emülatörde denenir. Tarayıcı CORS nedeniyle yalnızca Truncgil ve CoinGecko'ya erişir; hisseler için `bist.json` (her yayında `tools/bist_list.py` ile yenilenen hisse listesi ve son fiyat) kullanılır. Yatırımlar `mk` alanıyla bir sembole bağlanırsa değeri bu fiyattan hesaplanır (`hPrice`).
 
 ## Ekstre içe aktarma
 

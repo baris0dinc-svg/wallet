@@ -2143,11 +2143,18 @@ function nget(url,o){o=o||{};return new Promise(function(ok,no){
   fetch(url,{cache:'no-store'}).then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.text();}).then(ok,no);});}
 function njson(url,o){return nget(url,o).then(function(t){return JSON.parse(t);});}
 /* tarayıcı doğrulaması isteyen sayfa: görünmez WebView'da açılır, 'need' metni görünene kadar beklenir */
-function nweb(url,need,ms){return new Promise(function(ok,no){
+/* aynı anda tek görünmez sayfa: site, arka arkaya gelen paralel istekleri bot sanabilir */
+var webQ=Promise.resolve();
+function nweb1(url,need,ms){return new Promise(function(ok,no){
   if(!nb('webText')){no(new Error('yalnızca uygulamada'));return;}
   var id='w'+(++hseq)+'_'+Date.now(),tm=setTimeout(function(){delete hreq[id];no(new Error('zaman aşımı'));},(ms||25000)+10000);
-  hreq[id]=function(code,text){clearTimeout(tm);var o=null;try{o=JSON.parse(text);}catch(e){}if(code===200&&o)ok(o);else no(new Error('sayfa okunamadı'));};
+  hreq[id]=function(code,text){clearTimeout(tm);var o=null;try{o=JSON.parse(text);}catch(e){}
+    if(o&&(code===200||String(o.t||'').indexOf(need)>-1))ok(o);
+    else no(new Error(!o?'sayfa açılamadı':(/Request Rejected|rejected/i.test(o.t||'')?'site isteği reddetti':'sayfada fiyat yok')));};
   try{NB.webText(id,url,need,ms||25000);}catch(e){clearTimeout(tm);delete hreq[id];no(e);}});}
+function nweb(url,need,ms){var run=webQ.then(function(){return nweb1(url,need,ms).catch(function(e){
+    if(/yalnızca|reddetti/.test(e.message))throw e;return new Promise(function(r){setTimeout(r,2500);}).then(function(){return nweb1(url,need,ms);});});});
+  webQ=run.catch(function(){});return run;}
 function bistList(){if(BIST)return Promise.resolve(BIST);
   if(!BISTP)BISTP=fetch('bist.json',{cache:'no-cache'}).then(function(r){if(!r.ok)throw new Error('yok');return r.json();}).then(function(j){BIST=j&&Array.isArray(j.l)?j:{l:[]};BISTM={};BIST.l.forEach(function(x){BISTM[x[0]]=x;});return BIST;}).catch(function(){BISTP=null;return {l:[]};});
   return BISTP;}
@@ -2312,7 +2319,7 @@ function mSheet(k){
    +(url?'<a class="btn ghost" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(mSrcName(k))+' sayfasını aç</a>':''));
   refreshMarket({keys:[k],force:true}).then(function(r){if(!mCur||mCur.k!==k)return;if(r.errs&&r.errs[k])mCur.err=mErrTxt(k,r.errs[k]);var hd=document.querySelector('[data-mk="'+k+'"]'),d=document.getElementById('mdet');if(hd){hd.textContent=mName(k);if(d)d.innerHTML=mDet(k);}mAfterQuiet();});
   mDraw();}
-function mErrTxt(k,e){var m=mk(k);if(/uygulamada/.test(e))return 'Bu veri yalnızca Android uygulamasında alınabiliyor.';if(m.src==='fon')return 'Fon fiyatı TEFAS’tan alınamadı. Fon kodunu kontrol et ya da TEFAS sayfasını aç.';return 'Fiyat alınamadı ('+e+'). İnternet bağlantını kontrol edip tekrar dene.';}
+function mErrTxt(k,e){var m=mk(k);if(/uygulamada/.test(e))return 'Bu veri yalnızca Android uygulamasında alınabiliyor.';if(m.src==='fon')return 'Fon fiyatı TEFAS’tan alınamadı ('+e+'). Fon kodunu kontrol et ya da TEFAS sayfasını aç.';return 'Fiyat alınamadı ('+e+'). İnternet bağlantını kontrol edip tekrar dene.';}
 function mAfterQuiet(){if(ui.page&&ui.page.k==='piyasa')mUpd();}
 function mDraw(){var c=mCur;if(!c)return;var k=c.k,r=c.r,box=document.getElementById('mchart');if(!box)return;
   if(mk(k).src==='fon'){box.innerHTML='<div class="small muted">Fon getiri grafiği için TEFAS sayfasını aç.</div>';return;}

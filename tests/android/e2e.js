@@ -67,8 +67,8 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
    sh('adb shell screencap -p /sdcard/home.png');sh('adb pull /sdcard/home.png /tmp/home.png');try{console.log('ℹ ANASAYFAPNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/home.png')).toString('base64'));}catch(e){}}
   // uygulama kısayolları (simgeye uzun basınca): açıkken ve soğuk açılışta işlem penceresi açılır
   {const sheet=async()=>{for(let i=0;i<20;i++){const v=await ev('const t=document.querySelector("#f-type [aria-pressed=\\"true\\"]");return t?t.dataset.v:""').catch(()=>'');if(v)return v;await sleep(500);}return '';};
-   const sc=sh('adb shell cmd shortcut get-shortcuts --manifest '+PKG+' 2>&1 || true');console.log('ℹ kısayollar: '+String(sc).replace(/\s+/g,' ').slice(0,300));
-   ok('kısayollar tanımlı',/exp/.test(sc)&&/voice/.test(sc),String(sc).slice(0,200));
+   const sc=sh('adb shell dumpsys shortcut').split(/\n(?=\s*Package: )/).filter(x=>x.indexOf('Package: '+PKG)>=0).join('\n');console.log('ℹ kısayollar: '+String(sc).replace(/\s+/g,' ').slice(0,300));
+   ok('kısayollar tanımlı',/id=exp/.test(sc)&&/id=voice/.test(sc),String(sc).replace(/\s+/g,' ').slice(0,300));
    await ev(ACTJS+'act("close");return 1');
    sh('adb shell am start -f 0x20000000 -a android.intent.action.VIEW -d wallet:exp -n '+ACT);ok('açıkken Gider kısayolu',await sheet()==='exp');
    await ev(ACTJS+'act("close");return 1');
@@ -87,7 +87,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   await sleep(2500);const alarms=sh('adb shell dumpsys alarm');const na=(alarms.match(new RegExp(PKG.replace(/\./g,'\\.'),'g'))||[]).length;
   ok('ödeme hatırlatmaları alarm olarak kuruldu',na>0,na+' kayıt');
   const tn=await ev('return AndroidBridge.testNotif()');await sleep(1500);const nd=sh('adb shell dumpsys notification --noredact');
-  ok('deneme bildirimi gösterildi',tn==='ok'&&/Wallet hatırlatıcısı çalışıyor/.test(nd),tn);
+  ok('deneme bildirimi gösterildi',tn==='ok'&&/Wallet hatırlatıcısı çalışıyor/.test(nd),JSON.stringify(tn)+' | '+(nd.match(/pkg=app\.wallet[^\n]{0,200}/g)||[]).slice(0,3).join(' / ')+' | '+sh('adb shell cmd appops get '+PKG+' POST_NOTIFICATION').trim()+' | '+sh('adb shell dumpsys package '+PKG+' | grep -i notif').replace(/\s+/g,' ').slice(0,300));
   await ev('return AndroidBridge.schedule(JSON.stringify([{at:Date.now()+15000,title:"E2E zamanlı hatırlatma",body:"test"}]))');
   let fired=false;for(let i=0;i<30&&!fired;i++){await sleep(3000);fired=/E2E zamanlı hatırlatma/.test(sh('adb shell dumpsys notification --noredact'));}
   ok('planlanan hatırlatma zamanında geldi',fired);

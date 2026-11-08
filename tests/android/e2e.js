@@ -8,10 +8,13 @@ const results=[];const ok=(name,cond,detail)=>{results.push([!!cond,name,detail]
 const getJson=u=>new Promise((res,rej)=>{http.get(u,r=>{let d='';r.on('data',c=>d+=c);r.on('end',()=>{try{res(JSON.parse(d));}catch(e){rej(e);}});}).on('error',rej);});
 let ws=null,seq=0;const pend={};
 async function connect(){
-  for(let i=0;i<40;i++){
-    const pid=sh('adb shell pidof '+PKG).trim();
+  let last='';
+  for(let i=0;i<60;i++){
+    /* uygulama açılmadıysa ya da sayfa takıldıysa (emülatörde ara sıra) yeniden öne getir */
+    if(i===20||i===40){console.log('ℹ bağlantı kurulamadı, uygulama yeniden öne getiriliyor ('+i+'): '+last);sh('adb shell am start -n '+ACT);}
+    const pid=sh('adb shell pidof '+PKG).trim();last='pid='+pid;
     if(pid){sh('adb forward --remove-all');sh('adb forward tcp:9222 localabstract:webview_devtools_remote_'+pid);
-      try{const l=await getJson('http://127.0.0.1:9222/json');const t=l.find(x=>x.type==='page'&&/github\.io\/wallet\/(index\.html)?([#?].*)?$/.test(x.url)&&x.webSocketDebuggerUrl);
+      try{const l=await getJson('http://127.0.0.1:9222/json');last+=' hedefler='+JSON.stringify(l.map(x=>[x.type,x.url.slice(0,60)]));const t=l.find(x=>x.type==='page'&&/github\.io\/wallet\/(index\.html)?([#?].*)?$/.test(x.url)&&x.webSocketDebuggerUrl);
         if(t){ws=new WebSocket(t.webSocketDebuggerUrl);await new Promise((r,j)=>{ws.on('open',r);ws.on('error',j);});
           ws.on('message',m=>{const o=JSON.parse(m);if(o.id&&pend[o.id]){pend[o.id](o);delete pend[o.id];}});
           /* eski bağlantının gecikmeli kapanışı yeni bağlantıyı silmesin */

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sc_exp_s">Gider</string>
+    <string name="sc_exp_l">Gider ekle</string>
+    <string name="sc_inc_s">Gelir</string>
+    <string name="sc_inc_l">Gelir ekle</string>
+    <string name="sc_voice_s">Sesle</string>
+    <string name="sc_voice_l">Sesle ekle</string>
+    <string name="sc_trf_s">Transfer</string>
+    <string name="sc_trf_l">Transfer yap</string>
+</resources>

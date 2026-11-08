@@ -144,7 +144,7 @@ function lockHtml(){
 }
 function lockNow(){ui.locked=true;ui.pinBuf='';ui.lkMsg='';ui.forgot=false;closeSheet();render();askBio();}
 function askBio(){if(ui.locked&&S.pin&&S.bio&&bioOk()&&nb('bioAuth')){try{NB.bioAuth();}catch(e){}}}
-window.walletBio=function(ok){if(ok&&ui.locked){ui.locked=false;ui.pinBuf='';ui.fails=0;ui.lkMsg='';render();}};
+window.walletBio=function(ok){if(ok&&ui.locked){ui.locked=false;ui.pinBuf='';ui.fails=0;ui.lkMsg='';render();setTimeout(runIntent,50);}};
 
 /* ---------- yedek ---------- */
 function b64(buf){var a=new Uint8Array(buf),s='';for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s);}

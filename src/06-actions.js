@@ -56,6 +56,7 @@ ACT['new-tx']=function(){txSheet();};
 ACT['edit-tx']=function(el,id){txSheet(id);};
 ACT['tx-type']=function(el,id,v){
   txType=v;
+  var dl=document.getElementById('note-dl');if(dl&&v!=='trf')dl.outerHTML=noteDl(v);
   document.querySelectorAll('#f-type button').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.v===v));});
   var trf=v==='trf';
   document.getElementById('row-cat').hidden=trf;document.getElementById('row-to').hidden=!trf;
@@ -76,7 +77,7 @@ ACT['save-tx']=function(el,id){
   if(!id){S.last=S.last||{};S.last[txType]={cat:o.cat,acct:o.acct};}
   if(pk(d)!==ui.month)ui.month=pk(d);
   save();closeSheet();render();
-  if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct));
+  if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct),function(){S.tx=S.tx.filter(function(z){return z.id!==o.id;});save();render();toast('Geri alındı');});
 };
 ACT['save-mv']=function(el,id){var t=byId(S.tx,id);if(!t)return;var amt=r2(num(val('m-amt')));
   if(tooBig(amt)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
@@ -263,7 +264,7 @@ ACT.lk=function(el,id,v){
   if(ui.pinBuf.length===4){
     var buf=ui.pinBuf;
     pinHash(buf,S.pin.s).then(function(h){
-      if(h===S.pin.h){ui.locked=false;ui.pinBuf='';ui.fails=0;ui.lkMsg='';render();}
+      if(h===S.pin.h){ui.locked=false;ui.pinBuf='';ui.fails=0;ui.lkMsg='';render();setTimeout(runIntent,50);}
       else{ui.fails++;ui.pinBuf='';ui.lkMsg='Yanlış PIN';
         if(ui.fails>=5){ui.fails=0;ui.lockUntil=Date.now()+30000;ui.lkMsg='Çok fazla deneme. 30 saniye bekle.';setTimeout(function(){if(ui.locked){ui.lkMsg='';render();}},30000);}
         render();}
@@ -540,7 +541,8 @@ document.addEventListener('input',function(e){
   else if(t.id==='f-note'&&txType!=='trf'){
     var txt=fold(t.value),sel=document.getElementById('f-cat');
     if(sel&&!sel.dataset.manual){var r=S.rules.filter(function(x){return x.kw&&txt.indexOf(fold(x.kw))>-1;})[0];
-      if(r&&Array.prototype.some.call(sel.options,function(o){return o.value===r.cat;})){sel.value=r.cat;syncCatChips();}}
+      var rc=r?r.cat:noteCat(txType,txt.trim());
+      if(rc&&Array.prototype.some.call(sel.options,function(o){return o.value===rc;})){sel.value=rc;syncCatChips();}}
   }
 });
 /* net servet grafiğinde dokunma ve parmak kaydırma */

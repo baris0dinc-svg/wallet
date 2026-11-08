@@ -426,3 +426,11 @@ header h1.tt{font-size:1.625rem;font-weight:800;letter-spacing:-.01em}
   .addvoice{padding:10px 12px}
   .addvoice span:last-child{display:none}
 }
+/* sık eklenenler */
+.favs{display:grid;gap:6px;min-width:0}
+.favs .lbl{margin:0 2px}
+.favl{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.favl::-webkit-scrollbar{display:none}
+.chip.fav{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;flex:none;font-weight:600;cursor:pointer}
+.chip.fav.inc{color:var(--inc)}
+.favs.insheet{margin:-2px 0 2px}

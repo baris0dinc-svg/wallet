@@ -66,7 +66,9 @@ public class MainActivity extends Activity {
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
     /** Açılış: sistem açılış ekranı sayfa çizilene kadar kalır; web açılışı bitince çubuk renkleri uygulamanınkine döner. */
-    private boolean splashOver = false;
+    private boolean splashOver = false, pageLoaded = false;
+    /** uygulama kısayolundan gelen eylem (exp, inc, trf, voice); sayfa yüklenince web uygulamasına iletilir */
+    private String pendIntent = null;
     private final Handler ui = new Handler(Looper.getMainLooper());
 
     @Override
@@ -79,6 +81,7 @@ public class MainActivity extends Activity {
         // sayfa çizilene kadar WebView saydam: arkadaki açılış zemini (lacivert + logo) görünür, beyaz yanıp sönme olmaz
         web.setBackgroundColor(0);
         setContentView(web);
+        pendIntent = intentAction(getIntent());
         // eski bir web sürümü haber vermezse çubuk renkleri yine de düzelir
         ui.postDelayed(new Runnable() { public void run() { endSplash(); } }, 7000);
 
@@ -90,6 +93,12 @@ public class MainActivity extends Activity {
         s.setAllowContentAccess(false);
 
         web.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView v, String url) {
+                pageLoaded = true;
+                sendIntent();
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
@@ -134,6 +143,27 @@ public class MainActivity extends Activity {
     }
 
     /** Web açılışı bitti: pencere ve sistem çubukları uygulamanın açık/koyu temasına döner. */
+    static String intentAction(Intent i) {
+        if (i == null || i.getData() == null || !"wallet".equals(i.getData().getScheme())) return null;
+        String a = i.getData().getSchemeSpecificPart();
+        if (a != null) a = a.replaceAll("^/+", "");
+        return a != null && a.matches("exp|inc|trf|voice") ? a : null;
+    }
+
+    private void sendIntent() {
+        if (pendIntent == null || !pageLoaded) return;
+        js("window.walletIntent&&window.walletIntent('" + pendIntent + "')");
+        pendIntent = null;
+    }
+
+    @Override
+    protected void onNewIntent(Intent i) {
+        super.onNewIntent(i);
+        setIntent(i);
+        String a = intentAction(i);
+        if (a != null) { pendIntent = a; sendIntent(); }
+    }
+
     private void endSplash() {
         splashOver = true;
         applyBars();

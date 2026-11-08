@@ -65,6 +65,15 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,sc:document.querySelectorAll(".sc").length,add:!!document.querySelector(".addmain"),voice:!!document.querySelector(".addvoice"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
    console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===5&&j.sc===6&&j.add,h);ok('sesle ekle düğmesi ses tanıma durumuna uyuyor',j.voice===(j.vok==='ok'),h);
    sh('adb shell screencap -p /sdcard/home.png');sh('adb pull /sdcard/home.png /tmp/home.png');try{console.log('ℹ ANASAYFAPNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/home.png')).toString('base64'));}catch(e){}}
+  // uygulama kısayolları (simgeye uzun basınca): açıkken ve soğuk açılışta işlem penceresi açılır
+  {const sheet=async()=>{for(let i=0;i<20;i++){const v=await ev('const t=document.querySelector("#f-type [aria-pressed=\\"true\\"]");return t?t.dataset.v:""').catch(()=>'');if(v)return v;await sleep(500);}return '';};
+   const sc=sh('adb shell cmd shortcut get-shortcuts --manifest '+PKG+' 2>&1 || true');console.log('ℹ kısayollar: '+String(sc).replace(/\s+/g,' ').slice(0,300));
+   ok('kısayollar tanımlı',/exp/.test(sc)&&/voice/.test(sc),String(sc).slice(0,200));
+   await ev(ACTJS+'act("close");return 1');
+   sh('adb shell am start -f 0x20000000 -a android.intent.action.VIEW -d wallet:exp -n '+ACT);ok('açıkken Gider kısayolu',await sheet()==='exp');
+   await ev(ACTJS+'act("close");return 1');
+   ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1000);sh('adb shell am start -a android.intent.action.VIEW -d wallet:inc -n '+ACT);await sleep(5000);
+   ok('kısayoldan açılışta bağlanıldı',await connect());ok('soğuk açılışta Gelir kısayolu',await sheet()==='inc');await ev(ACTJS+'act("close");return 1');}
   // 3 WebView deposu silinirse yerel kopyadan döner
   await ev('localStorage.removeItem("kumbara-v1");return 1');ok('yeniden başlatıldı (depo silindi)',await restart());d=await data();ok('depo silinse de veri geri geldi',has(d));
   // 4 güncelleme: aynı APK üstüne kurulum

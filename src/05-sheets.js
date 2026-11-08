@@ -12,7 +12,8 @@ function pageInfo(){
   var n=p.id&&byId(S.notes,p.id);
   return {title:p.id?(n&&n.trash?'Çöp kutusundaki not':(n&&n.arch?'Arşivdeki not':'Not')):'Yeni not',body:vNote};
 }
-function render(){
+function render(){RIN=true;try{render0();}finally{RIN=false;}}
+function render0(){
   TXV++;
   try{snap();}catch(e){}
   var L=document.getElementById('lock');
@@ -72,8 +73,11 @@ function goSec(s){closeSheet();
   if(s==='plan'||PLANS.some(function(x){return x[0]===s;})){if(s!=='plan')ui.plan=s;persistUi();openPage({k:'plan'},'planlama');return;}
   if(s==='notlar'){openPage({k:'notlar'},'notlar');return;}
   /* sayfadan sekmeye geçerken adresi yerinde temizle (history.back gecikmeli çalışıp sonraki sayfayı kapatmasın) */
+  var from=ui.page?null:ui.sub,to=mapSec(s);
   if(ui.page){finishPage();ui.page=null;try{if(location.hash.length>1)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
-  ui.sub=mapSec(s);persistUi();render();window.scrollTo(0,0);}
+  /* sekmeler arası geçişte her sekme kaldığı yerden açılır; aynı sekmeye yeniden dokununca başa döner */
+  ui.scr=ui.scr||{};if(from)ui.scr[from]=window.scrollY||0;
+  ui.sub=to;persistUi();render();window.scrollTo(0,from===to?0:(ui.scr[to]||0));}
 
 /* ---------- alt pencereler (sheet) ---------- */
 function openSheet(inner){document.getElementById('sheet-root').innerHTML='<div class="sheet-bg" data-act="close"></div><div class="sheet" role="dialog" aria-modal="true"><div class="sheet-in">'+inner+'</div></div>';}

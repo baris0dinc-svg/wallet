@@ -11,10 +11,11 @@ await ctx.addInitScript(()=>{const L=localStorage;window.AndroidBridge={
 const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8766/index.html');await p.waitForTimeout(1200);
 const F=[];const chk=(c,m)=>{if(!c)F.push(m);};
-let r=await p.evaluate(()=>{const T=window.__T,act=(a,id,v)=>{const e=document.createElement('button');e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};
+let r=await p.evaluate(async()=>{const T=window.__T,act=(a,id,v)=>{const e=document.createElement('button');e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};
   const usd=T.S.fx.USD;act('sample-clear');T.S.tx.push({id:'p1',type:'exp',amt:77,cat:'Market',acct:'Nakit',date:T.todayS(),note:'kalıcı'});
   const d=new Date();d.setDate(d.getDate()+4);T.S.recurring=[{id:'r1',name:'Su faturası',amt:300,day:d.getDate(),cat:'Fatura',acct:'Banka',paid:{}}];T.save();
-  return {usd,nat:JSON.parse(localStorage.getItem('__nat')).tx.length};});
+  const n0=localStorage.getItem('__nat');await new Promise(r=>setTimeout(r,300));/* yerel kopya çizimden sonra yazılır */
+  return {usd,nat:JSON.parse(localStorage.getItem('__nat')).tx.length,deferred:n0===null||JSON.parse(n0).tx.length!==JSON.parse(localStorage.getItem('__nat')).tx.length};});
 chk(Math.abs(r.usd-42)<1e-9,'yerel kaynaktan kur (bozuk JSON onarıldı) '+r.usd);chk(r.nat===1,'yerel kopya yazıldı');
 await p.waitForTimeout(900);
 r=await p.evaluate(()=>JSON.parse(localStorage.getItem('__plan')||'[]'));chk(r.some(x=>/Su faturası/.test(x.title))&&r.every(x=>x.at>Date.now()),'hatırlatıcı planı '+JSON.stringify(r).slice(0,200));

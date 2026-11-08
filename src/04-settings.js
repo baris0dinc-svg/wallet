@@ -125,6 +125,7 @@ function setVeri(){
    +sec('İşlemleri dışa aktar','<button class="btn ghost" data-act="csv">İşlemleri CSV olarak kaydet</button><button class="btn ghost" data-act="csv-copy">CSV metnini kopyala</button><div class="err" id="f-err"></div>','CSV; Excel ve tablo uygulamalarında açılır. '+S.tx.length+' işlem.')
    +sec('İşlemleri içe aktar','<label class="btn ghost filebtn">Ekstre dosyası seç<input id="im-file" type="file" accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><div class="small muted" id="im-file-name"></div><div class="field"><label for="im-txt">Ya da CSV metnini yapıştır</label><textarea id="im-txt" placeholder="İlk satır başlık olmalı, örn: Tarih; Açıklama; Tutar"></textarea></div><div class="field"><label for="im-acct">Hesap sütunu yoksa bu hesaba ekle</label><select id="im-acct">'+opts(ACCS(),ACCS().filter(function(a){return acctType(a)==='banka';})[0]||ACCS()[0])+'</select></div><div class="err" id="f-err4"></div><button class="btn ghost" data-act="im-go">İçe aktar</button>','Bankanın internet şubesinden ya da mobil uygulamasından indirdiğin hesap hareketleri: Excel (.xlsx, .xls) ya da CSV. Tablonun başlık satırı (Tarih, Açıklama, Tutar ya da Borç/Alacak) kendiliğinden bulunur. Eksi tutarlar ve Borç sütunu gider, artılar ve Alacak gelir sayılır; kredi kartı hesabına aktarırken artı tutarlar harcamadır. Kategori açıklamaya göre seçilir, aynı kayıtlar tekrar eklenmez.')
    +sec('Örnek veriler',(hasSample()?'<button class="btn ghost" data-act="sample-clear">Örnek verileri sil</button>':'<button class="btn ghost" data-act="sample-load">Örnek verileri yükle</button>'),'Örnek veriler kendi kayıtlarının yanına eklenir ve işaretlidir, istediğinde silebilirsin.')
+   +errSec()
    +sec('Tüm verileri sil','<button class="btn danger" data-act="reset-all">Tüm verileri sil</button>','Bu cihazdaki tüm işlemler, hesaplar, notlar, hedefler, ayarlar, PIN'+(nb('wipe')?', otomatik yedek dosyası ve planlanmış hatırlatmalar':'')+' silinir. Geri alınamaz; önce yedek almak isteyebilirsin.');
 }
 
@@ -222,3 +223,11 @@ function vArac(){
   h+='<div class="card" id="calc-out">'+calcOut()+'</div>';return h;
 }
 function calcOut(){var key=CALCS[ui.calc]?ui.calc:'kredi',c=CALCS[key],v={},m=maskOn;c.fields.forEach(function(f){v[f[0]]=num(ui.cv[key][f[0]]);});maskOn=false;try{return c.run(v);}finally{maskOn=m;}}
+
+function errList(){try{return JSON.parse(localStorage.getItem(ERRK)||'[]');}catch(e){return [];}}
+function errSec(){var l=errList();
+  return sec('Hata kaydı',l.length?'<div class="small" style="margin-bottom:8px">Son '+l.length+' kayıt; en yenisi '+esc(new Date(l[l.length-1].t).toLocaleString('tr-TR'))+'.</div><div class="two"><button class="btn ghost" data-act="err-copy">Kopyala</button><button class="btn ghost" data-act="err-clear">Temizle</button></div><div class="err" id="f-errlog"></div>':'<div class="small">Kayıtlı hata yok.</div>',
+   'Uygulamada beklenmeyen bir hata olursa burada saklanır; bir sorun bildirirken kopyalayıp gönderebilirsin. Kayıt hiçbir yere kendiliğinden gönderilmez.');}
+ACT['err-copy']=function(){var t='Wallet '+VER+' hata kaydı\n'+errList().map(function(x){return new Date(x.t).toISOString()+' ['+x.k+'] '+x.m+(x.w?' @ '+x.w:'');}).join('\n');
+  copyTxt(t).then(function(ok){msg(ok?'Kopyalandı.':'Kopyalanamadı.',ok,'f-errlog');});};
+ACT['err-clear']=function(){try{localStorage.removeItem(ERRK);}catch(e){}render();};

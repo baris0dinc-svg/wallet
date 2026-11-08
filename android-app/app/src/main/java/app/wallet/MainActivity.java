@@ -102,7 +102,9 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
-                if (HOST.equals(u.getHost())) return false;
+                // yalnızca uygulamanın kendi adresi WebView'da (köprüyle) açılır; aynı alan adındaki başka sayfalar bile tarayıcıda açılır
+                String path = u.getPath() == null ? "" : u.getPath();
+                if ("https".equals(u.getScheme()) && HOST.equals(u.getHost()) && (path.equals("/wallet") || path.startsWith("/wallet/"))) return false;
                 try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception ignored) { }
                 return true;
             }

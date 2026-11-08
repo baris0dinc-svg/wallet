@@ -1,6 +1,6 @@
 // kullanım kolaylığı: sık eklenenler, not önerisi ve kategori, kaydettikten sonra geri al, kısayollar
 const {chromium}=require('playwright');
-(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:360,height:780}});const p=await ctx.newPage();
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:360,height:780},hasTouch:true});const p=await ctx.newPage();
 const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8766/index.html');await p.waitForTimeout(900);
 const r=await p.evaluate(async()=>{const T=window.__T,F=[];const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const chk=(c,m)=>{if(!c)F.push(m);};
@@ -39,6 +39,17 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const $=s=>document.q
  window.walletIntent('trf');await wait(120);chk(/Transfer/.test($('.sheet h2').innerText),'kısayol transfer');T.ACT.close();
  window.walletIntent('kotu');await wait(120);chk(!$('#sheet-root').innerHTML,'bilinmeyen kısayol yok sayılır');
  T.ui.locked=true;window.walletIntent('exp');await wait(120);chk(!$('#sheet-root').innerHTML&&T.ui.intent==='exp','kilitliyken bekler');T.ui.locked=false;T.runIntent();chk(/Gider|Yeni/.test(($('.sheet h2')||{}).innerText||''),'kilit açılınca açılır');T.ACT.close();
+ // sekme kaydırma konumu
+ T.S.tx=T.S.tx.concat(Array.from({length:120},(_,i)=>({id:'s'+i,type:'exp',amt:5+i,cat:'Market',acct:'Nakit',date:T.todayS(),note:'kayd '+i})));T.save();
+ T.ACT.sub(null,null,'islem');window.scrollTo(0,900);await wait(30);const y1=window.scrollY;
+ T.ACT.sub(null,null,'analiz');await wait(30);chk(window.scrollY===0,'yeni sekme baştan '+window.scrollY);
+ T.ACT.sub(null,null,'islem');await wait(30);chk(Math.abs(window.scrollY-y1)<5&&y1>100,'İşlemler kaldığı yerden '+window.scrollY+'/'+y1);
+ T.ACT.sub(null,null,'islem');await wait(30);chk(window.scrollY===0,'aynı sekmeye dokununca başa');
+ // pencereyi aşağı sürükleyerek kapat
+ T.ACT['new-tx']();const sh=document.querySelector('.sheet'),top=sh.getBoundingClientRect().top+20;
+ const tch=(type,y)=>{const t=new Touch({identifier:1,target:sh,clientX:100,clientY:y});sh.dispatchEvent(new TouchEvent(type,{touches:type==='touchend'?[]:[t],changedTouches:[t],bubbles:true}));};
+ tch('touchstart',top);tch('touchmove',top+40);tch('touchend',top+40);await wait(250);chk(!!document.querySelector('.sheet'),'kısa sürükleme kapatmaz');
+ tch('touchstart',top);tch('touchmove',top+160);tch('touchend',top+160);await wait(300);chk(!document.querySelector('.sheet'),'aşağı sürükleyince kapandı');
  return F;});
 // adres kısayolu (PWA)
 await p.goto('http://localhost:8766/index.html#yeni-gelir');await p.reload();await p.waitForTimeout(1500);

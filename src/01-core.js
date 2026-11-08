@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.5';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.6';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -128,7 +128,9 @@ function pad(n){return String(n).padStart(2,'0');}
 function isoDate(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function mkey(d){return d.getFullYear()+'-'+pad(d.getMonth()+1);}
 function addMonth(k,o){var p=k.split('-');return mkey(new Date(+p[0],+p[1]-1+o,1));}
-function mlabel(k,short){var p=k.split('-'),r=new Date(+p[0],+p[1]-1,1).toLocaleDateString('tr-TR',short?{month:'short'}:{month:'long',year:'numeric'});return r.charAt(0).toLocaleUpperCase('tr-TR')+r.slice(1);}
+var MLC={};
+function mlabel(k,short){var ck=k+(short?'s':'');if(MLC[ck])return MLC[ck];return (MLC[ck]=mlabel0(k,short));}
+function mlabel0(k,short){var p=k.split('-'),r=new Date(+p[0],+p[1]-1,1).toLocaleDateString('tr-TR',short?{month:'short'}:{month:'long',year:'numeric'});return r.charAt(0).toLocaleUpperCase('tr-TR')+r.slice(1);}
 function pdate(s){var p=String(s).split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
 function color(name){var h=0,s=String(name);for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return 'hsl('+(h%360)+' 45% 52%)';}
 function sgn(n){return Math.abs(n)<0.5?TRY0.format(0):(n<0?'−':'+')+TRY0.format(Math.abs(n));}
@@ -216,13 +218,18 @@ function load(){
   return norm(seed());
 }
 var S=load();
-var TXV=0,storeWarned=false,planT=null,bkT=null;
+var TXV=0,storeWarned=false,planT=null,bkT=null,NSJ=null,NST=null;
+/* Android'deki yedek kopya (WebView deposu silinirse buradan döner): büyük veride köprü yavaş olduğundan
+   ekran çizildikten sonra yazılır; uygulama arka plana geçerken bekleyen kayıt hemen yazılır */
+function flushNative(){clearTimeout(NST);NST=null;var j=NSJ;NSJ=null;if(j&&nb('saveData')){try{NB.saveData(j);}catch(e){}}}
+document.addEventListener('visibilitychange',function(){if(document.hidden)flushNative();});
+window.addEventListener('pagehide',flushNative);
 function save(){
   TXV++;S.savedAt=Date.now();
   try{stampFx();}catch(e){}
   var j;try{j=JSON.stringify(S);}catch(e){return;}
   var ok=true;try{localStorage.setItem(KEY,j);}catch(e){ok=false;}
-  if(nb('saveData')){try{if(NB.saveData(j)==='ok')ok=true;}catch(e){}}
+  if(nb('saveData')){if(!ok){try{if(NB.saveData(j)==='ok')ok=true;}catch(e){}}else{NSJ=j;if(!NST)NST=setTimeout(flushNative,120);}}
   if(!ok&&!storeWarned){storeWarned=true;setTimeout(function(){toast('Veriler kaydedilemedi: cihaz deposu dolu olabilir. Yedek al.');},0);}
   clearTimeout(planT);planT=setTimeout(pushPlan,700);
   clearTimeout(bkT);bkT=setTimeout(function(){if(S.autoBk&&!hasSample()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();},20000);
@@ -235,7 +242,10 @@ function ensureCat(type,name){var l=S.cats[type];if(l.indexOf(name)<0)l.push(nam
 /* ---------- dönem (maaş günü) ---------- */
 function dimYM(y,m){return new Date(y,m,0).getDate();}
 function pStartDay(y,m){return Math.min(S.payday||1,dimYM(y,m));}
-function pk(ds){var p=String(ds).split('-'),y=+p[0],m=+p[1],d=+p[2];if(d<pStartDay(y,m)){m--;if(m<1){m=12;y--;}}return y+'-'+pad(m);}
+/* tarih → dönem anahtarı; aynı tarihler çok tekrarlandığından maaş gününe göre önbelleklenir */
+var PKC={d:null,m:{}};
+function pk(ds){if(PKC.d!==S.payday)PKC={d:S.payday,m:{}};var c=PKC.m[ds];if(c)return c;return (PKC.m[ds]=pk0(ds));}
+function pk0(ds){var p=String(ds).split('-'),y=+p[0],m=+p[1],d=+p[2];if(d<pStartDay(y,m)){m--;if(m<1){m=12;y--;}}return y+'-'+pad(m);}
 function pStart(k){var p=k.split('-');return k+'-'+pad(pStartDay(+p[0],+p[1]));}
 function pEnd(k){var s=pdate(pStart(addMonth(k,1)));s.setDate(s.getDate()-1);return isoDate(s);}
 function curP(){return pk(todayS());}
@@ -287,7 +297,18 @@ function txDelta(t,a){
   }
   return 0;
 }
-function acctBal(a){var b=+S.opening[a]||0;for(var i=0;i<S.tx.length;i++)b+=txDelta(S.tx[i],a);return r2(b);}
+/* tüm hesap bakiyeleri tek geçişte; işlem listesi, açılış bakiyeleri ya da çizim sürümü değişince yeniden hesaplanır */
+var BALC={v:-1};
+function balAll(){
+  var A=ACCS(),os=JSON.stringify(S.opening);
+  if(BALC.v===TXV&&BALC.s===S.tx&&BALC.n===S.tx.length&&BALC.a===A.join('\u0001')&&BALC.o===os)return BALC.m;
+  var m={};A.forEach(function(a){m[a]=+S.opening[a]||0;});
+  for(var i=0;i<S.tx.length;i++){var t=S.tx[i];
+    if(t.type==='trf'){if(t.acct in m)m[t.acct]-=t.amt;if(t.to in m)m[t.to]+=(t.amt2>0?t.amt2:t.amt);}
+    else if(t.acct in m)m[t.acct]+=txDelta(t,t.acct);}
+  BALC={v:TXV,s:S.tx,n:S.tx.length,a:A.join('\u0001'),o:os,m:m};return m;
+}
+function acctBal(a){var m=balAll();if(a in m)return r2(m[a]);var b=+S.opening[a]||0;for(var i=0;i<S.tx.length;i++)b+=txDelta(S.tx[i],a);return r2(b);}
 function accTotal(){return r2(ACCS().reduce(function(a,x){return a+toTL(acctBal(x),x);},0));}
 function acctUsed(a){return S.tx.some(function(t){return t.acct===a||t.to===a;})||S.recurring.some(function(r){return r.acct===a;})||S.goals.some(function(g){return g.acct===a;});}
 function hKind(h){return h.kind==='asset'?'asset':'inv';}
@@ -329,6 +350,23 @@ function nwAt(D){
   S.debts.forEach(function(d){if(inD[d.id]&&inD[d.id]>D)return;var paid=0;S.tx.forEach(function(t){if(t.type==='dbt'&&t.side==='out'&&t.debt===d.id&&t.date<=D)paid+=txTL(t);});tot-=Math.max((+d.amt||0)-paid,0);});
   return r2(tot);
 }
+/* nwAt'ın birçok tarih için tek taramalı hâli (tarihler artan sırada): işlemler bir kez sıralanır, bakiyeler birikir */
+function nwAtMany(ends){
+  var out={};if(!ends.length)return out;ends=ends.slice().sort();
+  var A=ACCS(),bal={},firstBuy={},inD={},paid={};A.forEach(function(a){bal[a]=+S.opening[a]||0;});
+  S.tx.forEach(function(t){if(t.type==='inv'&&t.side==='buy'&&t.hold&&(!firstBuy[t.hold]||t.date<firstBuy[t.hold]))firstBuy[t.hold]=t.date;if(t.type==='dbt'&&t.side==='in'&&t.debt&&(!inD[t.debt]||t.date<inD[t.debt]))inD[t.debt]=t.date;});
+  var srt=S.tx.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;}),i=0;
+  ends.forEach(function(D){
+    while(i<srt.length&&srt[i].date<=D){var t=srt[i++];
+      if(t.type==='trf'){if(t.acct in bal)bal[t.acct]-=t.amt;if(t.to in bal)bal[t.to]+=(t.amt2>0?t.amt2:t.amt);}
+      else if(t.acct in bal)bal[t.acct]+=txDelta(t,t.acct);
+      if(t.type==='dbt'&&t.side==='out'&&t.debt)paid[t.debt]=(paid[t.debt]||0)+txTL(t);}
+    var tot=0;A.forEach(function(a){tot+=toTL(bal[a],a);});
+    S.holdings.forEach(function(h){if(!(firstBuy[h.id]&&firstBuy[h.id]>D))tot+=hVal(h);});
+    S.debts.forEach(function(d){if(inD[d.id]&&inD[d.id]>D)return;tot-=Math.max((+d.amt||0)-(paid[d.id]||0),0);});
+    out[D]=r2(tot);});
+  return out;
+}
 /* net servet serisi: günlük kayıtlar + ilk işlemden bu yana ay sonları (işlemlerden hesaplanır) + bugün */
 var NWC={k:''};
 function nwSeries(){
@@ -338,7 +376,7 @@ function nwSeries(){
   if(S.tx.length){var first=S.tx.reduce(function(m,t){return t.date<m?t.date:m;},'9999');
     if(first<today){var d0=pdate(first);d0.setDate(d0.getDate()-1);var ends=[isoDate(d0)],m=first.slice(0,7),em=today.slice(0,7),guard=0;
       while(m<em&&guard++<240){ends.push(isoDate(new Date(+m.slice(0,4),+m.slice(5,7),0)));m=addMonth(m,1);}
-      ends.forEach(function(e){if(!pts[e]&&e<today)pts[e]={v:nwAt(e),e:true};});}}
+      var need=ends.filter(function(e){return !pts[e]&&e<today;}),vals=nwAtMany(need);need.forEach(function(e){pts[e]={v:vals[e],e:true};});}}
   pts[today]={v:r2(wealth().net),e:false};
   var v=Object.keys(pts).sort().map(function(k){return [k,pts[k].v,pts[k].e];});
   NWC={k:key,v:v};return v;

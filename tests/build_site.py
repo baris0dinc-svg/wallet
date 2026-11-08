@@ -9,6 +9,9 @@ for n in os.listdir(site):
 for f in ['index.html','style.css','app.js','sw.js','manifest.webmanifest','bist.json']:
     shutil.copy(SRC+f, site+f)
 shutil.copytree(SRC+'icons', site+'icons')
+# test kopyası: iç işlevleri açan __T eval kullandığından yalnızca testte 'unsafe-eval' eklenir (politikanın geri kalanı aynen denenir)
+_ix=open(site+'index.html',encoding='utf-8').read()
+open(site+'index.html','w',encoding='utf-8').write(_ix.replace("script-src 'self' ","script-src 'self' 'unsafe-eval' ",1))
 json.dump({"updated":"2026-11-06 18:00:00","items":{
   "USD":{"Buying":41.25,"Selling":41.31,"Change":0.12},
   "EUR":{"Buying":44.1,"Selling":44.25,"Change":-0.2},

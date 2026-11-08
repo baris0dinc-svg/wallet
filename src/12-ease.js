@@ -5,11 +5,13 @@
    Not yazarken önceki notlar önerilir; aynı not daha önce hangi kategoriyle girildiyse o seçilir.
    Kısayollar: Android'de simgeye uzun basınca, PWA'da ana ekran menüsünde Gider / Gelir / Sesle ekle. */
 function favKey(t){return [t.type,t.cat,t.acct,fold(t.note||'').trim(),r2(t.amt)].join('|');}
-function freqTx(n){
+var FQC={v:-1};
+function freqTx(n){var k=(S.savedAt||0)+'|'+S.tx.length+'|'+todayS()+'|'+ACCS().join('\u0001');if(FQC.k===k&&FQC.s===S.tx)return FQC.r.slice(0,n||6);var r=freqTx0();FQC={k:k,s:S.tx,r:r};return r.slice(0,n||6);}
+function freqTx0(){
   var from=new Date(today0());from.setDate(from.getDate()-120);var f=isoDate(from),m={};
   S.tx.forEach(function(t){if((t.type!=='exp'&&t.type!=='inc')||t.date<f||t.sample||!(t.amt>0))return;var k=favKey(t),x=m[k]||(m[k]={k:k,n:0,last:'',t:t});x.n++;if(t.date>=x.last){x.last=t.date;x.t=t;}});
   return Object.keys(m).map(function(k){return m[k];}).filter(function(x){return x.n>=2&&ACCS().indexOf(x.t.acct)>=0;})
-    .sort(function(a,b){return (b.n-a.n)||b.last.localeCompare(a.last);}).slice(0,n||6);
+    .sort(function(a,b){return (b.n-a.n)||b.last.localeCompare(a.last);}).slice(0,6);
 }
 function favLabel(t){return (t.note||t.cat)+' · '+moneyIn(t.amt,t.acct,1);}
 function favRow(where){

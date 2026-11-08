@@ -1,3 +1,4 @@
+var TQT=null;
 
 /* ---------- eylemler ---------- */
 ACT.back=function(){closePage();};
@@ -412,7 +413,7 @@ function wipeAll(){
   if(nb('wipe')){try{NB.wipe();}catch(e){}}
   S=norm({tx:[]});
   ui.locked=false;ui.forgot=false;ui.page=null;ui.sub='ev';ui.month=curP();ui.filter='all';ui.acctF='';ui.tq='';ui.nq='';ui.nv='act';ui.cv={};
-  save();applySecure();
+  save();flushNative();applySecure();
   try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
   closeSheet();render();window.scrollTo(0,0);toast('Tüm veriler silindi');
   refreshRates({}).then(function(){if(!ui.page&&!sheetOpen())render();});
@@ -496,7 +497,10 @@ document.addEventListener('keydown',function(e){
 });
 document.addEventListener('click',function(e){
   var el=e.target.closest('[data-act]');if(!el)return;
-  var a=el.dataset.act;if(Object.prototype.hasOwnProperty.call(ACT,a))ACT[a](el,el.dataset.id,el.dataset.v);
+  var a=el.dataset.act;if(!Object.prototype.hasOwnProperty.call(ACT,a))return;
+  /* bir eylem hata verirse uygulama donmaz: kullanıcıya söylenir, hata kaydına yazılır (testler de görsün diye yeniden fırlatılır) */
+  try{ACT[a](el,el.dataset.id,el.dataset.v);}catch(err){errLog('eylem '+a,err&&err.message,err&&err.stack&&String(err.stack).split('\n')[1]);
+    try{toast('Bir sorun oldu, işlem tamamlanamadı. Ayrıntı: Ayarlar › Veri ve yedek › Hata kaydı.');}catch(e2){}try{err.__logged=true;}catch(e3){}setTimeout(function(){throw err;},0);}
 });
 document.addEventListener('change',function(e){
   var t=e.target,d=t.dataset||{};
@@ -530,7 +534,7 @@ document.addEventListener('input',function(e){
   var t=e.target,d=t.dataset||{};
   if(t.classList&&t.classList.contains('calc-in')){var k0=CALCS[ui.calc]?ui.calc:'kredi';ui.cv[k0][d.k]=t.value;document.getElementById('calc-out').innerHTML=calcOut();}
   else if(t.id==='nsearch'){ui.nq=t.value;document.getElementById('nlist').innerHTML=notesList();}
-  else if(t.id==='tq'){ui.tq=t.value;var tl=document.getElementById('txlist');if(tl)tl.innerHTML=txList();}
+  else if(t.id==='tq'){ui.tq=t.value;ui.tqN=100;clearTimeout(TQT);/* yazarken her tuşta değil, kısa bir duraksamada ara */TQT=setTimeout(function(){var tl=document.getElementById('txlist');if(tl)tl.innerHTML=txList();},t.value?140:0);}
   else if(t.id==='sset'){ui.sq=t.value;document.getElementById('setlist').innerHTML=setList();}
   else if(t.id==='mq'){ui.mq=t.value;mUpd();clearTimeout(mTimer);var mqv=t.value;mTimer=setTimeout(function(){mRemote(mqv);},450);}
   else if(d.nf&&ui.page&&ui.page.k==='note'){ui.page.draft[d.nf]=t.value;ui.page.dirty=true;}
@@ -588,3 +592,12 @@ try{if('serviceWorker' in navigator){var swHad=!!navigator.serviceWorker.control
   if(!swHad)return;swHad=false;
   if(!busy()&&!ui.page)location.reload();else toast('Yeni sürüm hazır',function(){location.reload();},'Yenile');});}}catch(e){}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(e){}
+
+/* pencereyi üst kısmından aşağı sürükleyerek kapat (pencere en üstteyken) */
+(function(){var sy=null,sh=null,dy=0;
+  document.addEventListener('touchstart',function(e){var s=e.target.closest&&e.target.closest('.sheet');if(!s||e.touches.length!==1)return;
+    var top=s.getBoundingClientRect().top;if(s.scrollTop>0||e.touches[0].clientY-top>72||/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))return;sy=e.touches[0].clientY;sh=s;dy=0;},{passive:true});
+  document.addEventListener('touchmove',function(e){if(sh==null)return;dy=Math.max(0,e.touches[0].clientY-sy);sh.style.transition='none';sh.style.transform=dy?'translateY('+dy+'px)':'';},{passive:true});
+  document.addEventListener('touchend',function(){if(sh==null)return;var s=sh;sh=null;s.style.transition='transform .18s ease';
+    if(dy>90){s.style.transform='translateY(100%)';setTimeout(function(){if(ACT.close)ACT.close();},170);}else s.style.transform='';dy=0;},{passive:true});
+})();

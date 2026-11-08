@@ -145,6 +145,10 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   await ev('AndroidBridge.setSecure(false);return 1');
   ok('parmak izi denetimi çalışıyor',typeof (await ev('return AndroidBridge.bioAvail()'))==='boolean');
   // 10 tam silme
+  // altyapı: uygulamanın kendi hata kaydı; güvenlik politikası (CSP) WebView'da hiçbir şeyi engellememeli
+  {const el=await ev('return localStorage.getItem("wallet-err")||"[]"');console.log('ℹ hata kaydı: '+String(el).slice(0,600));let l=[];try{l=JSON.parse(el);}catch(e){}
+   ok('güvenlik politikası ihlali yok',Array.isArray(l)&&!l.some(x=>x.k==='politika'),String(el).slice(0,300));
+   ok('beklenmeyen eylem hatası yok',Array.isArray(l)&&!l.some(x=>/^eylem/.test(x.k)),String(el).slice(0,300));}
   // uygulama kısayolları (simgeye uzun basınca): açıkken ve soğuk açılışta işlem penceresi açılır
   {const sheet=async()=>{for(let i=0;i<20;i++){const v=await ev('const t=document.querySelector("#f-type [aria-pressed=\\"true\\"]");return t?t.dataset.v:""').catch(()=>'');if(v)return v;await sleep(500);}return '';};
    const sc=sh('adb shell dumpsys shortcut').split(/\n(?=\s*Package: )/).filter(x=>x.indexOf('Package: '+PKG)>=0).join('\n');console.log('ℹ kısayollar: '+String(sc).replace(/\s+/g,' ').slice(0,300));

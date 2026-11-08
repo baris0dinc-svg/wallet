@@ -36,7 +36,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
 (async()=>{
   ok('uygulamaya bağlanıldı',await connect());
   const br=await ev('return Object.keys(window.AndroidBridge||{}).filter(k=>typeof AndroidBridge[k]==="function").sort().join(",")');
-  ok('yerel köprü işlevleri',/saveData/.test(br)&&/schedule/.test(br)&&/smsQueue/.test(br)&&/shareFile/.test(br)&&/http/.test(br)&&/webText/.test(br)&&/ntfState/.test(br)&&/shareText/.test(br)&&/copyText/.test(br)&&/openUrl/.test(br)&&/splashDone/.test(br),br);
+  ok('yerel köprü işlevleri',/saveData/.test(br)&&/schedule/.test(br)&&/smsQueue/.test(br)&&/shareFile/.test(br)&&/http/.test(br)&&/webText/.test(br)&&/ntfState/.test(br)&&/shareText/.test(br)&&/copyText/.test(br)&&/openUrl/.test(br)&&/splashDone/.test(br)&&/voiceOk/.test(br),br);
   // 1 veri kaydı ve yerel kopya
   await ev(ACTJS+'act("sample-clear");return 1');await sleep(500);
   await ev(ACTJS+'act("qa-exp");setv("f-amt","123,45");document.querySelector(".sheet [data-act=\\"save-tx\\"]").click();return 1');await sleep(800);
@@ -61,6 +61,10 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
    ok('açılıştan sonra uygulama ve açık renk çubuklar',shots[3]&&light(shots[3].at(shots[3].w/2,8))&&light(shots[3].at(20,shots[3].h/2)),desc(shots[3]));
    for(const i of [1,2,3,4])console.log('ℹ AÇILIŞ'+i+'PNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/sp'+i+'.png')).toString('base64'));
    ok('açılıştan sonra bağlanıldı',await connect());}
+  // yeni yapı: alt menü, ana sayfa kartları, sesle ekleme düğmesi (telefonda ses tanıma varsa)
+  {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,sc:document.querySelectorAll(".sc").length,add:!!document.querySelector(".addmain"),voice:!!document.querySelector(".addvoice"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
+   console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===5&&j.sc===6&&j.add,h);ok('sesle ekle düğmesi ses tanıma durumuna uyuyor',j.voice===(j.vok==='ok'),h);
+   sh('adb shell screencap -p /sdcard/home.png');sh('adb pull /sdcard/home.png /tmp/home.png');try{console.log('ℹ ANASAYFAPNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/home.png')).toString('base64'));}catch(e){}}
   // 3 WebView deposu silinirse yerel kopyadan döner
   await ev('localStorage.removeItem("kumbara-v1");return 1');ok('yeniden başlatıldı (depo silindi)',await restart());d=await data();ok('depo silinse de veri geri geldi',has(d));
   // 4 güncelleme: aynı APK üstüne kurulum

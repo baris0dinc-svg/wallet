@@ -94,7 +94,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,o={},F=[];const $=s=>docum
  act('n-arch',N.id);chk(N.arch&&T.noteCounts().arch===1&&T.noteCounts().act===0,'arşiv');act('nview',null,'arch');o.archList=document.getElementById('nlist').innerText;chk(/Deneme/.test(o.archList),'arşiv listesinde görünür');
  act('n-trash',N.id);act('nview',null,'trash');o.trashList=document.getElementById('nlist').innerText;chk(N.trash&&/Deneme/.test(o.trashList),'çöp kutusunda görünür');
  act('n-restore',N.id);chk(!N.trash&&N.arch,'geri yükleme arşive döner');act('n-unarch',N.id);act('nview',null,'act');chk(/Deneme/.test(document.getElementById('nlist').innerText),'notlara döndü');
- act('edit-n',N.id);click('[data-act="note-trash"]');chk(N.trash&&!T.ui.page,'editörden çöpe');act('nview',null,'trash');const pb=document.querySelector('[data-act="n-purge"]');pb.click();document.querySelector('[data-act="n-purge"]')&&document.querySelector('[data-act="n-purge"]').click();
+ act('edit-n',N.id);click('[data-act="note-trash"]');chk(N.trash&&T.ui.page&&T.ui.page.k==='notlar','editörden çöpe notlara döner');act('nview',null,'trash');const pb=document.querySelector('[data-act="n-purge"]');pb.click();document.querySelector('[data-act="n-purge"]')&&document.querySelector('[data-act="n-purge"]').click();
  chk(T.S.notes.length===0,'kalıcı silme '+T.S.notes.length);
  // 19 tam silme
  act('reset-all');document.querySelector('[data-act="reset-all"]');T.wipeAll();

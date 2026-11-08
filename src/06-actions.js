@@ -16,7 +16,7 @@ ACT.sv=function(el,id,v){ui.sv=v;persistUi();render();};
 ACT.an=function(el,id,v){ui.an=v;persistUi();render();};
 ACT['sv-go']=function(el,id,v){goSec(v);};
 ACT['an-go']=function(el,id,v){ui.an=v;goSec('analiz');};
-ACT.alerts=function(){alertSheet();};
+ACT.alerts=function(){if(!alertItems().length){toast('Şu an uyarı yok');return;}alertSheet();};
 ACT['al-pay']=function(el,id,v){var r=byId(S.recurring,id);if(!r)return;payRec(r,v||curP());if(alertItems().length)alertSheet();else closeSheet();};
 ACT['cat-pick']=function(el,id,v){var s=document.getElementById('f-cat');if(!s)return;s.value=v;s.dataset.manual='1';syncCatChips();};
 ACT['date-pick']=function(el,id,v){var e=document.getElementById('f-date');if(!e)return;var d=new Date(today0());d.setDate(d.getDate()-(+v||0));e.value=isoDate(d);dateChips();};
@@ -32,7 +32,9 @@ ACT.calc=function(el,id,v){ui.calc=v;render();};
 ACT.close=function(){closeSheet();};
 ACT['open-fire']=function(){openPage({k:'fire'},'fire');};
 ACT['open-set']=function(el,id,v){openPage({k:'set',s:id,from:v==='ayarlar'?'ayarlar':null},'ayar-'+id);};
-ACT['open-settings']=function(){openPage({k:'ayarlar'},'ayarlar');};
+ACT['open-settings']=function(){goSec('ayar');};
+ACT['plan-go']=function(el,id,v){ui.plan=v;goSec('plan');};
+ACT.srch=function(){goSec('islem');setTimeout(function(){var e=document.getElementById('tq');if(e)e.focus();},60);};
 ACT.tgl=function(el,id,v){setP(v,!getP(v));if(v==='secure')applySecure();if(v==='sms.on'){if(nb('smsSet')){try{NB.smsSet(!!S.sms.on);}catch(e){}}if(S.sms.on&&smsState()!=='granted'&&nb('askSms')){try{NB.askSms();}catch(e){}}}if(v==='sms.ntf'){ntfSync();if(S.sms.ntf&&ntfState()!=='granted'&&nb('ntfAsk')){try{NB.ntfAsk();}catch(e){}}}if(v==='alerts.push'&&S.alerts.push&&notifState()!=='granted'&&nb('askNotif')){try{NB.askNotif();}catch(e){}}save();render();};
 ACT.setv=function(el,id,v){var x=el.dataset.x;if(/^-?\d+(\.\d+)?$/.test(x))x=Number(x);setP(v,x);save();render();};
 
@@ -408,7 +410,7 @@ function wipeAll(){
   try{sessionStorage.clear();}catch(e){}
   if(nb('wipe')){try{NB.wipe();}catch(e){}}
   S=norm({tx:[]});
-  ui.locked=false;ui.forgot=false;ui.page=null;ui.sub='islem';ui.month=curP();ui.filter='all';ui.acctF='';ui.tq='';ui.nq='';ui.nv='act';ui.cv={};
+  ui.locked=false;ui.forgot=false;ui.page=null;ui.sub='ev';ui.month=curP();ui.filter='all';ui.acctF='';ui.tq='';ui.nq='';ui.nv='act';ui.cv={};
   save();applySecure();
   try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
   closeSheet();render();window.scrollTo(0,0);toast('Tüm veriler silindi');
@@ -565,6 +567,7 @@ window.addEventListener('pagehide',function(){if(ui.page&&ui.page.k==='note')sav
 window.addEventListener('hashchange',function(){
   var h=(location.hash||'').slice(1),cur=ui.page;
   if(cur&&cur.k==='note'&&h==='not')return;
+  if(h==='ayarlar'){goSec('ayar');return;}
   var want=pageFromHash(h);
   if((!want&&!cur)||(want&&cur&&want.k===cur.k&&want.s===cur.s))return;
   finishPage();closeSheet();ui.page=want;render();window.scrollTo(0,0);
@@ -575,7 +578,7 @@ window.walletBack=function(){
   if(sheetOpen()){closeSheet();return true;}
   if(ui.page&&ui.page.k==='piyasa'&&(ui.mq||ui.mlink)){ui.mq='';ui.mlink=null;render();return true;}
   if(ui.page){closePage();return true;}
-  if(ui.sub!=='islem'){ui.sub='islem';persistUi();render();window.scrollTo(0,0);return true;}
+  if(ui.sub!=='ev'){ui.sub='ev';persistUi();render();window.scrollTo(0,0);return true;}
   return false;
 };
 /* yeni sürüm: kullanıcı bir şey yazmıyorsa sessizce yenile, yoksa sor */

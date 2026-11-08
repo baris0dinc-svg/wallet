@@ -22,6 +22,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.provider.MediaStore;
+import android.speech.RecognizerIntent;
 import android.content.res.Configuration;
 import android.view.View;
 import android.view.WindowManager;
@@ -58,6 +59,7 @@ public class MainActivity extends Activity {
     private static final String[] NET_OK = {"isyatirim.com.tr", "finance.yahoo.com", "api.coingecko.com", "finans.truncgil.com", "tefas.gov.tr", "fundturkey.com.tr"};
     private static final String[] WEB_OK = {"tefas.gov.tr", "fundturkey.com.tr"};
     private static final int FILE_REQ = 7;
+    private static final int VOICE_REQ = 8;
     private static final int NOTIF_REQ = 11;
     private static final int SMS_REQ = 12;
     private static WeakReference<MainActivity> live = new WeakReference<>(null);
@@ -203,6 +205,15 @@ public class MainActivity extends Activity {
             fileCb = null;
             return;
         }
+        if (req == VOICE_REQ) {
+            String t = "";
+            if (res == RESULT_OK && data != null) {
+                java.util.ArrayList<String> r = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                if (r != null && !r.isEmpty() && r.get(0) != null) t = r.get(0);
+            }
+            js("window.walletVoice&&window.walletVoice(" + JSONObject.quote(t) + "," + (res == RESULT_OK ? "''" : "'iptal'") + ")");
+            return;
+        }
         super.onActivityResult(req, res, data);
     }
 
@@ -285,6 +296,29 @@ public class MainActivity extends Activity {
 
     /** Web uygulamasının çağırdığı yerel işlevler. */
     private class Bridge {
+        /** Sesle ekle: telefonun ses tanıması var mı */
+        @JavascriptInterface
+        public String voiceOk() {
+            Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+            return i.resolveActivity(getPackageManager()) != null ? "ok" : "no";
+        }
+
+        /** Sesle ekle: Android'in ses tanıma penceresini açar; sonuç window.walletVoice(metin) ile döner */
+        @JavascriptInterface
+        public void voice() {
+            runOnUiThread(new Runnable() {
+                public void run() {
+                    Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+                    i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+                    i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR");
+                    i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Örn. markete 250 lira");
+                    i.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+                    try { startActivityForResult(i, VOICE_REQ); }
+                    catch (Exception e) { js("window.walletVoice&&window.walletVoice('','yok')"); }
+                }
+            });
+        }
+
         /** Web açılış ekranı kapanırken çağrılır. */
         @JavascriptInterface
         public void splashDone() {

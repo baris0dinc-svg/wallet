@@ -16,7 +16,7 @@ const r=await p.evaluate(()=>{const T=window.__T,o={};const $=s=>document.queryS
  S.goals=[{id:'g1',name:'Kısa hedef',target:1000,saved:100,date:T.isoDate(later)}];act('sub',null,'hedef');o.goal=document.getElementById('view').innerText.match(/Kısa hedef\n([^\n]+)/)[1];
  S.goals=[{id:'g2',name:'Geçmiş',target:1000,saved:100,date:'2020-01-01'}];T.render();o.goalPast=document.getElementById('view').innerText.match(/Geçmiş\n([^\n]+)/)[1];
  // 3) not ayarları
- act('sub',null,'notlar');$('[data-act="open-set"][data-id="notlar"]').click();o.notesTitle=$('header h1').innerText;o.notesBody=document.getElementById('view').innerText.includes('Sıralama');act('back');
+ act('sub',null,'notlar');act('open-set','notlar');o.notesTitle=$('header h1').innerText;o.notesBody=document.getElementById('view').innerText.includes('Sıralama');act('back');
  // 4) geri tuşu
  act('sub',null,'portfoy');act('new-h');o.b1=window.walletBack()&&!document.getElementById('sheet-root').innerHTML;
  act('open-set','kurlar');o.b2=window.walletBack()&&!T.ui.page;

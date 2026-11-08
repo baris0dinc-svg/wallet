@@ -232,10 +232,10 @@ ACT['n-trash']=function(el,id){noteSet(id,function(n){n.trash=Date.now();},'Not 
 ACT['n-restore']=function(el,id){noteSet(id,function(n){delete n.trash;},'Not geri yüklendi');};
 ACT['n-purge']=function(el,id){if(S.nset.confirmDel&&!armed(el)){el.classList.add('armed');toast('Kalıcı silmek için çöp kutusu simgesine tekrar dokun');return;}S.notes=S.notes.filter(function(x){return x.id!==id;});save();render();toast('Not kalıcı olarak silindi');};
 ACT['n-empty']=function(el){if(!armed(el))return;S.notes=S.notes.filter(function(n){return !n.trash;});save();render();toast('Çöp kutusu boşaltıldı');};
-ACT['note-pin']=function(){var p=ui.page;p.draft.pin=!p.draft.pin;p.dirty=true;var b=document.querySelector('[data-act="note-pin"]');if(b)b.setAttribute('aria-checked',String(p.draft.pin));};
+ACT['note-pin']=function(){var p=ui.page;p.draft.pin=!p.draft.pin;p.dirty=true;var b=document.querySelector('[data-act="note-pin"]');if(b){b.setAttribute('aria-checked',String(p.draft.pin));b.setAttribute('aria-pressed',String(p.draft.pin));}};
 ACT['note-save']=function(){var d=ui.page.draft;if(!d.title.trim()&&!d.body.trim()){msg('Başlık ya da not yaz.');return;}saveNote();closePage();toast('Not kaydedildi');};
 ACT['note-arch']=function(){var p=ui.page;if(!p.id){var d=p.draft;if(!d.title.trim()&&!d.body.trim()){msg('Önce bir şey yaz.');return;}p.dirty=true;}saveNote();var n=byId(S.notes,p.id);if(!n)return;var was=n.arch;closePage();noteSet(n.id,function(x){x.arch=!was;if(!was)x.pin=false;},was?'Not arşivden çıkarıldı':'Not arşivlendi');};
-ACT['note-trash']=function(){var p=ui.page;if(!p.id){p.dirty=false;closePage();return;}saveNote();var id=p.id;closePage();noteSet(id,function(x){x.trash=Date.now();},'Not çöp kutusuna taşındı');};
+ACT['note-trash']=function(){var p=ui.page;if(!p.id){p.dirty=false;closePage();return;}saveNote();var id=p.id;closePage();noteSet(id,function(x){x.trash=Date.now();},'Not silindi');};
 ACT['note-restore']=function(){var id=ui.page.id;closePage();noteSet(id,function(x){delete x.trash;},'Not geri yüklendi');};
 ACT['note-purge']=function(el){if(S.nset.confirmDel&&!armed(el))return;var id=ui.page.id;ui.page.dirty=false;S.notes=S.notes.filter(function(x){return x.id!==id;});save();closePage();toast('Not kalıcı olarak silindi');};
 ACT['notes-copy']=function(){if(!allNotesText()){msg('Kopyalanacak not yok.',false,'f-err5');return;}copyText(allNotesText(),'f-err5','Notlar kopyalandı.');};

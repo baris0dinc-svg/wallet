@@ -5,7 +5,10 @@ const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8766/index.html');await p.waitForTimeout(900);
 const r=await p.evaluate(()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(!c)F.push(m);};
  const A=[['markete 250 lira',250],['250 TL benzin',250],['bir kahve 80 lira',80],['iki bin beş yüz lira kira',2500],['maaşım 45 bin lira yattı',45000],['1.250,50 TL fatura',1250.5],['yüz elli lira',150],
-  ['on iki bin',12000],['iki buçuk bin lira',2500],['₺320 restoran',320],['elektrik faturası 1340',1340],['bin lira',1000],['hiç sayı yok',0],['3 milyon',3000000]];
+  ['on iki bin',12000],['iki buçuk bin lira',2500],['₺320 restoran',320],['elektrik faturası 1340',1340],['bin lira',1000],['hiç sayı yok',0],['3 milyon',3000000],
+  ['250\'lik fatura',250],['1500 liralık alışveriş',1500],['ikibinbeşyüz lira',2500],['elli liralık benzin',50],['yüzlük kahve',100],['12 virgül 50 lira',12.5],
+  ['45 lira 50 kuruş',45.5],['250tl market',250],['otuz beş lira',35],['kırk bin lira',40000],['yüzde 20 indirimle 400 lira',400],['altın aldım 3000 lira',3000],['birlikte yedik 600 lira',600],
+  ['bin iki yüz elli lira',1250],['on beş bin',15000],['yarım saat 90 lira otopark',90]];
  A.forEach(([t,v])=>{const g=T.voiceAmt(t);chk(Math.abs(g-v)<0.001,'tutar "'+t+'" → '+g+' (beklenen '+v+')');});
  let x=T.voiceParse('markete 250 lira');chk(x.type==='exp'&&x.cat==='Market'&&x.amt===250,'market gideri '+JSON.stringify(x));
  x=T.voiceParse('maaşım 45 bin lira yattı');chk(x.type==='inc'&&x.amt===45000,'maaş geliri '+JSON.stringify(x));

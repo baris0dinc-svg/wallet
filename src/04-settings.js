@@ -49,10 +49,8 @@ function setProfil(){
    +sec('Dönem','<div class="field"><label for="pf-pd">Maaş günü (dönem başlangıcı)</label><select id="pf-pd" data-bind="payday" data-kind="int">'+o+'</select></div><div class="small">Şu anki dönem: <b>'+esc(plabel(curP()))+'</b> ('+esc(prange(curP()))+')</div>','Özetler, bütçe ve düzenli ödemeler bu günden başlayan döneme göre hesaplanır. Ayın 1’i için 1. günü seç.');
 }
 function setHesap(){
-  var rows=ACCS().map(acctLine).join('');
-  return sec('Hesaplar','<div class="list">'+rows+'</div><button class="btn" data-act="new-a">Hesap ekle</button>','Düzenlemek için bir hesaba dokun. Dolar, euro, sterlin, frank ve altın hesapları toplamlara güncel kurla çevrilir.')
-   +sec('Varsayılan hesap','<div class="field"><label for="st-def">Yeni işlemde seçili gelen hesap</label><select id="st-def" data-bind="defAcct" data-kind="text"><option value="">Son kullandığım hesap</option>'+ACCS().map(function(a){return '<option'+(S.defAcct===a?' selected':'')+'>'+esc(a)+'</option>';}).join('')+'</select></div>')
-   +sec('Transfer','<button class="btn ghost" data-act="qa-trf">Hesaplar arası transfer yap</button>','Transfer gelir ya da gider sayılmaz, yalnızca hesap bakiyelerini değiştirir.');
+  return sec('Varsayılan hesap','<div class="field"><label for="st-def">Yeni işlemde seçili gelen hesap</label><select id="st-def" data-bind="defAcct" data-kind="text"><option value="">Son kullandığım hesap</option>'+ACCS().map(function(a){return '<option'+(S.defAcct===a?' selected':'')+'>'+esc(a)+'</option>';}).join('')+'</select></div>')
+   +sec('Hesaplar','<button class="btn ghost" data-act="sv-go" data-v="hesap">Hesaplar sekmesine git</button>','Hesap eklemek, düzenlemek ve transfer yapmak için alt menüdeki Hesaplar sekmesini kullan.');
 }
 function chipRow(type){return '<div class="chips">'+S.cats[type].map(function(c){return '<button class="chip rm" data-act="cat-del" data-v="'+type+'" data-id="'+esc(c)+'">'+esc(c)+'</button>';}).join('')+'</div>';}
 function catAdd(type,label){return '<div class="two" style="grid-template-columns:1fr auto"><input id="nc-'+type+'" placeholder="'+label+'" aria-label="'+label+'"><button class="btn small" data-act="cat-add" data-v="'+type+'">Ekle</button></div>';}

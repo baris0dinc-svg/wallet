@@ -4,18 +4,29 @@
    tutar, tür ve kategori çıkarılır, işlem penceresi dolu açılır. Kullanıcı görmeden hiçbir şey kaydedilmez.
    Uygulamada Android'in ses tanıması (Google), tarayıcıda Web Speech API kullanılır. */
 var NUMW={sifir:0,bir:1,iki:2,uc:3,dort:4,bes:5,alti:6,yedi:7,sekiz:8,dokuz:9,on:10,yirmi:20,otuz:30,kirk:40,elli:50,altmis:60,yetmis:70,seksen:80,doksan:90};
+var NUMM=['milyon','yetmis','seksen','doksan','altmis','sifir','sekiz','dokuz','yirmi','bucuk','otuz','kirk','elli','yedi','dort','alti','iki','bir','bes','bin','yuz','uc','on'];
+/* "ikibinbeşyüz", "elliye", "yüzlük" gibi bitişik ya da ekli sayı sözcüklerini parçalara ayır; sayı değilse null */
+function numMorph(t){var out=[],i=0;
+  while(i<t.length){var m=NUMM.filter(function(x){return t.substr(i,x.length)===x;})[0];if(!m)break;out.push(m);i+=m.length;}
+  if(!out.length)return null;var rest=t.slice(i);
+  if(rest&&!/^(lik|luk|ye|ya|e|a|lira|liralik|tl|tllik)$/.test(rest))return null;
+  return out;}
 function voiceAmt(text){
   /* sayı öbeklerini bul; "lira/TL/₺" ile birlikte söyleneni, yoksa en büyüğünü al ("bir kahve 80 lira" → 80) */
-  var w=fold(text).replace(/₺/g,' tl ').split(/\s+/).filter(Boolean),runs=[],tot=0,cur=0,on=false;
-  var flush=function(nx){if(on)runs.push({v:tot+cur,u:/^(tl|lira)/.test(nx||'')});tot=0;cur=0;on=false;};
+  var src=fold(text).replace(/₺/g,' tl ').replace(/(\d)['’]?(?=[a-z])/g,'$1 ').replace(/([a-z])(?=\d)/g,'$1 ');
+  var w=src.split(/\s+/).filter(Boolean),runs=[],tot=0,cur=0,on=false,dec=false;
+  var flush=function(nx){if(on){var v=tot+cur;
+      if(/^kurus/.test(nx||'')&&runs.length&&runs[runs.length-1].u&&v<100)runs[runs.length-1].v+=v/100;
+      else runs.push({v:v,u:/^(tl|lira)/.test(nx||'')});}
+    tot=0;cur=0;on=false;dec=false;};
+  var add=function(m){if(m==='yuz'){cur=(cur||1)*100;}else if(m==='bin'){tot+=(cur||1)*1000;cur=0;}else if(m==='milyon'){tot+=(cur||1)*1e6;cur=0;}else if(m==='bucuk'){cur+=0.5;}else cur+=NUMW[m];on=true;};
   for(var i=0;i<w.length;i++){var t=w[i].replace(/[^0-9a-z.,]/g,'').replace(/[.,]$/,'');
+    if(dec&&/^\d{1,2}$/.test(t)){cur+=parseInt(t,10)/Math.pow(10,t.length);dec=false;continue;}
+    if(t==='virgul'&&on){dec=true;continue;}
     if(/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(t)){cur+=parseFloat(t.replace(/\./g,'').replace(',','.'));on=true;continue;}
     if(/^\d+([.,]\d{1,2})?$/.test(t)){cur+=parseFloat(t.replace(',','.'));on=true;continue;}
-    if(NUMW.hasOwnProperty(t)){cur+=NUMW[t];on=true;continue;}
-    if(t==='yuz'){cur=(cur||1)*100;on=true;continue;}
-    if(t==='bin'){tot+=(cur||1)*1000;cur=0;on=true;continue;}
-    if(t==='milyon'){tot+=(cur||1)*1e6;cur=0;on=true;continue;}
-    if(t==='bucuk'&&on){cur+=0.5;continue;}
+    if(t==='bucuk'&&!on){flush(t);continue;}
+    var mm=numMorph(t);if(mm){mm.forEach(add);if(/(lira|tl)/.test(t.slice(mm.join('').length))){flush('tl');}continue;}
     flush(t);}
   flush('');
   var u=runs.filter(function(r){return r.u;})[0];if(u)return r2(u.v);
@@ -36,12 +47,12 @@ function voiceDone(text){
   var e=document.getElementById('f-amt');if(e&&!(p.amt>0))e.focus();
   msg('Duyulan: “'+text+'”. Kontrol edip kaydet.',true);
 }
-window.walletVoice=function(text,err){if(err&&!text){toast(err==='yok'?'Bu telefonda ses tanıma yok.':'Ses alınamadı.');return;}voiceDone(String(text||''));};
+window.walletVoice=function(text,err){if(err&&!text){if(err!=='iptal')toast(err==='yok'?'Bu telefonda ses tanıma yok.':'Ses alınamadı.');return;}voiceDone(String(text||''));};
 ACT.voice=function(){
   if(nb('voice')){try{NB.voice();}catch(e){toast('Ses tanıma açılamadı.');}return;}
   var R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){toast('Bu tarayıcı sesle eklemeyi desteklemiyor.');return;}
   try{var r=new R();r.lang='tr-TR';r.interimResults=false;r.maxAlternatives=1;
     r.onresult=function(e){voiceDone(e.results[0][0].transcript);};
-    r.onerror=function(e){toast(e.error==='not-allowed'?'Mikrofon izni verilmedi.':'Ses alınamadı.');};
+    r.onerror=function(e){if(e.error==='aborted')return;toast(e.error==='not-allowed'?'Mikrofon izni verilmedi.':(e.error==='no-speech'?'Ses duyulmadı, tekrar dene.':'Ses alınamadı.'));};
     r.start();toast('Dinliyorum… örn. “markete 250 lira”');}catch(e){toast('Ses tanıma açılamadı.');}
 };

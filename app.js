@@ -100,7 +100,7 @@ var SETS=[
  {g:'Genel',id:'profil',t:'Profil ve dönem',d:'Adın ve maaş günün',i:'user',c:'var(--inc)'},
  {g:'Genel',id:'gor',t:'Görünüm',d:'Tema, yazı boyutu, tutarları gizleme',i:'palette',c:'var(--blue)'},
  {g:'Genel',id:'kurlar',t:'Para birimi ve kurlar',d:'Görüntüleme para birimi, canlı döviz ve altın',i:'trend',c:'var(--inc)'},
- {g:'Para',id:'hesap',t:'Hesaplar',d:'Hesap ekle ve düzenle, varsayılan hesap',i:'bank',c:'var(--blue)'},
+ {g:'Para',id:'hesap',t:'Varsayılan hesap',d:'Yeni işlemde seçili gelen hesap',i:'bank',c:'var(--blue)'},
  {g:'Para',id:'kat',t:'Kategoriler ve kurallar',d:'Gelir ve gider kategorileri, otomatik kurallar',i:'shapes',c:'var(--warn)'},
  {g:'Otomasyon',id:'oto',t:'Otomatik işlemler',d:'Banka SMS’leri ve uygulama bildirimlerinden harcama ve gelirleri yakala',i:'sparkles',c:'var(--accent)'},
  {g:'Otomasyon',id:'bild',t:'Bildirimler ve hatırlatıcılar',d:'Fatura ve ödeme hatırlatıcısı, bütçe uyarıları',i:'bell',c:'var(--warn)'},
@@ -480,11 +480,8 @@ function nwCard(W){
   if(S.dccy!=='TRY'&&dccy()==='TRY')h+='<div class="small exp">'+esc(CCYN[S.dccy])+' kuru henüz yok; TL gösteriliyor. Üstteki yenile düğmesine dokun.</div>';
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
   if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">son '+ch.days+' günde</span></div>';
-  var tiles=[['Nakit',g.nakit,'hesap'],['Banka',g.banka,'hesap'],['Birikim',g.birikim,'hesap'],['Yatırım',g.inv,'yatirim'],['Varlık',g.asset,'varlik'],['Borç',r2(g.cardDebt+g.debts),'borc',1]];
-  tiles=tiles.filter(function(x){return Math.abs(x[1])>=0.5;});
   var pm=monthTx(curP()),pi=sum(pm,'inc'),pe=sum(pm,'exp');
   var per='<button class="nwper" data-act="sub" data-v="islem" aria-label="Bu dönemin işlemleri"><span class="pl"><span class="lbl">Bu dönem gelir</span><b class="num inc">'+compactT(pi)+'</b></span><span class="pl"><span class="lbl">Bu dönem gider</span><b class="num exp">'+compactT(pe)+'</b></span>'+ic('r')+'</button>';
-  if(tiles.length)h+='<div class="nwgrid n'+tiles.length+'">'+tiles.map(function(x){return '<button class="nwt" data-act="sv-go" data-v="'+x[2]+'" aria-label="'+x[0]+': '+DC0.format(x[1])+'"><span class="lbl">'+x[0]+'</span><span class="num'+((x[3]&&x[1]>0.5)||x[1]<-0.5?' exp':'')+'">'+compactD(x[1])+'</span></button>';}).join('')+'</div>';
   return h+per+'</div>';
 }
 /* sık kullanılan daireler öne gelir; sıra yalnızca uygulama açılışında değişir */
@@ -962,10 +959,8 @@ function setProfil(){
    +sec('Dönem','<div class="field"><label for="pf-pd">Maaş günü (dönem başlangıcı)</label><select id="pf-pd" data-bind="payday" data-kind="int">'+o+'</select></div><div class="small">Şu anki dönem: <b>'+esc(plabel(curP()))+'</b> ('+esc(prange(curP()))+')</div>','Özetler, bütçe ve düzenli ödemeler bu günden başlayan döneme göre hesaplanır. Ayın 1’i için 1. günü seç.');
 }
 function setHesap(){
-  var rows=ACCS().map(acctLine).join('');
-  return sec('Hesaplar','<div class="list">'+rows+'</div><button class="btn" data-act="new-a">Hesap ekle</button>','Düzenlemek için bir hesaba dokun. Dolar, euro, sterlin, frank ve altın hesapları toplamlara güncel kurla çevrilir.')
-   +sec('Varsayılan hesap','<div class="field"><label for="st-def">Yeni işlemde seçili gelen hesap</label><select id="st-def" data-bind="defAcct" data-kind="text"><option value="">Son kullandığım hesap</option>'+ACCS().map(function(a){return '<option'+(S.defAcct===a?' selected':'')+'>'+esc(a)+'</option>';}).join('')+'</select></div>')
-   +sec('Transfer','<button class="btn ghost" data-act="qa-trf">Hesaplar arası transfer yap</button>','Transfer gelir ya da gider sayılmaz, yalnızca hesap bakiyelerini değiştirir.');
+  return sec('Varsayılan hesap','<div class="field"><label for="st-def">Yeni işlemde seçili gelen hesap</label><select id="st-def" data-bind="defAcct" data-kind="text"><option value="">Son kullandığım hesap</option>'+ACCS().map(function(a){return '<option'+(S.defAcct===a?' selected':'')+'>'+esc(a)+'</option>';}).join('')+'</select></div>')
+   +sec('Hesaplar','<button class="btn ghost" data-act="sv-go" data-v="hesap">Hesaplar sekmesine git</button>','Hesap eklemek, düzenlemek ve transfer yapmak için alt menüdeki Hesaplar sekmesini kullan.');
 }
 function chipRow(type){return '<div class="chips">'+S.cats[type].map(function(c){return '<button class="chip rm" data-act="cat-del" data-v="'+type+'" data-id="'+esc(c)+'">'+esc(c)+'</button>';}).join('')+'</div>';}
 function catAdd(type,label){return '<div class="two" style="grid-template-columns:1fr auto"><input id="nc-'+type+'" placeholder="'+label+'" aria-label="'+label+'"><button class="btn small" data-act="cat-add" data-v="'+type+'">Ekle</button></div>';}
@@ -2677,18 +2672,29 @@ function aiCard(){return '<button class="card setcard" data-act="ai-open"><span 
    tutar, tür ve kategori çıkarılır, işlem penceresi dolu açılır. Kullanıcı görmeden hiçbir şey kaydedilmez.
    Uygulamada Android'in ses tanıması (Google), tarayıcıda Web Speech API kullanılır. */
 var NUMW={sifir:0,bir:1,iki:2,uc:3,dort:4,bes:5,alti:6,yedi:7,sekiz:8,dokuz:9,on:10,yirmi:20,otuz:30,kirk:40,elli:50,altmis:60,yetmis:70,seksen:80,doksan:90};
+var NUMM=['milyon','yetmis','seksen','doksan','altmis','sifir','sekiz','dokuz','yirmi','bucuk','otuz','kirk','elli','yedi','dort','alti','iki','bir','bes','bin','yuz','uc','on'];
+/* "ikibinbeşyüz", "elliye", "yüzlük" gibi bitişik ya da ekli sayı sözcüklerini parçalara ayır; sayı değilse null */
+function numMorph(t){var out=[],i=0;
+  while(i<t.length){var m=NUMM.filter(function(x){return t.substr(i,x.length)===x;})[0];if(!m)break;out.push(m);i+=m.length;}
+  if(!out.length)return null;var rest=t.slice(i);
+  if(rest&&!/^(lik|luk|ye|ya|e|a|lira|liralik|tl|tllik)$/.test(rest))return null;
+  return out;}
 function voiceAmt(text){
   /* sayı öbeklerini bul; "lira/TL/₺" ile birlikte söyleneni, yoksa en büyüğünü al ("bir kahve 80 lira" → 80) */
-  var w=fold(text).replace(/₺/g,' tl ').split(/\s+/).filter(Boolean),runs=[],tot=0,cur=0,on=false;
-  var flush=function(nx){if(on)runs.push({v:tot+cur,u:/^(tl|lira)/.test(nx||'')});tot=0;cur=0;on=false;};
+  var src=fold(text).replace(/₺/g,' tl ').replace(/(\d)['’]?(?=[a-z])/g,'$1 ').replace(/([a-z])(?=\d)/g,'$1 ');
+  var w=src.split(/\s+/).filter(Boolean),runs=[],tot=0,cur=0,on=false,dec=false;
+  var flush=function(nx){if(on){var v=tot+cur;
+      if(/^kurus/.test(nx||'')&&runs.length&&runs[runs.length-1].u&&v<100)runs[runs.length-1].v+=v/100;
+      else runs.push({v:v,u:/^(tl|lira)/.test(nx||'')});}
+    tot=0;cur=0;on=false;dec=false;};
+  var add=function(m){if(m==='yuz'){cur=(cur||1)*100;}else if(m==='bin'){tot+=(cur||1)*1000;cur=0;}else if(m==='milyon'){tot+=(cur||1)*1e6;cur=0;}else if(m==='bucuk'){cur+=0.5;}else cur+=NUMW[m];on=true;};
   for(var i=0;i<w.length;i++){var t=w[i].replace(/[^0-9a-z.,]/g,'').replace(/[.,]$/,'');
+    if(dec&&/^\d{1,2}$/.test(t)){cur+=parseInt(t,10)/Math.pow(10,t.length);dec=false;continue;}
+    if(t==='virgul'&&on){dec=true;continue;}
     if(/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(t)){cur+=parseFloat(t.replace(/\./g,'').replace(',','.'));on=true;continue;}
     if(/^\d+([.,]\d{1,2})?$/.test(t)){cur+=parseFloat(t.replace(',','.'));on=true;continue;}
-    if(NUMW.hasOwnProperty(t)){cur+=NUMW[t];on=true;continue;}
-    if(t==='yuz'){cur=(cur||1)*100;on=true;continue;}
-    if(t==='bin'){tot+=(cur||1)*1000;cur=0;on=true;continue;}
-    if(t==='milyon'){tot+=(cur||1)*1e6;cur=0;on=true;continue;}
-    if(t==='bucuk'&&on){cur+=0.5;continue;}
+    if(t==='bucuk'&&!on){flush(t);continue;}
+    var mm=numMorph(t);if(mm){mm.forEach(add);if(/(lira|tl)/.test(t.slice(mm.join('').length))){flush('tl');}continue;}
     flush(t);}
   flush('');
   var u=runs.filter(function(r){return r.u;})[0];if(u)return r2(u.v);
@@ -2709,13 +2715,13 @@ function voiceDone(text){
   var e=document.getElementById('f-amt');if(e&&!(p.amt>0))e.focus();
   msg('Duyulan: “'+text+'”. Kontrol edip kaydet.',true);
 }
-window.walletVoice=function(text,err){if(err&&!text){toast(err==='yok'?'Bu telefonda ses tanıma yok.':'Ses alınamadı.');return;}voiceDone(String(text||''));};
+window.walletVoice=function(text,err){if(err&&!text){if(err!=='iptal')toast(err==='yok'?'Bu telefonda ses tanıma yok.':'Ses alınamadı.');return;}voiceDone(String(text||''));};
 ACT.voice=function(){
   if(nb('voice')){try{NB.voice();}catch(e){toast('Ses tanıma açılamadı.');}return;}
   var R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R){toast('Bu tarayıcı sesle eklemeyi desteklemiyor.');return;}
   try{var r=new R();r.lang='tr-TR';r.interimResults=false;r.maxAlternatives=1;
     r.onresult=function(e){voiceDone(e.results[0][0].transcript);};
-    r.onerror=function(e){toast(e.error==='not-allowed'?'Mikrofon izni verilmedi.':'Ses alınamadı.');};
+    r.onerror=function(e){if(e.error==='aborted')return;toast(e.error==='not-allowed'?'Mikrofon izni verilmedi.':(e.error==='no-speech'?'Ses duyulmadı, tekrar dene.':'Ses alınamadı.'));};
     r.start();toast('Dinliyorum… örn. “markete 250 lira”');}catch(e){toast('Ses tanıma açılamadı.');}
 };
 /* ---------- başlangıç ---------- */

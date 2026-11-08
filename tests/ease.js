@@ -50,6 +50,21 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const $=s=>document.q
  const tch=(type,y)=>{const t=new Touch({identifier:1,target:sh,clientX:100,clientY:y});sh.dispatchEvent(new TouchEvent(type,{touches:type==='touchend'?[]:[t],changedTouches:[t],bubbles:true}));};
  tch('touchstart',top);tch('touchmove',top+40);tch('touchend',top+40);await wait(250);chk(!!document.querySelector('.sheet'),'kısa sürükleme kapatmaz');
  tch('touchstart',top);tch('touchmove',top+160);tch('touchend',top+160);await wait(300);chk(!document.querySelector('.sheet'),'aşağı sürükleyince kapandı');
+ // Notlar (Keep tarzı): liste notu, Enter ile yeni öğe, işaretleme, renk, otomatik kayıt, metne çevirme
+ T.S.notes=[];T.ACT.sub(null,null,'notlar');await wait(30);T.ACT['new-nl']();await wait(90);
+ const ti=document.getElementById('n-title');ti.value='Alışveriş';ti.dispatchEvent(new Event('input',{bubbles:true}));
+ let it=document.querySelector('[data-ki="0"]');it.value='Süt';it.dispatchEvent(new Event('input',{bubbles:true}));it.setSelectionRange(3,3);
+ it.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));chk(document.activeElement===document.querySelector('[data-ki="1"]'),'Enter yeni öğeye geçti');
+ it=document.querySelector('[data-ki="1"]');it.value='Ekmek';it.dispatchEvent(new Event('input',{bubbles:true}));
+ document.querySelector('[data-act="ki-tg"][data-v="0"]').click();chk(/1 işaretli öğe/.test(document.getElementById('kl').innerText),'işaretli öğe ayrıldı');
+ T.ACT['note-color']();document.querySelector('[data-act="note-col"][data-v="mint"]').click();chk(document.documentElement.getAttribute('data-nc')==='mint','not rengi uygulandı');
+ window.walletBack();await wait(90);const K=T.S.notes[0];
+ chk(K&&K.list&&K.items.length===2&&K.items[0].c&&K.items[1].t==='Ekmek'&&K.color==='mint'&&K.title==='Alışveriş','liste notu kaydedildi '+JSON.stringify(K));
+ chk(!document.documentElement.getAttribute('data-nc'),'renk çıkınca temizlendi');
+ const card=document.querySelector('#nlist .kcard.nc-mint');chk(card&&/Ekmek/.test(card.innerText)&&/1 işaretli/.test(card.innerText),'kartta liste önizlemesi');
+ T.ACT['edit-n'](null,K.id);await wait(30);T.ACT['note-list']();chk(!!document.getElementById('n-body')&&/Süt\nEkmek|Süt/.test(document.getElementById('n-body').value),'listeden metne');window.walletBack();await wait(90);
+ chk(!K.list&&/Süt/.test(K.body),'metin notu kaydedildi');
+ T.ACT['new-n']();await wait(90);window.walletBack();await wait(90);chk(T.S.notes.length===1,'boş not kaydedilmez');
  return F;});
 // adres kısayolu (PWA)
 await p.goto('http://localhost:8766/index.html#yeni-gelir');await p.reload();await p.waitForTimeout(1500);

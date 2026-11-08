@@ -110,7 +110,7 @@ for(const seed of SEEDS){
       rule(){act('open-set','kat');setVal('#rl-kw',pick(['migros','market','']));pickOpt('#rl-cat');$('[data-act="rule-add"]').click();act('back');},
       fx(){act('open-set','kurlar');setVal('#fx-USD',pick(['41,31','40','0','abc','42.5']));act('back');},
       csv(){const n0=S().tx.length,r=T.csvImport(T.csvAll());if(n0===0?!r.err:(r.err||r.added!==0||S().tx.length!==n0))bad.push('csv gidiş-dönüş '+JSON.stringify(r));T.save();},
-      notes(){act('sub',null,'notlar');if(rnd()<0.6){act('new-n');setVal('#n-title',pick(['Liste','','<b>x</b>']));setVal('#n-body',pick(['süt\nekmek','','uzun '.repeat(40)]));const n0=S().notes.length;const sv=$('[data-act="note-save"]');sv.click();}
+      notes(){act('sub',null,'notlar');if(rnd()<0.6){act('new-n');setVal('#n-title',pick(['Liste','','<b>x</b>']));setVal('#n-body',pick(['süt\nekmek','','uzun '.repeat(40)]));const n0=S().notes.length;window.walletBack();}
         else if(rnd()<0.5){const c=$$('[data-act="edit-n"]');if(c.length){pick(c).click();const d=$(pick(['[data-act="note-trash"]','[data-act="note-arch"]','[data-act="note-restore"]','[data-act="note-purge"]']));if(d&&rnd()<0.7){d.click();if($('[data-act="note-purge"]'))$('[data-act="note-purge"]').click();}else act('back');}}
         else{act('nview',null,pick(['act','arch','trash']));const b=$$('#nlist [data-act^="n-"]');if(b.length){const x=pick(b);x.click();const y=$('#nlist [data-act="'+x.dataset.act+'"][data-id="'+x.dataset.id+'"]');if(y&&x.dataset.act==='n-purge')y.click();}}},
       hide(){act('open-set','gor');const t=$('[data-act="tgl"][data-v="hide"]');if(t)t.click();act('back');act('sub',null,pick(['islem','portfoy','analiz','hesap']));},

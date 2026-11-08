@@ -89,15 +89,15 @@ const r=await p.evaluate(async()=>{const T=window.__T,o={},F=[];const $=s=>docum
  const up=T.upcoming(30);o.up=up.map(u=>u.name+' '+u.date);const pl=T.reminderPlan();o.plan=pl.map(x=>new Date(x.at).toLocaleString('tr-TR')+' '+x.title);
  chk(pl.length>=1&&pl.some(x=>/Elektrik/.test(x.title)),'plan '+JSON.stringify(o.plan));
  // 18 notlar
- T.S.notes=[];act('sub',null,'notlar');act('new-n');setv('n-title','Deneme');setv('n-body','gövde');click('[data-act="note-save"]');
+ T.S.notes=[];act('sub',null,'notlar');act('new-n');setv('n-title','Deneme');setv('n-body','gövde');window.walletBack();await new Promise(r=>setTimeout(r,80));
  const N=T.S.notes[0];chk(N&&N.title==='Deneme','not kaydı');await new Promise(r=>setTimeout(r,80));
- chk(document.querySelectorAll('#nlist .note-card').length===1&&!document.querySelector('#nlist [data-act="n-trash"]'),'liste sade: kartta işlem simgesi yok');
+ chk(document.querySelectorAll('#nlist .kcard').length===1&&!document.querySelector('#nlist [data-act="n-trash"]'),'liste sade: kartta işlem simgesi yok');
  N.arch=true;T.render();chk(/Deneme/.test(document.getElementById('nlist').innerText),'eski arşivli not listede görünür');
- act('edit-n',N.id);click('[data-act="note-pin"]');click('[data-act="note-save"]');await new Promise(r=>setTimeout(r,80));chk(N.pin&&!N.arch,'sabitlendi, arşivden çıktı');
- act('edit-n',N.id);click('[data-act="note-trash"]');await new Promise(r=>setTimeout(r,80));chk(N.trash&&T.ui.page&&T.ui.page.k==='notlar'&&/Geri al/.test(document.getElementById('toast').innerText),'editörden silindi, notlara döndü, geri al var');
+ act('edit-n',N.id);click('[data-act="note-pin"]');window.walletBack();await new Promise(r=>setTimeout(r,80));chk(N.pin&&!N.arch,'sabitlendi, arşivden çıktı');
+ act('edit-n',N.id);click('[data-act="note-more"]');click('.sheet [data-act="note-trash"]');await new Promise(r=>setTimeout(r,80));chk(N.trash&&T.ui.page&&T.ui.page.k==='notlar'&&/Geri al/.test(document.getElementById('toast').innerText),'editörden silindi, notlara döndü, geri al var');
  chk(!/Deneme/.test(document.getElementById('nlist').innerText)&&/Silinenler \(1\)/.test(document.getElementById('view').innerText),'Silinenler bağlantısı');
  act('n-trashv');chk(/Deneme/.test(document.querySelector('.sheet').innerText),'silinenler penceresi');click('.sheet [data-act="nt-restore"]');chk(!N.trash,'silinenden geri alındı');
- act('edit-n',N.id);click('[data-act="note-trash"]');await new Promise(r=>setTimeout(r,80));act('n-trashv');const pb=document.querySelector('[data-act="nt-purge"]');pb.click();document.querySelector('[data-act="nt-purge"]')&&document.querySelector('[data-act="nt-purge"]').click();
+ act('edit-n',N.id);click('[data-act="note-more"]');click('.sheet [data-act="note-trash"]');await new Promise(r=>setTimeout(r,80));act('n-trashv');const pb=document.querySelector('[data-act="nt-purge"]');pb.click();document.querySelector('[data-act="nt-purge"]')&&document.querySelector('[data-act="nt-purge"]').click();
  chk(T.S.notes.length===0,'kalıcı silme '+T.S.notes.length);
  // 19 tam silme
  act('reset-all');document.querySelector('[data-act="reset-all"]');T.wipeAll();

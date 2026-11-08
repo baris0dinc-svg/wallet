@@ -10,7 +10,7 @@ function pageInfo(){
   if(p.k==='set'&&p.s==='notlar')return {title:'Not ayarları',body:setNotlar};
   if(p.k==='set'){var s=SETS.filter(function(x){return x.id===p.s;})[0]||SETS[SETS.length-1];return {title:s.t,body:function(){return setBody(s.id);}};}
   var n=p.id&&byId(S.notes,p.id);
-  return {title:p.id?(n&&n.trash?'Çöp kutusundaki not':(n&&n.arch?'Arşivdeki not':'Not')):'Yeni not',body:vNote};
+  return {title:n&&n.trash?'Silinen not':'',body:vNote,btns:noteBtns};
 }
 function render(){RIN=true;try{render0();}finally{RIN=false;}}
 function render0(){
@@ -26,12 +26,14 @@ function render0(){
   var hd=document.getElementById('hdr'),vw=document.getElementById('view');
   if(ui.page){
     var P=pageInfo();
-    hd.innerHTML='<button class="icon-btn" data-act="back" aria-label="Geri">'+ic('back')+'</button><h1>'+esc(P.title)+'</h1>';
+    hd.innerHTML='<button class="icon-btn" data-act="back" aria-label="Geri">'+ic('back')+'</button><h1>'+esc(P.title)+'</h1>'+(P.btns?'<span class="hbtns">'+P.btns()+'</span>':'');
     vw.innerHTML=P.body();
+    var kb=document.getElementById('n-body');if(kb)kGrow(kb);
   }else{
     hd.innerHTML=tabHead();
     vw.innerHTML=vMain();
   }
+  applyNoteColor();
   var tb=document.getElementById('tabbar');
   if(tb){tb.hidden=!!ui.page;document.body.classList.toggle('has-tb',!ui.page);
     if(!ui.page)tb.innerHTML='<div class="tbin">'+SECS.map(function(x){var on=ui.sub===x[0];return '<button data-act="sub" data-v="'+x[0]+'"'+(on?' aria-current="page"':'')+'>'+ic(x[2])+'<span>'+x[1]+'</span></button>';}).join('')+'</div>';}

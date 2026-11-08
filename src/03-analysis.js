@@ -206,21 +206,7 @@ function noteSorted(v){
 }
 function noteHead(n){var t=(n.title||'').trim();if(t)return t;var f=String(n.body||'').trim().split('\n')[0];return f?f.slice(0,60):'Boş not';}
 function noteDate(ts){var d=new Date(ts),t=today0();return d>=t?d.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'}):d.toLocaleDateString('tr-TR',{day:'numeric',month:'short',year:d.getFullYear()!==t.getFullYear()?'numeric':undefined});}
-function notesList(){
-  var l=noteSorted('act');
-  if(!l.length)return '<div class="empty" style="grid-column:1/-1">'+(ui.nq?'Eşleşen not yok.':'Henüz not yok. Alışveriş listesi, harcama fikri, hatırlatma… ne istersen yaz.')+'</div>';
-  return l.map(function(n){var hasT=!!(n.title||'').trim(),body=hasT?n.body:String(n.body||'').trim().split('\n').slice(1).join('\n');
-    return '<button class="note-card'+(n.pin?' pinned':'')+'" data-act="edit-n" data-id="'+n.id+'"><span class="nt">'+esc(noteHead(n))+(n.pin?'<span class="pinmark" aria-label="Sabit">'+ic('pin')+'</span>':'')+'</span>'
-     +(String(body||'').trim()?'<span class="np">'+esc(String(body).trim())+'</span>':'')+'<span class="nd">'+esc(noteDate(n.ts||Date.now()))+'</span></button>';}).join('');
-}
 function noteCounts(){var c={act:0,arch:0,trash:0};S.notes.forEach(function(n){c[n.trash?'trash':'act']++;});return c;}
-function vNotlar(){
-  var c=noteCounts();ui.nv='act';
-  return '<button class="btn" data-act="new-n">'+ic('plus')+' Yeni not</button>'
-   +(c.act>=4||ui.nq?'<input id="nsearch" type="search" placeholder="Notlarda ara" value="'+esc(ui.nq)+'" aria-label="Notlarda ara">':'')
-   +'<div id="nlist" class="ngrid">'+notesList()+'</div>'
-   +(c.trash||c.act?'<div class="nfoot">'+(c.trash?'<button class="linkbtn" data-act="n-trashv">Silinenler ('+c.trash+')</button>':'<span></span>')+(c.act?'<button class="linkbtn" data-act="n-export">Dışa aktar</button>':'')+'</div>':'');
-}
 function trashSheet(){
   var l=noteSorted('trash');if(!l.length){closeSheet();render();return;}
   openSheet('<h2>Silinen notlar</h2><p class="small muted" style="margin:0">Silinen notlar 30 gün sonra kendiliğinden kalıcı olarak silinir.</p><div class="list">'
@@ -231,22 +217,4 @@ ACT['n-trashv']=function(){trashSheet();};
 ACT['nt-restore']=function(el,id){var n=byId(S.notes,id);if(!n)return;delete n.trash;save();render();toast('Not geri alındı');trashSheet();};
 ACT['nt-purge']=function(el,id){if(!armed(el)){toast('Kalıcı silmek için tekrar dokun');return;}S.notes=S.notes.filter(function(x){return x.id!==id;});save();render();toast('Not kalıcı olarak silindi');trashSheet();};
 ACT['n-export']=function(){openSheet('<h2>Notları dışa aktar</h2>'+notesExport());};
-function vNote(){
-  var p=ui.page,d=p.draft,n=p.id?byId(S.notes,p.id):null;
-  if(n&&n.trash)return '<div class="banner"><span>Bu not silinenler arasında. Düzenlemek için geri al.</span></div><div class="card"><div class="t" style="font-weight:700;font-size:1.125rem">'+esc(n.title||'Başlıksız')+'</div><p style="white-space:pre-wrap;margin:8px 0 0">'+esc(n.body)+'</p></div><button class="btn" data-act="note-restore">Geri al</button><button class="btn danger" data-act="note-purge">Kalıcı olarak sil</button>';
-  return '<input id="n-title" class="ntitle" data-nf="title" value="'+esc(d.title)+'" placeholder="Başlık" aria-label="Başlık">'
-   +'<textarea id="n-body" class="nbody" data-nf="body" placeholder="Notunu yaz" aria-label="Not">'+esc(d.body)+'</textarea>'
-   +'<div class="nbar"><button class="chip" data-act="note-pin" role="switch" aria-checked="'+!!d.pin+'" aria-pressed="'+!!d.pin+'">'+ic('pin')+' Sabitle</button>'
-   +(n?'<span class="small muted">'+esc(new Date(n.ts).toLocaleString('tr-TR',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}))+'</span>':'<span></span>')+'</div>'
-   +'<div class="err" id="f-err"></div><button class="btn" data-act="note-save">Kaydet</button>'
-   +(n?'<button class="btn ghost dangertxt" data-act="note-trash">'+ic('trash')+' Notu sil</button>':'');
-}
-function saveNote(){
-  var p=ui.page;if(!p||p.k!=='note'||!p.dirty)return;
-  var d=p.draft,ti=d.title.trim(),bo=d.body;
-  if(!ti&&!bo.trim())return;
-  if(p.id){var n=byId(S.notes,p.id);if(n){n.title=ti;n.body=bo;n.pin=!!d.pin;n.arch=false;n.ts=Date.now();delete n.sample;}}
-  else{var n2={id:uid(),title:ti,body:bo,pin:!!d.pin,arch:false,ts:Date.now(),cts:Date.now()};S.notes.push(n2);p.id=n2.id;}
-  p.dirty=false;save();
-}
 function purgeTrash(){var lim=Date.now()-30*864e5,b=S.notes.length;S.notes=S.notes.filter(function(n){return !(n.trash&&n.trash<lim);});if(S.notes.length!==b)save();}

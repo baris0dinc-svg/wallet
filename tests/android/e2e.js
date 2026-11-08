@@ -66,15 +66,6 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,sc:document.querySelectorAll(".sc").length,add:!!document.querySelector(".addmain"),voice:!!document.querySelector(".addvoice"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
    console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===5&&j.sc===6&&j.add,h);ok('sesle ekle düğmesi ses tanıma durumuna uyuyor',j.voice===(j.vok==='ok'),h);
    sh('adb shell screencap -p /sdcard/home.png');sh('adb pull /sdcard/home.png /tmp/home.png');try{console.log('ℹ ANASAYFAPNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/home.png')).toString('base64'));}catch(e){}}
-  // uygulama kısayolları (simgeye uzun basınca): açıkken ve soğuk açılışta işlem penceresi açılır
-  {const sheet=async()=>{for(let i=0;i<20;i++){const v=await ev('const t=document.querySelector("#f-type [aria-pressed=\\"true\\"]");return t?t.dataset.v:""').catch(()=>'');if(v)return v;await sleep(500);}return '';};
-   const sc=sh('adb shell dumpsys shortcut').split(/\n(?=\s*Package: )/).filter(x=>x.indexOf('Package: '+PKG)>=0).join('\n');console.log('ℹ kısayollar: '+String(sc).replace(/\s+/g,' ').slice(0,300));
-   ok('kısayollar tanımlı',/id=exp/.test(sc)&&/id=voice/.test(sc),String(sc).replace(/\s+/g,' ').slice(0,300));
-   await ev(ACTJS+'act("close");return 1');
-   sh('adb shell am start -f 0x20000000 -a android.intent.action.VIEW -d wallet:exp -n '+ACT);ok('açıkken Gider kısayolu',await sheet()==='exp');
-   await ev(ACTJS+'act("close");return 1');
-   ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1000);sh('adb shell am start -a android.intent.action.VIEW -d wallet:inc -n '+ACT);await sleep(5000);
-   ok('kısayoldan açılışta bağlanıldı',await connect());ok('soğuk açılışta Gelir kısayolu',await sheet()==='inc');await ev(ACTJS+'act("close");return 1');}
   // 3 WebView deposu silinirse yerel kopyadan döner
   await ev('localStorage.removeItem("kumbara-v1");return 1');ok('yeniden başlatıldı (depo silindi)',await restart());d=await data();ok('depo silinse de veri geri geldi',has(d));
   // 4 güncelleme: aynı APK üstüne kurulum
@@ -95,7 +86,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   ok('yeniden başlatıldı (hatırlatma sonrası)',await restart());
   // 7 otomatik yedek
   const ab=await ev(ACTJS+'act("open-set","veri");await new Promise(r=>setTimeout(r,300));document.querySelector("[data-act=\\"bk-auto\\"]").click();await new Promise(r=>setTimeout(r,1500));return document.getElementById("f-bka").innerText');
-  const dl=sh('adb shell ls /sdcard/Download/Wallet/');ok('otomatik yedek dosyası yazıldı',/yazıldı/.test(ab||'')&&/Wallet-otomatik-yedek\.json/.test(dl),(ab||'')+' | '+dl.trim());
+  const dl=sh('adb shell ls /sdcard/Download/Wallet/');ok('otomatik yedek dosyası yazıldı',/yazıldı/.test(ab||'')&&/Wallet-otomatik-yedek\.json/.test(dl),JSON.stringify(ab)+' | '+dl.trim());
   await ev(ACTJS+'setv("bkp1","e2e-sifre");setv("bkp2","e2e-sifre");document.querySelector("[data-act=\\"bk-pw-set\\"]").click();await new Promise(r=>setTimeout(r,2500));return 1');
   const enc=sh('adb shell cat /sdcard/Download/Wallet/Wallet-otomatik-yedek.json');ok('şifreli otomatik yedek',/"wallet":1/.test(enc)&&!/E2E Elektrik/.test(enc),enc.slice(0,60));
   await ev(ACTJS+'act("back");return 1');
@@ -151,6 +142,15 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   await ev('AndroidBridge.setSecure(false);return 1');
   ok('parmak izi denetimi çalışıyor',typeof (await ev('return AndroidBridge.bioAvail()'))==='boolean');
   // 10 tam silme
+  // uygulama kısayolları (simgeye uzun basınca): açıkken ve soğuk açılışta işlem penceresi açılır
+  {const sheet=async()=>{for(let i=0;i<20;i++){const v=await ev('const t=document.querySelector("#f-type [aria-pressed=\\"true\\"]");return t?t.dataset.v:""').catch(()=>'');if(v)return v;await sleep(500);}return '';};
+   const sc=sh('adb shell dumpsys shortcut').split(/\n(?=\s*Package: )/).filter(x=>x.indexOf('Package: '+PKG)>=0).join('\n');console.log('ℹ kısayollar: '+String(sc).replace(/\s+/g,' ').slice(0,300));
+   ok('kısayollar tanımlı',/id=exp/.test(sc)&&/id=voice/.test(sc),String(sc).replace(/\s+/g,' ').slice(0,300));
+   await ev(ACTJS+'act("close");return 1');
+   sh('adb shell am start -f 0x20000000 -a android.intent.action.VIEW -d wallet:exp -n '+ACT);ok('açıkken Gider kısayolu',await sheet()==='exp');
+   await ev(ACTJS+'act("close");return 1');
+   ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1000);sh('adb shell am start -a android.intent.action.VIEW -d wallet:inc -n '+ACT);await sleep(5000);
+   ok('kısayoldan açılışta bağlanıldı',await connect());ok('soğuk açılışta Gelir kısayolu',await sheet()==='inc');await ev(ACTJS+'act("close");return 1');}
   await ev(ACTJS+'act("open-set","veri");await new Promise(r=>setTimeout(r,300));const b=document.querySelector("[data-act=\\"reset-all\\"]");b.click();b.click();await new Promise(r=>setTimeout(r,1500));return 1');
   d=await data();const dl2=sh('adb shell ls /sdcard/Download/Wallet/');const nat2=await ev('return AndroidBridge.loadData()');
   ok('tüm veriler silindi',d.tx&&d.tx.length===0&&!d.pin&&!/123\.45/.test(nat2||''),d.tx&&d.tx.length);

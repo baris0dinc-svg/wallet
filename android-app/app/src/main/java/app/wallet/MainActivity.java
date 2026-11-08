@@ -398,14 +398,22 @@ public class MainActivity extends Activity {
 
         /** Tüm verileri sil: uygulama içi kopya, otomatik yedek dosyası, hatırlatmalar, ayarlar. */
         @JavascriptInterface
-        public String wipe() {
+        public String wipe() { return doWipe(false); }
+
+        /* PIN unutulunca: veriler silinir ama İndirilenler'deki otomatik yedek dosyası kalır */
+        @JavascriptInterface
+        public String wipeKeep() { return doWipe(true); }
+
+        private String doWipe(boolean keepBk) {
             try {
                 dataFile().delete();
                 SharedPreferences p = prefs(MainActivity.this);
                 String old = p.getString("bkUri", null);
-                if (old != null) { try { getContentResolver().delete(Uri.parse(old), null, null); } catch (Exception ignored) { } }
+                if (old != null && !keepBk) { try { getContentResolver().delete(Uri.parse(old), null, null); } catch (Exception ignored) { } }
                 Reminders.apply(MainActivity.this, "[]");
-                p.edit().clear().apply();
+                SharedPreferences.Editor ed = p.edit().clear();
+                if (old != null && keepBk) ed.putString("bkUri", old);
+                ed.apply();
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() { getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SECURE); }
@@ -631,6 +639,9 @@ public class MainActivity extends Activity {
                             try (OutputStream o = c.getOutputStream()) { o.write((body == null ? "" : body).getBytes(StandardCharsets.UTF_8)); }
                         }
                         code = c.getResponseCode();
+                        /* yönlendirme izinli listenin dışına çıktıysa yanıt kullanılmaz */
+                        URL fu = c.getURL();
+                        if (fu == null || !"https".equals(fu.getProtocol()) || !hostOk(fu.getHost(), NET_OK)) { code = 0; throw new Exception("yönlendirme izinli değil"); }
                         InputStream in = code >= 400 ? c.getErrorStream() : c.getInputStream();
                         if (in != null) try (InputStream i2 = in) { text = readMax(i2, 4 * 1024 * 1024); }
                     } catch (Exception ignored) {

@@ -10,7 +10,7 @@ window.addEventListener('unhandledrejection',function(e){var r=e.reason;errLog('
 document.addEventListener('securitypolicyviolation',function(e){errLog('politika',e.violatedDirective,e.blockedURI);});
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.7';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.8';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -135,7 +135,7 @@ function num(s){s=String(s==null?'':s).trim().replace(/\s/g,'').replace(/[₺$�
   if(c&&d){if(s.lastIndexOf(',')>s.lastIndexOf('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(/,/g,'');}
   else if(c>1)s=s.replace(/,/g,'');
   else if(c)s=s.replace(',','.');
-  else if(d>1||/^-?\d{1,3}\.\d{3}$/.test(s))s=s.replace(/\./g,'');
+  else if(d>1||/^-?[1-9]\d{0,2}\.\d{3}$/.test(s))s=s.replace(/\./g,'');
   var n=parseFloat(s);return isNaN(n)||!isFinite(n)?0:n;}
 function pad(n){return String(n).padStart(2,'0');}
 function isoDate(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
@@ -209,6 +209,9 @@ function norm(d){
   d.dccy=CCYS.indexOf(d.dccy)>=0?d.dccy:'TRY';d.defAcct=d.defAcct||'';
   d.sms=Object.assign({on:false,ntf:false,auto:false,pend:[],seen:[],map:{},recent:[]},d.sms||{});if(!Array.isArray(d.sms.recent))d.sms.recent=[];
   d.watch=Array.isArray(d.watch)?d.watch.filter(function(w){return w&&typeof w.k==='string'&&w.k.indexOf(':')>0;}):WDEF.map(function(w){return Object.assign({},w);});d.quotes=d.quotes&&typeof d.quotes==='object'?d.quotes:{};if(!Array.isArray(d.sms.pend))d.sms.pend=[];if(!Array.isArray(d.sms.seen))d.sms.seen=[];if(!d.sms.map||typeof d.sms.map!=='object')d.sms.map={};d.qaUse=d.qaUse||{};
+  /* kimlikler HTML özniteliklerine yazılır: dışarıdan gelen (yedek) bozuk ya da tehlikeli kimlikler yenilenir */
+  ['tx','holdings','notes','goals','recurring','debts','realized'].forEach(function(k){d[k]=d[k].filter(function(x){return x&&typeof x==='object';});d[k].forEach(function(x){if(x.id==null||!/^[\w.:-]{1,64}$/.test(String(x.id)))x.id=uid();else x.id=String(x.id);});});
+  d.sms.pend=d.sms.pend.filter(function(x){return x&&typeof x==='object';});d.sms.pend.forEach(function(x){if(!/^[\w.:-]{1,64}$/.test(String(x.id)))x.id=uid();});
   d.autoBk=d.autoBk!==false;d.bio=!!d.bio;d.secure=!!d.secure;d.bkTs=+d.bkTs||0;
   d.alerts=Object.assign({budget:true,rec:true,thr:80,days:3,push:true,hour:9},d.alerts||{});
   d.nset=Object.assign({sort:'edited',view:'card',lines:3,date:true,pinFirst:true,confirmDel:true},d.nset||{});
@@ -245,7 +248,7 @@ function save(){
   if(nb('saveData')){if(!ok){try{if(NB.saveData(j)==='ok')ok=true;}catch(e){}}else{NSJ=j;if(!NST)NST=setTimeout(flushNative,120);}}
   if(!ok&&!storeWarned){storeWarned=true;setTimeout(function(){toast('Veriler kaydedilemedi: cihaz deposu dolu olabilir. Yedek al.');},0);}
   clearTimeout(planT);planT=setTimeout(pushPlan,700);
-  clearTimeout(bkT);bkT=setTimeout(function(){if(S.autoBk&&!hasSample()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();},20000);
+  clearTimeout(bkT);bkT=setTimeout(function(){if(S.autoBk&&bkOk()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();},20000);
 }
 var hostTheme=document.documentElement.getAttribute('data-theme');
 function applyTheme(){var r=document.documentElement,t=S.theme;if(t==='light'||t==='dark')r.setAttribute('data-theme',t);else if(hostTheme)r.setAttribute('data-theme',hostTheme);else r.removeAttribute('data-theme');}
@@ -264,7 +267,10 @@ function pEnd(k){var s=pdate(pStart(addMonth(k,1)));s.setDate(s.getDate()-1);ret
 function curP(){return pk(todayS());}
 function plabel(k){return (S.payday>1)?mlabel(k)+' dönemi':mlabel(k);}
 function prange(k){var f=function(d){return d.toLocaleDateString('tr-TR',{day:'numeric',month:'short'});};return f(pdate(pStart(k)))+' – '+f(pdate(pEnd(k)));}
-function dueDate(r,k){var p=k.split('-'),y=+p[0],m=+p[1],pd=pStartDay(y,m),day=r.day;if(pd>1&&day<pd){m++;if(m>12){m=1;y++;}}var r2=y+'-'+pad(m)+'-'+pad(Math.min(day,dimYM(y,m))),e=pEnd(k),st=pStart(k);return r2>e?e:(r2<st?st:r2);}
+/* dönem içindeki ödeme günü: dönemin başladığı ay ya da sonraki ay (kısa aylarda ayın son günü); ikisi de dışındaysa döneme sıkıştırılır */
+function dueDate(r,k){var st=pStart(k),e=pEnd(k),y=+st.slice(0,4),m=+st.slice(5,7),day=r.day,c=null;
+  for(var i=0;i<2&&!c;i++){var d=y+'-'+pad(m)+'-'+pad(Math.min(day,dimYM(y,m)));if(d>=st&&d<=e)c=d;m++;if(m>12){m=1;y++;}}
+  if(c)return c;var f=st.slice(0,8)+pad(Math.min(day,dimYM(+st.slice(0,4),+st.slice(5,7))));return f>e?e:(f<st?st:f);}
 function daysLeft(k){return daysBetween(todayS(),pEnd(k))+1;}
 function pDays(k){return daysBetween(pStart(k),pEnd(k))+1;}
 
@@ -328,6 +334,10 @@ function hKind(h){return h.kind==='asset'?'asset':'inv';}
 function hPrice(h){if(h.mk){var p=mTL(h.mk);if(p>0)return p;}var r=h.ccy&&S.fx&&+S.fx[h.ccy];return r>0?r:(+h.price||0);}
 function hVal(h){return r2(h.qty*hPrice(h));} function hCost(h){return r2(h.qty*h.cost);}
 function pfTotals(kind){var v=0,c=0;S.holdings.forEach(function(h){if(kind&&hKind(h)!==kind)return;v+=hVal(h);c+=hCost(h);});return {v:r2(v),c:r2(c)};}
+/* otomatik yedek: kendi verin varsa ve (PIN sıfırlamasından sonra) duraklatılmamışsa */
+function lsHas(k){try{return !!localStorage.getItem(k);}catch(e){return false;}}
+function hasOwn(){var f=function(l){return (l||[]).some(function(x){return !x.sample;});};return f(S.tx)||f(S.holdings)||f(S.notes)||f(S.goals)||f(S.recurring)||f(S.debts);}
+function bkOk(){return hasOwn()&&!S.bkHold;}
 function hasSample(){return S.tx.some(function(t){return t.sample;})||S.holdings.some(function(h){return h.sample;})||S.notes.some(function(n){return n.sample;})||S.goals.some(function(n){return n.sample;})||S.recurring.some(function(n){return n.sample;})||S.debts.some(function(n){return n.sample;})||!!S.sampleExtras;}
 /* borcun kalan tutarı: girilen tutar − bağlı ödemeler (anında güncellenir) */
 function debtPaid(d){var p=0;S.tx.forEach(function(t){if(t.type==='dbt'&&t.side==='out'&&t.debt===d.id)p+=txTL(t);});return r2(p);}
@@ -353,6 +363,8 @@ function wealth(){
   g.liquid=r2(g.nakit+g.banka+g.birikim);
   return {items:items,debts:debts,assets:A,debt:D,net:r2(A-D),g:g};
 }
+/* maaş günü değişince dönemler kayar: ödendi işaretleri bağlı işlemin yeni dönemine taşınır */
+function remapPaid(){S.recurring.forEach(function(r){if(!r.paid)return;var n={};Object.keys(r.paid).forEach(function(k){var t=byId(S.tx,r.paid[k]);if(t)n[pk(t.date)]=t.id;});r.paid=n;});}
 function recPaid(r,k){var id=r.paid&&r.paid[k];return !!id&&S.tx.some(function(t){return t.id===id;});}
 /* bir tarihteki net servet: hesaplar o güne kadarki hareketlerden, yatırımlar bugünkü değerinden, borçlar o güne kadarki ödemelerden */
 function nwAt(D){
@@ -618,7 +630,7 @@ ACT.rng=function(el,id,v){ui.rng=v;persistUi();render();};
 
 /* ---------- İşlemler ---------- */
 var TXH=typeof WeakMap==='function'?new WeakMap():null;
-function txHay(t){var raw=String(t.note||'')+'\u0001'+(t.cat||'')+'\u0001'+(t.acct||'')+'\u0001'+(t.to||'')+'\u0001'+t.type+'\u0001'+(t.side||'')+'\u0001'+(t.hold||'')+'\u0001'+(t.debt||'');
+function txHay(t){var raw=String(t.note||'')+'\u0001'+(t.cat||'')+'\u0001'+(t.acct||'')+'\u0001'+(t.to||'')+'\u0001'+t.type+'\u0001'+(t.side||'')+'\u0001'+(t.hold||'')+'\u0001'+(t.debt||'')+'\u0001'+mvLabel(t);
   var c=TXH&&TXH.get(t);if(c&&c.r===raw)return c.h;
   var h=fold(String(t.note||'')+' '+(t.cat||'')+' '+(t.acct||'')+' '+(t.to||'')+' '+mvLabel(t));if(TXH)TXH.set(t,{r:raw,h:h});return h;}
 var TQP={q:null,p:[]};
@@ -1064,10 +1076,10 @@ function setGuv(){
 function setVeri(){
   var pw=S.bkKey?'<div class="small inc">Yedekler şifreli. Geri yüklerken bu şifre sorulur.</div><button class="btn ghost" data-act="bk-pw-del">Yedek şifresini kaldır</button>'
       :'<div class="two"><div class="field"><label for="bkp1">Yedek şifresi</label><input id="bkp1" type="password" autocomplete="new-password" placeholder="En az 6 karakter"></div><div class="field"><label for="bkp2">Tekrar</label><input id="bkp2" type="password" autocomplete="new-password"></div></div><button class="btn ghost" data-act="bk-pw-set">Yedekleri şifrele</button>';
-  var auto=nb('autoBackup')?sec('Otomatik yedek',tgl('autoBk','Otomatik yedekle','Değişiklikten kısa süre sonra ve uygulamadan çıkınca İndirilenler/Wallet klasörüne yazılır')+(S.bkTs?'<div class="small muted">Son otomatik yedek: '+esc(fmtTs(S.bkTs))+(S.bkEnc?' · şifreli':' · şifresiz')+'</div>':'')+pw+'<div class="two"><button class="btn ghost" data-act="bk-auto">Şimdi yedekle</button><button class="btn ghost" data-act="bk-share">Paylaş / Drive’a kaydet</button></div><div class="err" id="f-bka"></div>','Uygulamayı silsen bile bu dosya telefonda kalır; “Yedekten yükle” ile geri alabilirsin. Şifreyi unutursan şifreli yedek açılmaz.')
+  var auto=nb('autoBackup')?sec('Otomatik yedek',tgl('autoBk','Otomatik yedekle','Değişiklikten kısa süre sonra ve uygulamadan çıkınca İndirilenler/Wallet klasörüne yazılır')+(S.bkTs?'<div class="small muted">Son otomatik yedek: '+esc(fmtTs(S.bkTs))+(S.bkEnc?' · şifreli':' · şifresiz')+'</div>':'')+(S.bkHold?'<div class="small exp">Otomatik yedek duraklatıldı: eski yedek dosyanın üzerine yazılmasın diye. Önce yedekten yükle ya da devam ettir.</div><button class="btn ghost" data-act="bk-resume">Otomatik yedeği devam ettir</button>':'')+pw+'<div class="two"><button class="btn ghost" data-act="bk-auto">Şimdi yedekle</button><button class="btn ghost" data-act="bk-share">Paylaş / Drive’a kaydet</button></div><div class="err" id="f-bka"></div>','Uygulamayı silsen bile bu dosya telefonda kalır; “Yedekten yükle” ile geri alabilirsin. Şifreyi unutursan şifreli yedek açılmaz.')
     +sec('Bulut yedeği','<p class="small" style="margin:0">Telefonunda Google yedekleme açıksa Wallet verileri Google hesabına da kendiliğinden yedeklenir; yeni telefona ya da yeniden kurulumda geri gelir.</p>','Ayarlar › Google › Yedekleme bölümünden açık olduğunu kontrol edebilirsin. Ek olarak yedeği Paylaş ile Google Drive’a kaydedebilirsin.'):'';
   return auto+sec('Yedek','<div class="field"><label for="bk-pw">Yedek şifresi</label><input id="bk-pw" type="password" autocomplete="new-password" placeholder="Boş bırakırsan şifresiz yedek"></div><button class="btn" data-act="bk-make">Yedek hazırla</button><div id="bk-box" class="stack" style="gap:10px" hidden><textarea id="bk-out" readonly aria-label="Yedek metni"></textarea><button class="btn ghost" data-act="bk-copy">Yedeği kopyala</button><button class="btn ghost" data-act="bk-save">Dosya olarak kaydet</button><button class="btn ghost" data-act="bk-share2">Paylaş (Drive, e-posta…)</button></div><div class="err" id="f-err3"></div>','Şifreli yedek AES-256 ile korunur. Şifreyi unutursan yedek açılmaz, şifre hiçbir yerde saklanmaz.')
-   +sec('Yedekten yükle','<label class="btn ghost filebtn">Dosya seç<input id="rs-file" type="file" accept=".json,.txt,application/json,text/plain"></label><div class="small muted" id="rs-file-name"></div><div class="field"><label for="rs-txt">Ya da yedek metnini yapıştır</label><textarea id="rs-txt" placeholder="Kopyaladığın yedeği buraya yapıştır"></textarea></div><div class="field"><label for="rs-pw">Şifre (yedek şifreliyse)</label><input id="rs-pw" type="password" autocomplete="off"></div><div class="err" id="f-err2"></div><button class="btn ghost" data-act="rs-go">Yedeği yükle</button>','Yükleme mevcut verilerin yerine geçer. PIN ayarın korunur.')
+   +sec('Yedekten yükle','<label class="btn ghost filebtn">Dosya seç<input id="rs-file" type="file" accept=".json,.txt,application/json,text/plain"></label><div class="small muted" id="rs-file-name"></div><div class="field"><label for="rs-txt">Ya da yedek metnini yapıştır</label><textarea id="rs-txt" placeholder="Kopyaladığın yedeği buraya yapıştır"></textarea></div><div class="field"><label for="rs-pw">Şifre (yedek şifreliyse)</label><input id="rs-pw" type="password" autocomplete="off"></div><div class="err" id="f-err2"></div><button class="btn ghost" data-act="rs-go">Yedeği yükle</button>'+(lsHas('wallet-prerestore')?'<button class="btn ghost" data-act="rs-undo">Yüklemeden önceki veriye dön</button>':''),'Yükleme mevcut verilerin yerine geçer; önceki verin saklanır, geri dönebilirsin. PIN ayarın korunur.')
    +sec('İşlemleri dışa aktar','<button class="btn ghost" data-act="csv">İşlemleri CSV olarak kaydet</button><button class="btn ghost" data-act="csv-copy">CSV metnini kopyala</button><div class="err" id="f-err"></div>','CSV; Excel ve tablo uygulamalarında açılır. '+S.tx.length+' işlem.')
    +sec('İşlemleri içe aktar','<label class="btn ghost filebtn">Ekstre dosyası seç<input id="im-file" type="file" accept=".csv,.txt,.xlsx,.xls,text/csv,text/plain,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label><div class="small muted" id="im-file-name"></div><div class="field"><label for="im-txt">Ya da CSV metnini yapıştır</label><textarea id="im-txt" placeholder="İlk satır başlık olmalı, örn: Tarih; Açıklama; Tutar"></textarea></div><div class="field"><label for="im-acct">Hesap sütunu yoksa bu hesaba ekle</label><select id="im-acct">'+opts(ACCS(),ACCS().filter(function(a){return acctType(a)==='banka';})[0]||ACCS()[0])+'</select></div><div class="err" id="f-err4"></div><button class="btn ghost" data-act="im-go">İçe aktar</button>','Bankanın internet şubesinden ya da mobil uygulamasından indirdiğin hesap hareketleri: Excel (.xlsx, .xls) ya da CSV. Tablonun başlık satırı (Tarih, Açıklama, Tutar ya da Borç/Alacak) kendiliğinden bulunur. Eksi tutarlar ve Borç sütunu gider, artılar ve Alacak gelir sayılır; kredi kartı hesabına aktarırken artı tutarlar harcamadır. Kategori açıklamaya göre seçilir, aynı kayıtlar tekrar eklenmez.')
    +sec('Örnek veriler',(hasSample()?'<button class="btn ghost" data-act="sample-clear">Örnek verileri sil</button>':'<button class="btn ghost" data-act="sample-load">Örnek verileri yükle</button>'),'Örnek veriler kendi kayıtlarının yanına eklenir ve işaretlidir, istediğinde silebilirsin.')
@@ -1084,7 +1096,7 @@ function pinHash(pin,salt){var str=salt+':'+pin;
 function bioOk(){if(!nb('bioAvail'))return false;try{return !!NB.bioAvail();}catch(e){return false;}}
 function lockHtml(){
   var logo='<span class="logo biglogo" role="img" aria-label="Wallet"></span>';
-  if(ui.forgot)return logo+'<h2 style="margin:0">PIN’ini mi unuttun?</h2><p class="small muted" style="max-width:320px;text-align:center;margin:0">PIN kurtarılamaz. Devam edersen bu cihazdaki tüm Wallet verileri silinir ve kilit kalkar. Yedeğin varsa sonra geri yükleyebilirsin.</p><button class="btn danger" style="max-width:320px" data-act="lk-reset">Tüm verileri sil ve kilidi kaldır</button><button class="btn ghost" style="max-width:320px" data-act="lk-back">Vazgeç</button>';
+  if(ui.forgot)return logo+'<h2 style="margin:0">PIN’ini mi unuttun?</h2><p class="small muted" style="max-width:320px;text-align:center;margin:0">PIN kurtarılamaz. Devam edersen bu cihazdaki tüm Wallet verileri silinir ve kilit kalkar. '+(nb('wipeKeep')?'İndirilenler/Wallet klasöründeki otomatik yedek dosyan silinmez; sonra Ayarlar › Veri ve yedek › Yedekten yükle ile geri getirebilirsin.':(nb('wipe')?'Dikkat: otomatik yedek dosyası da silinir; başka bir yedeğin varsa sonra geri yükleyebilirsin.':'Yedeğin varsa sonra geri yükleyebilirsin.'))+'</p><button class="btn danger" style="max-width:320px" data-act="lk-reset">Tüm verileri sil ve kilidi kaldır</button><button class="btn ghost" style="max-width:320px" data-act="lk-back">Vazgeç</button>';
   var dots='';for(var i=0;i<4;i++)dots+='<i class="'+(i<ui.pinBuf.length?'on':'')+'"></i>';
   var wait=Date.now()<ui.lockUntil,keys=['1','2','3','4','5','6','7','8','9',S.bio&&bioOk()?'b':'','0','<'];
   return logo+'<h2 style="margin:0">PIN gir</h2><div class="dots">'+dots+'</div><div class="err" style="min-height:1.3em">'+esc(ui.lkMsg||'')+'</div><div class="keypad">'+keys.map(function(k){if(k==='')return '<span></span>';if(k==='b')return '<button class="key" data-act="lk-bio" aria-label="Parmak izi ile aç">'+ic('shield')+'</button>';return '<button class="key" data-act="lk" data-v="'+k+'"'+(wait?' disabled':'')+' aria-label="'+(k==='<'?'Sil':k)+'">'+(k==='<'?'←':k)+'</button>';}).join('')+'</div><button class="linkbtn" data-act="lk-forgot">PIN’imi unuttum</button>';
@@ -1125,7 +1137,7 @@ function backupText(){
 }
 /* otomatik yedek: İndirilenler/Wallet klasörüne; döner Promise<bool> */
 function autoBackup(force){
-  if(!nb('autoBackup')||(!S.autoBk&&!force)||hasSample()&&!force)return Promise.resolve(false);
+  if(!nb('autoBackup')||(!S.autoBk&&!force)||!bkOk()&&!force)return Promise.resolve(false);if(force)delete S.bkHold;
   return backupText().then(function(text){var r='err';try{r=NB.autoBackup(text);}catch(e){}
     if(r==='ok'){S.bkTs=Date.now();S.bkEnc=!!S.bkKey;try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}return true;}return false;},function(){return false;});
 }
@@ -1287,7 +1299,7 @@ function txSheet(id,force,pre){
    +'<div class="field"><label for="f-amt" id="lb-amt">Tutar (₺)</label><input id="f-amt" class="amtin" inputmode="decimal" placeholder="0,00" value="'+(t?nv(t.amt):(pre.amt>0?nv(pre.amt):''))+'"></div>'
    +'<div class="field" id="row-cat"'+(trf?' hidden':'')+'><span class="flbl">Kategori</span><select id="f-cat" hidden aria-hidden="true">'+(t&&!trf?optsKeep(cats,t.cat):opts(cats,pre.cat&&cats.indexOf(pre.cat)>=0?pre.cat:lastSel(txType,'cat',cats)))+'</select><div class="catchips" id="f-catchips" role="group" aria-label="Kategori"></div></div>'
    +'<div class="two"><div class="field"><label for="f-acct" id="lb-acct">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="f-acct">'+acctOpts(a0)+'</select></div><div class="field" id="row-to"'+(trf?'':' hidden')+'><label for="f-to">Giriş hesabı</label><select id="f-to">'+acctOpts(to0)+'</select></div></div>'
-   +'<div class="field" id="row-amt2" hidden><label for="f-amt2" id="lb-amt2">Giriş tutarı</label><input id="f-amt2" inputmode="decimal" placeholder="0,00" value="'+(t&&t.amt2?nv(t.amt2):'')+'"></div>'
+   +'<div class="field" id="row-amt2" hidden><label for="f-amt2" id="lb-amt2">Giriş tutarı</label><input id="f-amt2" inputmode="decimal" placeholder="0,00"'+(t&&t.amt2?' data-manual="1"':'')+' value="'+(t&&t.amt2?nv(t.amt2):'')+'"></div>'
    +'<div class="field"><label for="f-date">Tarih</label><div class="datew"><input id="f-date" type="date" value="'+(t?t.date:(pre.date||todayS()))+'"><button class="chip" data-act="date-pick" data-v="0">Bugün</button><button class="chip" data-act="date-pick" data-v="1">Dün</button></div></div>'
    +'<div class="field"><label for="f-note">Not</label><input id="f-note" list="note-dl" autocomplete="off" placeholder="İsteğe bağlı, örn. market alışverişi" value="'+esc(t?t.note:(pre.note||''))+'">'+noteDl(txType==='inc'?'inc':'exp')+'</div>'
    +'<div class="balprev" id="f-bal" aria-live="polite"></div><div class="err" id="f-err"></div>'
@@ -1472,6 +1484,9 @@ function renameAcct(old,nw){
   if(Object.prototype.hasOwnProperty.call(S.opening,old)){S.opening[nw]=S.opening[old];delete S.opening[old];}
   ['exp','inc','trf'].forEach(function(k){if(S.last&&S.last[k]&&S.last[k].acct===old)S.last[k].acct=nw;});
   if(S.defAcct===old)S.defAcct=nw;if(ui.acctF===old)ui.acctF=nw;
+  /* SMS eşleştirmeleri ve bekleyen SMS işlemleri de yeni adı kullansın */
+  if(S.sms){Object.keys(S.sms.map||{}).forEach(function(k){if(S.sms.map[k]===old)S.sms.map[k]=nw;});(S.sms.pend||[]).forEach(function(it){if(it.acct===old)it.acct=nw;if(it.to===old)it.to=nw;});}
+  (S.debts||[]).forEach(function(d){if(d.acct===old)d.acct=nw;});
 }
 var TQT=null;
 
@@ -1727,7 +1742,7 @@ ACT['lock-now']=function(){lockNow();};
 ACT['lk-forgot']=function(){ui.forgot=true;render();};
 ACT['lk-back']=function(){ui.forgot=false;render();};
 ACT['lk-bio']=function(){askBio();};
-ACT['lk-reset']=function(el){if(!armed(el))return;wipeAll();};
+ACT['lk-reset']=function(el){if(!armed(el))return;wipeAll(true);};
 ACT.lk=function(el,id,v){
   if(Date.now()<ui.lockUntil||!S.pin)return;
   if(v==='<')ui.pinBuf=ui.pinBuf.slice(0,-1);else if(ui.pinBuf.length<4)ui.pinBuf+=v;
@@ -1766,11 +1781,16 @@ ACT['bk-make']=function(){
 };
 ACT['bk-copy']=function(){copyText(val('bk-out'),'f-err3','Yedek kopyalandı.');};
 ACT['bk-save']=function(){saveFile(val('bk-pw')?'wallet-yedek-sifreli.json':'wallet-yedek.json',val('bk-out'),'Yedek kaydedildi.','f-err3');};
-ACT['rs-go']=function(){
+ACT['rs-go']=function(el0){
   var raw=val('rs-txt').trim(),pw=val('rs-pw');
   if(!raw){msg('Yedek dosyasını seç ya da metni yapıştır.',false,'f-err2');return;}
   var o;try{o=JSON.parse(raw);}catch(e){msg('Yedek okunamadı. Tüm metni kopyaladığından emin ol.',false,'f-err2');return;}
-  var apply=function(d){if(!d||!Array.isArray(d.tx))throw new Error('x');var keep=S.pin,bio=S.bio,bk=S.bkKey;S=norm(d);S.pin=keep||null;S.bio=!!keep&&bio;if(bk)S.bkKey=bk;ui.month=curP();save();render();msg('Yedek yüklendi: '+S.tx.length+' işlem, '+S.accounts.length+' hesap.',true,'f-err2');};
+  /* yükleme mevcut verilerin yerine geçer: önce onay, sonra eski veri saklanır (Geri al ve Ayarlar'dan dönüş) */
+  var el=el0&&el0.nodeType?el0:document.querySelector('[data-act="rs-go"]');if(el&&!armed(el)){msg('Yedek mevcut verilerinin yerine geçecek. Onaylamak için yeniden dokun.',false,'f-err2');return;}
+  var apply=function(d){if(!d||!Array.isArray(d.tx))throw new Error('x');var old=JSON.stringify(S),keep=S.pin,bio=S.bio,bk=S.bkKey;
+    try{localStorage.setItem('wallet-prerestore',old);}catch(e){}
+    S=norm(d);S.pin=keep||null;S.bio=!!keep&&bio;if(bk)S.bkKey=bk;delete S.bkHold;ui.month=curP();save();render();msg('Yedek yüklendi: '+S.tx.length+' işlem, '+S.accounts.length+' hesap.',true,'f-err2');
+    toast('Yedek yüklendi',function(){S=norm(JSON.parse(old));ui.month=curP();save();render();toast('Önceki verine dönüldü');});};
   if(o&&o.wallet&&o.d){
     if(!pw){msg('Bu yedek şifreli, şifreyi gir.',false,'f-err2');return;}
     decText(o,pw).then(function(t){try{apply(JSON.parse(t));}catch(e){msg('Yedek okunamadı.',false,'f-err2');}},function(){msg('Şifre yanlış ya da yedek bozuk.',false,'f-err2');});
@@ -1813,6 +1833,9 @@ function csvKey(h){h=fold(h).replace(/\s*\([^)]*\)\s*/g,' ').replace(/[*:.]+$/,'
   if(/^(hesap|account)/.test(h))return 'acct';
   if(/^(not|aciklama|islem aciklamasi|islem detayi|detay|islem|description|note|explanation)/.test(h))return 'note';
   return '';}
+/* ekstre tekrar içe aktarılınca çift kayıt olmasın: tarih, tür, tutar, hesap ve bankadaki ÖZGÜN açıklama
+   (sonradan değiştirilebilen kategori ve not değil) karşılaştırılır */
+function txSig2(t){return [t.date,t.type,r2(t.amt).toFixed(2),t.acct,fold(t.src!=null?t.src:(t.note||'')).replace(/\s+/g,' ').trim()].join('|');}
 function txSig(t){return [t.date,t.type,t.side||'',t.type==='inc'||t.type==='exp'?(t.cat||''):'',r2(t.amt).toFixed(2),t.acct,t.to||'',t.note||'',t.amt2?r2(t.amt2).toFixed(2):''].join('|');}
 function csvImport(text,defAcct0){
   var rows=csvParse(text);if(rows.length<2)return {err:'Başlık satırı ve en az bir kayıt gerekli.'};
@@ -1821,7 +1844,7 @@ function csvImport(text,defAcct0){
   for(var ri=0;ri<Math.min(rows.length,40);ri++){var mp={};rows[ri].forEach(function(h,i){var k=csvKey(h);if(k&&mp[k]==null)mp[k]=i;});
     if(mp.date!=null&&(mp.amt!=null||mp.debit!=null||mp.credit!=null)){map=mp;hi=ri;break;}}
   if(map.date==null)return {err:'“Tarih” ve “Tutar” (ya da “Borç/Alacak”) sütunları bulunamadı.'};
-  var seen={};S.tx.forEach(function(t){var k=txSig(t);seen[k]=(seen[k]||0)+1;});
+  var seen={},seen2={};S.tx.forEach(function(t){var k=txSig(t);seen[k]=(seen[k]||0)+1;if(t.type==='inc'||t.type==='exp'){var k2=txSig2(t);seen2[k2]=(seen2[k2]||0)+1;}});
   var add=[],dup=0,bad=0,newA=[],newC=[],aCcy={},defA=(defAcct0&&ACCS().indexOf(defAcct0)>=0)?defAcct0:ACCS()[0];
   var card=map.type==null&&map.debit==null&&map.credit==null&&acctType(defA)==='kart';
   rows.slice(hi+1).forEach(function(r){
@@ -1846,7 +1869,8 @@ function csvImport(text,defAcct0){
     if(type==='trf')t.to=to;var a2=r2(num(g('amt2')));if(type==='trf'&&a2>0)t.amt2=a2;if(nt)t.note=nt;
     if(type==='inv')t.hname=(g('cat')||'').replace(/^Yatırım (alımı|satışı) · /,'');if(type==='dbt')t.dname=(g('cat')||'').replace(/^Borç (alındı|ödemesi) · /,'');
     var cc=g('ccy').toUpperCase();if(CCYS.indexOf(cc)>=0&&!aCcy[acct])aCcy[acct]=cc;
-    var k=txSig(t);if(seen[k]>0){seen[k]--;dup++;return;}
+    if(t.type==='inc'||t.type==='exp'){t.src=nt||'';var k2=txSig2(t);if(seen2[k2]>0){seen2[k2]--;var k1=txSig(t);if(seen[k1]>0)seen[k1]--;dup++;return;}}
+    var k=txSig(t);if(seen[k]>0){seen[k]--;if(t.src!=null){var k3=txSig2(t);if(seen2[k3]>0)seen2[k3]--;}dup++;return;}
     add.push(t);});
   add.forEach(function(t){
     [t.acct,t.to].forEach(function(a){if(a&&ACCS().indexOf(a)<0&&newA.indexOf(a)<0)newA.push(a);});
@@ -1877,11 +1901,12 @@ ACT['sample-clear']=function(){
   save();render();toast('Örnek veriler silindi');
 };
 /* gerçekten her şeyi siler: tarayıcı deposu, Android kopyası, otomatik yedek, hatırlatmalar */
-function wipeAll(){
-  try{[KEY,UIKEY].forEach(function(k){localStorage.removeItem(k);});}catch(e){}
+/* keepBk: PIN unutulunca — otomatik yedek dosyası silinmez ve üzerine yazılmasın diye otomatik yedek duraklatılır */
+function wipeAll(keepBk){
+  try{[KEY,UIKEY,'wallet-prerestore'].forEach(function(k){localStorage.removeItem(k);});}catch(e){}
   try{sessionStorage.clear();}catch(e){}
-  if(nb('wipe')){try{NB.wipe();}catch(e){}}
-  S=norm({tx:[]});
+  if(keepBk&&nb('wipeKeep')){try{NB.wipeKeep();}catch(e){}}else if(nb('wipe')){try{NB.wipe();}catch(e){}}
+  S=norm({tx:[]});if(keepBk)S.bkHold=Date.now();
   ui.locked=false;ui.forgot=false;ui.page=null;ui.sub='ev';ui.month=curP();ui.filter='all';ui.acctF='';ui.tq='';ui.nq='';ui.nv='act';ui.cv={};
   save();flushNative();applySecure();
   try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
@@ -1989,7 +2014,7 @@ document.addEventListener('change',function(e){
     var k=d.kind,v=t.value;
     if(k==='num')v=num(v);else if(k==='auto')v=(String(v).trim()==='')?'':num(v);else if(k==='int')v=parseInt(v,10)||1;
     setP(d.bind,v);
-    if(d.bind==='payday')ui.month=curP();
+    if(d.bind==='payday'){remapPaid();ui.month=curP();}
     if(d.bind.indexOf('fx.')===0){S.fxTs=Date.now();if(S.fxChg)delete S.fxChg[d.bind.slice(3)];}
     save();render();return;
   }
@@ -2031,7 +2056,7 @@ document.addEventListener('keydown',function(e){
   if(sheetOpen())closeSheet();else if(ui.page)closePage();
 });
 document.addEventListener('visibilitychange',function(){
-  if(document.hidden){ui.hiddenAt=Date.now();if(ui.page&&ui.page.k==='note')saveNote();if(S.autoBk&&!hasSample()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();}
+  if(document.hidden){ui.hiddenAt=Date.now();if(ui.page&&ui.page.k==='note'){saveNote();flushNative();}if(S.autoBk&&bkOk()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();}
   else{
     if(S.pin&&!ui.locked&&ui.hiddenAt&&(Date.now()-ui.hiddenAt)>=(S.pin.auto||0)*60000)lockNow();
     if(!S.fxTs||Date.now()-S.fxTs>300000)bgRates();
@@ -2039,7 +2064,7 @@ document.addEventListener('visibilitychange',function(){
     notifyDue();pushPlan();pullSms();
   }
 });
-window.addEventListener('pagehide',function(){if(ui.page&&ui.page.k==='note')saveNote();});
+window.addEventListener('pagehide',function(){if(ui.page&&ui.page.k==='note'){saveNote();flushNative();}});
 window.addEventListener('hashchange',function(){
   var h=(location.hash||'').slice(1),cur=ui.page;
   if(cur&&cur.k==='note'&&h==='not')return;
@@ -2072,6 +2097,11 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().
     if(dy>90){s.style.transform='translateY(100%)';setTimeout(function(){if(ACT.close)ACT.close();},170);}else s.style.transform='';dy=0;},{passive:true});
 })();
 
+/* yedek yüklemeden önceki veriye dön (Ayarlar › Veri ve yedek) */
+ACT['rs-undo']=function(el){if(!armed(el)){toast('Önceki veriye dönmek için yeniden dokun');return;}var j=null;try{j=localStorage.getItem('wallet-prerestore');}catch(e){}if(!j)return;
+  var keep=S.pin,bio=S.bio;S=norm(JSON.parse(j));S.pin=keep||null;S.bio=!!keep&&bio;try{localStorage.removeItem('wallet-prerestore');}catch(e){}ui.month=curP();save();render();toast('Yedek yüklemeden önceki verine dönüldü');};
+ACT['bk-resume']=function(){delete S.bkHold;save();render();toast('Otomatik yedek yeniden açık');};
+
 /* ---------- banka SMS'lerinden otomatik işlem ----------
    Android uygulaması gelen SMS'leri ham olarak verir; ayrıştırma burada yapılır, böylece yeni banka biçimleri
    APK güncellemeden eklenebilir. Hiçbir SMS cihaz dışına gönderilmez. */
@@ -2082,7 +2112,7 @@ var SMS_NOTAMT=/(bakiye|limit|kullanilabilir|asgari|toplam borc|bonus|puan|chip|
 var SMS_STOP={tarihinde:1,tarihli:1,saat:1,saatinde:1,kartinizla:1,kartinizdan:1,kartiniz:1,kartinla:1,kartindan:1,karti:1,kart:1,ile:1,biten:1,sonlanan:1,nolu:1,numarali:1,tl:1,try:1,usd:1,eur:1,tutarinda:1,tutarli:1,tutarindaki:1,islem:1,harcama:1,yapilmistir:1,yaptiniz:1,hesabinizdan:1,hesabiniza:1,taksit:1,taksitli:1,pesin:1,sayin:1,musterimiz:1,de:1,da:1,ve:1,icin:1,olarak:1,bankamatik:1,kredi:1,banka:1,'kartiniz ile':1};
 var SMS_CAT=[
  ['Market',/(migros|a101|\bbim\b|sok market|\bsok\b|carrefour|file market|macrocenter|metro grossmarket|hakmar|onur market|kim market|tarim kredi|getir\b|happy center|bizim toptan)/],
- ['Ulaşım',/(opet|shell|\bbp\b|petrol ofisi|total ?energies|aytemiz|akaryakit|istanbulkart|belbim|\buber\b|bitaksi|taksi|otopark|\bthy\b|turk hava|pegasus|ajet|obilet|\bido\b|marti|\bhgs\b|\bogs\b|otoyol)/],
+ ['Ulaşım',/(opet|shell|\bbp\b|petrol ofisi|total ?energies|aytemiz|akaryakit|istanbulkart|belbim|\buber\b|bitaksi|\btaksi\b|otopark|\bthy\b|turk hava|pegasus|ajet|obilet|\bido\b|marti|\bhgs\b|\bogs\b|otoyol)/],
  ['Yeme-İçme',/(yemeksepeti|getir yemek|trendyol yemek|migros yemek|starbucks|kahve|cafe|kafe|restoran|restaurant|burger|pizza|domino|mcdonald|\bkfc\b|simit|doner|lokanta|pastane|baklava|kofteci)/],
  ['Fatura',/(turkcell|vodafone|turk telekom|ttnet|superonline|turknet|igdas|enerjisa|ck enerji|ayedas|bedas|\biski\b|\baski\b|izsu|dogalgaz|elektrik|su idaresi|fatura|d-smart|digiturk)/],
  ['Sağlık',/(eczane|hastane|saglik|klinik|medical|doktor|\bdis\b|optik)/],
@@ -2741,6 +2771,8 @@ function numMorph(t){var out=[],i=0;
   while(i<t.length){var m=NUMM.filter(function(x){return t.substr(i,x.length)===x;})[0];if(!m)break;out.push(m);i+=m.length;}
   if(!out.length)return null;var rest=t.slice(i);
   if(rest&&!/^(lik|luk|ye|ya|e|a|lira|liralik|tl|tllik)$/.test(rest))return null;
+  /* tek parça + yönelme eki ('ona', 'bire', 'üçe') sayı değil zamir/ek olabilir: 'ona verdim', 'bire bir' */
+  if(out.length===1&&/^(e|a|ye|ya)$/.test(rest)&&/^(on|bir|uc|iki|alti)$/.test(out[0]))return null;
   return out;}
 function voiceAmt(text){
   /* sayı öbeklerini bul; "lira/TL/₺" ile birlikte söyleneni, yoksa en büyüğünü al ("bir kahve 80 lira" → 80) */
@@ -2763,7 +2795,7 @@ function voiceAmt(text){
   var u=runs.filter(function(r){return r.u;})[0];if(u)return r2(u.v);
   return r2(runs.reduce(function(a,r){return Math.max(a,r.v);},0));
 }
-var VINC=/maas|gelir|kazand|yatti|geldi|ikramiye|prim\b|harclik|iade|burs|kira geliri|odeme aldim|alacak/;
+var VINC=/maas|gelir|kazand|yatti|(para|maas|ucret|odeme|kira|havale|eft|prim)[a-z]* geldi|ikramiye|prim\b|harclik|iade|burs|kira geliri|odeme aldim|alacak/;
 function voiceParse(text){
   var n=fold(text||''),type=VINC.test(n)?'inc':'exp',amt=voiceAmt(text||'');
   var l=type==='inc'?INCC():EXPC(),cat=l.filter(function(c){var f=fold(c);return f.length>2&&n.indexOf(f.slice(0,Math.max(4,f.length-2)))>-1;})[0]||smsCat(text||'',type);
@@ -2833,7 +2865,7 @@ function noteCat(type,txt){if(!txt||txt.length<3)return null;var best=null;
 /* uygulama kısayolları ve adres kısayolları: gider, gelir, transfer, sesle */
 var INTENTS={exp:function(){txSheet(null,'exp');},inc:function(){txSheet(null,'inc');},trf:function(){ACT['qa-trf']();},voice:function(){if(voiceOk())ACT.voice();else txSheet(null,'exp');}};
 function runIntent(){var a=ui.intent;if(!a||ui.locked)return;ui.intent=null;if(!INTENTS[a])return;
-  if(ui.page){finishPage();ui.page=null;}ui.sub='ev';render();INTENTS[a]();}
+  if(ui.page){finishPage();ui.page=null;}if(location.hash){try{history.replaceState(history.state,'',location.pathname+location.search);}catch(e){}}ui.sub='ev';render();INTENTS[a]();}
 window.walletIntent=function(a){ui.intent=String(a||'').replace(/^wallet:\/*/,'').replace(/^yeni-/,'');setTimeout(runIntent,50);};
 
 /* ---------- Notlar (Google Keep tarzı) ----------
@@ -2945,7 +2977,7 @@ document.addEventListener('keydown',function(e){var t=e.target;if(!t.dataset||t.
   else if(e.key==='Backspace'&&!t.value&&d.items.length>1){e.preventDefault();d.items.splice(i,1);ui.page.dirty=true;var prev=i-1;while(prev>=0&&d.items[prev].c)prev--;kRender(prev>=0?prev:null);}
 },true);
 /* uygulama arka plana geçerse açık not kaydedilir */
-document.addEventListener('visibilitychange',function(){if(document.hidden&&ui.page&&ui.page.k==='note')saveNote();});
+document.addEventListener('visibilitychange',function(){if(document.hidden&&ui.page&&ui.page.k==='note'){saveNote();flushNative();}});
 
 /* ---------- Akıllı motor ----------
    Tamamen cihazda çalışır; hiçbir veri dışarı gitmez. Kendi işlemlerinden öğrenir:
@@ -3026,14 +3058,14 @@ function unusualTx(){
   S.tx.forEach(function(t){if(t.type!=='exp'||t.date<s14||t.date>t0||t.sample||pid[t.id])return;var h=byC[t.cat];if(!h||h.length<5)return;
     var md=median(h),v=txTL(t),hi=h.slice().sort(function(a,b){return a-b;})[Math.floor(h.length*0.95)];
     if(v>=500&&v>=md*3&&v>hi)out.push({key:'unu:'+t.id,t:t,md:md,x:v/md});});
-  return out.sort(function(a,b){return b.x-a.x;}).slice(0,2);
+  return out.sort(function(a,b){return b.x-a.x;});
 }
 /* ---- 2c. olası çift kayıt (aynı gün, aynı hesap, tutar ve not) ---- */
 function dupTx(){
   var d30=new Date(today0());d30.setDate(d30.getDate()-30);var s30=isoDate(d30),m={},out=[];
   S.tx.forEach(function(t){if((t.type!=='exp'&&t.type!=='inc')||t.date<s30||t.sample||!(t.amt>=100))return;var k=[t.type,t.date,t.acct,r2(t.amt),fold(t.note||'').trim(),t.cat].join('|');
     if(m[k])out.push({key:'dup:'+m[k].id+':'+t.id,a:m[k],b:t});else m[k]=t;});
-  return out.slice(0,2);
+  return out;
 }
 /* ---- 3. dönem sonu tahmini ---- */
 function forecast(){
@@ -3064,10 +3096,12 @@ function paydayHint(){
 /* ---- tespitlerin listesi ve kartı ---- */
 function brainItems(){
   S.brainDis=S.brainDis||{};var D=S.brainDis,out=[];
-  dupTx().forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'warn',ic:'copy',t:'Olası çift kayıt: '+esc(x.b.note||x.b.cat)+' '+esc(moneyIn(x.b.amt,x.b.acct,1))+' ('+esc(pdate(x.b.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long'}))+', '+esc(x.b.acct)+') iki kez girilmiş.',btn:'Birini sil',act:'br-dup',id:x.b.id});});
-  recurCands().slice(0,2).forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'blue',ic:'repeat',t:esc(x.name)+' her ay yaklaşık '+esc(moneyIn(x.amt,x.acct,1))+' ('+x.n+' aydır, ayın '+x.day+'’i civarı). Düzenli ödemelere eklersen hatırlatılır ve tahminlere girer.',btn:'Düzenli ödemelere ekle',act:'br-rec',id:x.key});});
+  /* kapatılanlar önce elenir, sonra her türden en çok 2 gösterilir (kapatılan bir öneri sıradakini gizlemesin) */
+  var top=function(l){return l.filter(function(x){return !D[x.key];}).slice(0,2);};
+  top(dupTx()).forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'warn',ic:'copy',t:'Olası çift kayıt: '+esc(x.b.note||x.b.cat)+' '+esc(moneyIn(x.b.amt,x.b.acct,1))+' ('+esc(pdate(x.b.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long'}))+', '+esc(x.b.acct)+') iki kez girilmiş.',btn:'Birini sil',act:'br-dup',id:x.b.id});});
+  top(recurCands()).forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'blue',ic:'repeat',t:esc(x.name)+' her ay yaklaşık '+esc(moneyIn(x.amt,x.acct,1))+' ('+x.n+' aydır, ayın '+x.day+'’i civarı). Düzenli ödemelere eklersen hatırlatılır ve tahminlere girer.',btn:'Düzenli ödemelere ekle',act:'br-rec',id:x.key});});
   budgetPace().forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'exp',ic:'scale',t:'Bu hızla '+esc(x.c)+' bütçesi '+esc(pdate(x.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long'}))+' civarı dolar (kalan '+TRY0.format(x.left)+').',btn:'İşlemleri gör',act:'br-cat',id:x.c});});
-  unusualTx().forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'warn',ic:'bell',t:'Olağandışı harcama: '+esc(x.t.note||x.t.cat)+' '+TRY0.format(txTL(x.t))+'. '+esc(x.t.cat)+' harcamaların genelde '+TRY0.format(x.md)+' civarı.',btn:'İşlemi aç',act:'edit-tx',id:x.t.id});});
+  top(unusualTx()).forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'warn',ic:'bell',t:'Olağandışı harcama: '+esc(x.t.note||x.t.cat)+' '+TRY0.format(txTL(x.t))+'. '+esc(x.t.cat)+' harcamaların genelde '+TRY0.format(x.md)+' civarı.',btn:'İşlemi aç',act:'edit-tx',id:x.t.id});});
   var ph=paydayHint();if(ph&&!D[ph.key])out.push({key:ph.key,c:'inc',ic:'cal',t:'Maaşın genelde ayın '+ph.day+'’inde yatıyor. Dönemleri '+ph.day+'’inden başlatırsan bütçe ve analizler maaş döngüne göre hesaplanır.',btn:'Dönemi '+ph.day+'’inden başlat',act:'br-pay',id:String(ph.day)});
   return out;
 }
@@ -3082,7 +3116,7 @@ ACT['br-rec']=function(el,id){var x=recurCands().filter(function(c){return c.key
   var r={id:uid(),name:x.name,amt:x.amt,day:x.day,cat:x.cat,acct:x.acct,paid:{}};var k=pk(x.last.date);if(k===curP())r.paid[k]=x.last.id;
   S.recurring.push(r);save();render();toast(x.name+' düzenli ödemelere eklendi');};
 ACT['br-cat']=function(el,id){ui.month=curP();ui.tq='';ui.rng='ay';ui.filter='exp';goSec('islem');var q=document.getElementById('tq');if(q){q.value=id;q.dispatchEvent(new Event('input',{bubbles:true}));}};
-ACT['br-pay']=function(el,id){var d=+id;if(!(d>=1&&d<=31))return;S.payday=d;ui.month=curP();save();render();toast('Dönemler artık ayın '+d+'’inden başlıyor');};
+ACT['br-pay']=function(el,id){var d=+id;if(!(d>=1&&d<=31))return;S.payday=d;remapPaid();ui.month=curP();save();render();toast('Dönemler artık ayın '+d+'’inden başlıyor');};
 /* ---------- başlangıç ---------- */
 document.getElementById('fab').innerHTML=ic('plus');
 purgeTrash();
@@ -3098,5 +3132,5 @@ ntfSync();
   var rm=false;try{rm=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
   setTimeout(function(){sp.classList.add('out');done();setTimeout(function(){sp.remove();},470);},rm?450:1300);})();
 if(ui.intent)setTimeout(runIntent,ui.locked?0:700);
-bgRates();setTimeout(function(){notifyDue();pushPlan();pullSms();if(S.autoBk&&!hasSample()&&Date.now()-(S.bkTs||0)>864e5)autoBackup();},1500);
+bgRates();setTimeout(function(){notifyDue();pushPlan();pullSms();if(S.autoBk&&bkOk()&&Date.now()-(S.bkTs||0)>864e5)autoBackup();},1500);
 })();

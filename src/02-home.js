@@ -178,7 +178,7 @@ ACT.rng=function(el,id,v){ui.rng=v;persistUi();render();};
 
 /* ---------- İşlemler ---------- */
 var TXH=typeof WeakMap==='function'?new WeakMap():null;
-function txHay(t){var raw=String(t.note||'')+'\u0001'+(t.cat||'')+'\u0001'+(t.acct||'')+'\u0001'+(t.to||'')+'\u0001'+t.type+'\u0001'+(t.side||'')+'\u0001'+(t.hold||'')+'\u0001'+(t.debt||'');
+function txHay(t){var raw=String(t.note||'')+'\u0001'+(t.cat||'')+'\u0001'+(t.acct||'')+'\u0001'+(t.to||'')+'\u0001'+t.type+'\u0001'+(t.side||'')+'\u0001'+(t.hold||'')+'\u0001'+(t.debt||'')+'\u0001'+mvLabel(t);
   var c=TXH&&TXH.get(t);if(c&&c.r===raw)return c.h;
   var h=fold(String(t.note||'')+' '+(t.cat||'')+' '+(t.acct||'')+' '+(t.to||'')+' '+mvLabel(t));if(TXH)TXH.set(t,{r:raw,h:h});return h;}
 var TQP={q:null,p:[]};

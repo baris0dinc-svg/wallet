@@ -252,7 +252,7 @@ ACT['lock-now']=function(){lockNow();};
 ACT['lk-forgot']=function(){ui.forgot=true;render();};
 ACT['lk-back']=function(){ui.forgot=false;render();};
 ACT['lk-bio']=function(){askBio();};
-ACT['lk-reset']=function(el){if(!armed(el))return;wipeAll();};
+ACT['lk-reset']=function(el){if(!armed(el))return;wipeAll(true);};
 ACT.lk=function(el,id,v){
   if(Date.now()<ui.lockUntil||!S.pin)return;
   if(v==='<')ui.pinBuf=ui.pinBuf.slice(0,-1);else if(ui.pinBuf.length<4)ui.pinBuf+=v;
@@ -291,11 +291,16 @@ ACT['bk-make']=function(){
 };
 ACT['bk-copy']=function(){copyText(val('bk-out'),'f-err3','Yedek kopyalandı.');};
 ACT['bk-save']=function(){saveFile(val('bk-pw')?'wallet-yedek-sifreli.json':'wallet-yedek.json',val('bk-out'),'Yedek kaydedildi.','f-err3');};
-ACT['rs-go']=function(){
+ACT['rs-go']=function(el0){
   var raw=val('rs-txt').trim(),pw=val('rs-pw');
   if(!raw){msg('Yedek dosyasını seç ya da metni yapıştır.',false,'f-err2');return;}
   var o;try{o=JSON.parse(raw);}catch(e){msg('Yedek okunamadı. Tüm metni kopyaladığından emin ol.',false,'f-err2');return;}
-  var apply=function(d){if(!d||!Array.isArray(d.tx))throw new Error('x');var keep=S.pin,bio=S.bio,bk=S.bkKey;S=norm(d);S.pin=keep||null;S.bio=!!keep&&bio;if(bk)S.bkKey=bk;ui.month=curP();save();render();msg('Yedek yüklendi: '+S.tx.length+' işlem, '+S.accounts.length+' hesap.',true,'f-err2');};
+  /* yükleme mevcut verilerin yerine geçer: önce onay, sonra eski veri saklanır (Geri al ve Ayarlar'dan dönüş) */
+  var el=el0&&el0.nodeType?el0:document.querySelector('[data-act="rs-go"]');if(el&&!armed(el)){msg('Yedek mevcut verilerinin yerine geçecek. Onaylamak için yeniden dokun.',false,'f-err2');return;}
+  var apply=function(d){if(!d||!Array.isArray(d.tx))throw new Error('x');var old=JSON.stringify(S),keep=S.pin,bio=S.bio,bk=S.bkKey;
+    try{localStorage.setItem('wallet-prerestore',old);}catch(e){}
+    S=norm(d);S.pin=keep||null;S.bio=!!keep&&bio;if(bk)S.bkKey=bk;delete S.bkHold;ui.month=curP();save();render();msg('Yedek yüklendi: '+S.tx.length+' işlem, '+S.accounts.length+' hesap.',true,'f-err2');
+    toast('Yedek yüklendi',function(){S=norm(JSON.parse(old));ui.month=curP();save();render();toast('Önceki verine dönüldü');});};
   if(o&&o.wallet&&o.d){
     if(!pw){msg('Bu yedek şifreli, şifreyi gir.',false,'f-err2');return;}
     decText(o,pw).then(function(t){try{apply(JSON.parse(t));}catch(e){msg('Yedek okunamadı.',false,'f-err2');}},function(){msg('Şifre yanlış ya da yedek bozuk.',false,'f-err2');});
@@ -338,6 +343,9 @@ function csvKey(h){h=fold(h).replace(/\s*\([^)]*\)\s*/g,' ').replace(/[*:.]+$/,'
   if(/^(hesap|account)/.test(h))return 'acct';
   if(/^(not|aciklama|islem aciklamasi|islem detayi|detay|islem|description|note|explanation)/.test(h))return 'note';
   return '';}
+/* ekstre tekrar içe aktarılınca çift kayıt olmasın: tarih, tür, tutar, hesap ve bankadaki ÖZGÜN açıklama
+   (sonradan değiştirilebilen kategori ve not değil) karşılaştırılır */
+function txSig2(t){return [t.date,t.type,r2(t.amt).toFixed(2),t.acct,fold(t.src!=null?t.src:(t.note||'')).replace(/\s+/g,' ').trim()].join('|');}
 function txSig(t){return [t.date,t.type,t.side||'',t.type==='inc'||t.type==='exp'?(t.cat||''):'',r2(t.amt).toFixed(2),t.acct,t.to||'',t.note||'',t.amt2?r2(t.amt2).toFixed(2):''].join('|');}
 function csvImport(text,defAcct0){
   var rows=csvParse(text);if(rows.length<2)return {err:'Başlık satırı ve en az bir kayıt gerekli.'};
@@ -346,7 +354,7 @@ function csvImport(text,defAcct0){
   for(var ri=0;ri<Math.min(rows.length,40);ri++){var mp={};rows[ri].forEach(function(h,i){var k=csvKey(h);if(k&&mp[k]==null)mp[k]=i;});
     if(mp.date!=null&&(mp.amt!=null||mp.debit!=null||mp.credit!=null)){map=mp;hi=ri;break;}}
   if(map.date==null)return {err:'“Tarih” ve “Tutar” (ya da “Borç/Alacak”) sütunları bulunamadı.'};
-  var seen={};S.tx.forEach(function(t){var k=txSig(t);seen[k]=(seen[k]||0)+1;});
+  var seen={},seen2={};S.tx.forEach(function(t){var k=txSig(t);seen[k]=(seen[k]||0)+1;if(t.type==='inc'||t.type==='exp'){var k2=txSig2(t);seen2[k2]=(seen2[k2]||0)+1;}});
   var add=[],dup=0,bad=0,newA=[],newC=[],aCcy={},defA=(defAcct0&&ACCS().indexOf(defAcct0)>=0)?defAcct0:ACCS()[0];
   var card=map.type==null&&map.debit==null&&map.credit==null&&acctType(defA)==='kart';
   rows.slice(hi+1).forEach(function(r){
@@ -371,7 +379,8 @@ function csvImport(text,defAcct0){
     if(type==='trf')t.to=to;var a2=r2(num(g('amt2')));if(type==='trf'&&a2>0)t.amt2=a2;if(nt)t.note=nt;
     if(type==='inv')t.hname=(g('cat')||'').replace(/^Yatırım (alımı|satışı) · /,'');if(type==='dbt')t.dname=(g('cat')||'').replace(/^Borç (alındı|ödemesi) · /,'');
     var cc=g('ccy').toUpperCase();if(CCYS.indexOf(cc)>=0&&!aCcy[acct])aCcy[acct]=cc;
-    var k=txSig(t);if(seen[k]>0){seen[k]--;dup++;return;}
+    if(t.type==='inc'||t.type==='exp'){t.src=nt||'';var k2=txSig2(t);if(seen2[k2]>0){seen2[k2]--;var k1=txSig(t);if(seen[k1]>0)seen[k1]--;dup++;return;}}
+    var k=txSig(t);if(seen[k]>0){seen[k]--;if(t.src!=null){var k3=txSig2(t);if(seen2[k3]>0)seen2[k3]--;}dup++;return;}
     add.push(t);});
   add.forEach(function(t){
     [t.acct,t.to].forEach(function(a){if(a&&ACCS().indexOf(a)<0&&newA.indexOf(a)<0)newA.push(a);});
@@ -402,11 +411,12 @@ ACT['sample-clear']=function(){
   save();render();toast('Örnek veriler silindi');
 };
 /* gerçekten her şeyi siler: tarayıcı deposu, Android kopyası, otomatik yedek, hatırlatmalar */
-function wipeAll(){
-  try{[KEY,UIKEY].forEach(function(k){localStorage.removeItem(k);});}catch(e){}
+/* keepBk: PIN unutulunca — otomatik yedek dosyası silinmez ve üzerine yazılmasın diye otomatik yedek duraklatılır */
+function wipeAll(keepBk){
+  try{[KEY,UIKEY,'wallet-prerestore'].forEach(function(k){localStorage.removeItem(k);});}catch(e){}
   try{sessionStorage.clear();}catch(e){}
-  if(nb('wipe')){try{NB.wipe();}catch(e){}}
-  S=norm({tx:[]});
+  if(keepBk&&nb('wipeKeep')){try{NB.wipeKeep();}catch(e){}}else if(nb('wipe')){try{NB.wipe();}catch(e){}}
+  S=norm({tx:[]});if(keepBk)S.bkHold=Date.now();
   ui.locked=false;ui.forgot=false;ui.page=null;ui.sub='ev';ui.month=curP();ui.filter='all';ui.acctF='';ui.tq='';ui.nq='';ui.nv='act';ui.cv={};
   save();flushNative();applySecure();
   try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}
@@ -514,7 +524,7 @@ document.addEventListener('change',function(e){
     var k=d.kind,v=t.value;
     if(k==='num')v=num(v);else if(k==='auto')v=(String(v).trim()==='')?'':num(v);else if(k==='int')v=parseInt(v,10)||1;
     setP(d.bind,v);
-    if(d.bind==='payday')ui.month=curP();
+    if(d.bind==='payday'){remapPaid();ui.month=curP();}
     if(d.bind.indexOf('fx.')===0){S.fxTs=Date.now();if(S.fxChg)delete S.fxChg[d.bind.slice(3)];}
     save();render();return;
   }
@@ -556,7 +566,7 @@ document.addEventListener('keydown',function(e){
   if(sheetOpen())closeSheet();else if(ui.page)closePage();
 });
 document.addEventListener('visibilitychange',function(){
-  if(document.hidden){ui.hiddenAt=Date.now();if(ui.page&&ui.page.k==='note')saveNote();if(S.autoBk&&!hasSample()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();}
+  if(document.hidden){ui.hiddenAt=Date.now();if(ui.page&&ui.page.k==='note'){saveNote();flushNative();}if(S.autoBk&&bkOk()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();}
   else{
     if(S.pin&&!ui.locked&&ui.hiddenAt&&(Date.now()-ui.hiddenAt)>=(S.pin.auto||0)*60000)lockNow();
     if(!S.fxTs||Date.now()-S.fxTs>300000)bgRates();
@@ -564,7 +574,7 @@ document.addEventListener('visibilitychange',function(){
     notifyDue();pushPlan();pullSms();
   }
 });
-window.addEventListener('pagehide',function(){if(ui.page&&ui.page.k==='note')saveNote();});
+window.addEventListener('pagehide',function(){if(ui.page&&ui.page.k==='note'){saveNote();flushNative();}});
 window.addEventListener('hashchange',function(){
   var h=(location.hash||'').slice(1),cur=ui.page;
   if(cur&&cur.k==='note'&&h==='not')return;
@@ -596,3 +606,8 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().
   document.addEventListener('touchend',function(){if(sh==null)return;var s=sh;sh=null;s.style.transition='transform .18s ease';
     if(dy>90){s.style.transform='translateY(100%)';setTimeout(function(){if(ACT.close)ACT.close();},170);}else s.style.transform='';dy=0;},{passive:true});
 })();
+
+/* yedek yüklemeden önceki veriye dön (Ayarlar › Veri ve yedek) */
+ACT['rs-undo']=function(el){if(!armed(el)){toast('Önceki veriye dönmek için yeniden dokun');return;}var j=null;try{j=localStorage.getItem('wallet-prerestore');}catch(e){}if(!j)return;
+  var keep=S.pin,bio=S.bio;S=norm(JSON.parse(j));S.pin=keep||null;S.bio=!!keep&&bio;try{localStorage.removeItem('wallet-prerestore');}catch(e){}ui.month=curP();save();render();toast('Yedek yüklemeden önceki verine dönüldü');};
+ACT['bk-resume']=function(){delete S.bkHold;save();render();toast('Otomatik yedek yeniden açık');};

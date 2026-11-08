@@ -10,6 +10,8 @@ function numMorph(t){var out=[],i=0;
   while(i<t.length){var m=NUMM.filter(function(x){return t.substr(i,x.length)===x;})[0];if(!m)break;out.push(m);i+=m.length;}
   if(!out.length)return null;var rest=t.slice(i);
   if(rest&&!/^(lik|luk|ye|ya|e|a|lira|liralik|tl|tllik)$/.test(rest))return null;
+  /* tek parça + yönelme eki ('ona', 'bire', 'üçe') sayı değil zamir/ek olabilir: 'ona verdim', 'bire bir' */
+  if(out.length===1&&/^(e|a|ye|ya)$/.test(rest)&&/^(on|bir|uc|iki|alti)$/.test(out[0]))return null;
   return out;}
 function voiceAmt(text){
   /* sayı öbeklerini bul; "lira/TL/₺" ile birlikte söyleneni, yoksa en büyüğünü al ("bir kahve 80 lira" → 80) */
@@ -32,7 +34,7 @@ function voiceAmt(text){
   var u=runs.filter(function(r){return r.u;})[0];if(u)return r2(u.v);
   return r2(runs.reduce(function(a,r){return Math.max(a,r.v);},0));
 }
-var VINC=/maas|gelir|kazand|yatti|geldi|ikramiye|prim\b|harclik|iade|burs|kira geliri|odeme aldim|alacak/;
+var VINC=/maas|gelir|kazand|yatti|(para|maas|ucret|odeme|kira|havale|eft|prim)[a-z]* geldi|ikramiye|prim\b|harclik|iade|burs|kira geliri|odeme aldim|alacak/;
 function voiceParse(text){
   var n=fold(text||''),type=VINC.test(n)?'inc':'exp',amt=voiceAmt(text||'');
   var l=type==='inc'?INCC():EXPC(),cat=l.filter(function(c){var f=fold(c);return f.length>2&&n.indexOf(f.slice(0,Math.max(4,f.length-2)))>-1;})[0]||smsCat(text||'',type);

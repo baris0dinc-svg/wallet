@@ -108,4 +108,4 @@ document.addEventListener('keydown',function(e){var t=e.target;if(!t.dataset||t.
   else if(e.key==='Backspace'&&!t.value&&d.items.length>1){e.preventDefault();d.items.splice(i,1);ui.page.dirty=true;var prev=i-1;while(prev>=0&&d.items[prev].c)prev--;kRender(prev>=0?prev:null);}
 },true);
 /* uygulama arka plana geçerse açık not kaydedilir */
-document.addEventListener('visibilitychange',function(){if(document.hidden&&ui.page&&ui.page.k==='note')saveNote();});
+document.addEventListener('visibilitychange',function(){if(document.hidden&&ui.page&&ui.page.k==='note'){saveNote();flushNative();}});

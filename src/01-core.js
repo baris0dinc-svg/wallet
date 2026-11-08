@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.7';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.8';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -125,7 +125,7 @@ function num(s){s=String(s==null?'':s).trim().replace(/\s/g,'').replace(/[₺$�
   if(c&&d){if(s.lastIndexOf(',')>s.lastIndexOf('.'))s=s.replace(/\./g,'').replace(',','.');else s=s.replace(/,/g,'');}
   else if(c>1)s=s.replace(/,/g,'');
   else if(c)s=s.replace(',','.');
-  else if(d>1||/^-?\d{1,3}\.\d{3}$/.test(s))s=s.replace(/\./g,'');
+  else if(d>1||/^-?[1-9]\d{0,2}\.\d{3}$/.test(s))s=s.replace(/\./g,'');
   var n=parseFloat(s);return isNaN(n)||!isFinite(n)?0:n;}
 function pad(n){return String(n).padStart(2,'0');}
 function isoDate(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
@@ -199,6 +199,9 @@ function norm(d){
   d.dccy=CCYS.indexOf(d.dccy)>=0?d.dccy:'TRY';d.defAcct=d.defAcct||'';
   d.sms=Object.assign({on:false,ntf:false,auto:false,pend:[],seen:[],map:{},recent:[]},d.sms||{});if(!Array.isArray(d.sms.recent))d.sms.recent=[];
   d.watch=Array.isArray(d.watch)?d.watch.filter(function(w){return w&&typeof w.k==='string'&&w.k.indexOf(':')>0;}):WDEF.map(function(w){return Object.assign({},w);});d.quotes=d.quotes&&typeof d.quotes==='object'?d.quotes:{};if(!Array.isArray(d.sms.pend))d.sms.pend=[];if(!Array.isArray(d.sms.seen))d.sms.seen=[];if(!d.sms.map||typeof d.sms.map!=='object')d.sms.map={};d.qaUse=d.qaUse||{};
+  /* kimlikler HTML özniteliklerine yazılır: dışarıdan gelen (yedek) bozuk ya da tehlikeli kimlikler yenilenir */
+  ['tx','holdings','notes','goals','recurring','debts','realized'].forEach(function(k){d[k]=d[k].filter(function(x){return x&&typeof x==='object';});d[k].forEach(function(x){if(x.id==null||!/^[\w.:-]{1,64}$/.test(String(x.id)))x.id=uid();else x.id=String(x.id);});});
+  d.sms.pend=d.sms.pend.filter(function(x){return x&&typeof x==='object';});d.sms.pend.forEach(function(x){if(!/^[\w.:-]{1,64}$/.test(String(x.id)))x.id=uid();});
   d.autoBk=d.autoBk!==false;d.bio=!!d.bio;d.secure=!!d.secure;d.bkTs=+d.bkTs||0;
   d.alerts=Object.assign({budget:true,rec:true,thr:80,days:3,push:true,hour:9},d.alerts||{});
   d.nset=Object.assign({sort:'edited',view:'card',lines:3,date:true,pinFirst:true,confirmDel:true},d.nset||{});
@@ -235,7 +238,7 @@ function save(){
   if(nb('saveData')){if(!ok){try{if(NB.saveData(j)==='ok')ok=true;}catch(e){}}else{NSJ=j;if(!NST)NST=setTimeout(flushNative,120);}}
   if(!ok&&!storeWarned){storeWarned=true;setTimeout(function(){toast('Veriler kaydedilemedi: cihaz deposu dolu olabilir. Yedek al.');},0);}
   clearTimeout(planT);planT=setTimeout(pushPlan,700);
-  clearTimeout(bkT);bkT=setTimeout(function(){if(S.autoBk&&!hasSample()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();},20000);
+  clearTimeout(bkT);bkT=setTimeout(function(){if(S.autoBk&&bkOk()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();},20000);
 }
 var hostTheme=document.documentElement.getAttribute('data-theme');
 function applyTheme(){var r=document.documentElement,t=S.theme;if(t==='light'||t==='dark')r.setAttribute('data-theme',t);else if(hostTheme)r.setAttribute('data-theme',hostTheme);else r.removeAttribute('data-theme');}
@@ -254,7 +257,10 @@ function pEnd(k){var s=pdate(pStart(addMonth(k,1)));s.setDate(s.getDate()-1);ret
 function curP(){return pk(todayS());}
 function plabel(k){return (S.payday>1)?mlabel(k)+' dönemi':mlabel(k);}
 function prange(k){var f=function(d){return d.toLocaleDateString('tr-TR',{day:'numeric',month:'short'});};return f(pdate(pStart(k)))+' – '+f(pdate(pEnd(k)));}
-function dueDate(r,k){var p=k.split('-'),y=+p[0],m=+p[1],pd=pStartDay(y,m),day=r.day;if(pd>1&&day<pd){m++;if(m>12){m=1;y++;}}var r2=y+'-'+pad(m)+'-'+pad(Math.min(day,dimYM(y,m))),e=pEnd(k),st=pStart(k);return r2>e?e:(r2<st?st:r2);}
+/* dönem içindeki ödeme günü: dönemin başladığı ay ya da sonraki ay (kısa aylarda ayın son günü); ikisi de dışındaysa döneme sıkıştırılır */
+function dueDate(r,k){var st=pStart(k),e=pEnd(k),y=+st.slice(0,4),m=+st.slice(5,7),day=r.day,c=null;
+  for(var i=0;i<2&&!c;i++){var d=y+'-'+pad(m)+'-'+pad(Math.min(day,dimYM(y,m)));if(d>=st&&d<=e)c=d;m++;if(m>12){m=1;y++;}}
+  if(c)return c;var f=st.slice(0,8)+pad(Math.min(day,dimYM(+st.slice(0,4),+st.slice(5,7))));return f>e?e:(f<st?st:f);}
 function daysLeft(k){return daysBetween(todayS(),pEnd(k))+1;}
 function pDays(k){return daysBetween(pStart(k),pEnd(k))+1;}
 
@@ -318,6 +324,10 @@ function hKind(h){return h.kind==='asset'?'asset':'inv';}
 function hPrice(h){if(h.mk){var p=mTL(h.mk);if(p>0)return p;}var r=h.ccy&&S.fx&&+S.fx[h.ccy];return r>0?r:(+h.price||0);}
 function hVal(h){return r2(h.qty*hPrice(h));} function hCost(h){return r2(h.qty*h.cost);}
 function pfTotals(kind){var v=0,c=0;S.holdings.forEach(function(h){if(kind&&hKind(h)!==kind)return;v+=hVal(h);c+=hCost(h);});return {v:r2(v),c:r2(c)};}
+/* otomatik yedek: kendi verin varsa ve (PIN sıfırlamasından sonra) duraklatılmamışsa */
+function lsHas(k){try{return !!localStorage.getItem(k);}catch(e){return false;}}
+function hasOwn(){var f=function(l){return (l||[]).some(function(x){return !x.sample;});};return f(S.tx)||f(S.holdings)||f(S.notes)||f(S.goals)||f(S.recurring)||f(S.debts);}
+function bkOk(){return hasOwn()&&!S.bkHold;}
 function hasSample(){return S.tx.some(function(t){return t.sample;})||S.holdings.some(function(h){return h.sample;})||S.notes.some(function(n){return n.sample;})||S.goals.some(function(n){return n.sample;})||S.recurring.some(function(n){return n.sample;})||S.debts.some(function(n){return n.sample;})||!!S.sampleExtras;}
 /* borcun kalan tutarı: girilen tutar − bağlı ödemeler (anında güncellenir) */
 function debtPaid(d){var p=0;S.tx.forEach(function(t){if(t.type==='dbt'&&t.side==='out'&&t.debt===d.id)p+=txTL(t);});return r2(p);}
@@ -343,6 +353,8 @@ function wealth(){
   g.liquid=r2(g.nakit+g.banka+g.birikim);
   return {items:items,debts:debts,assets:A,debt:D,net:r2(A-D),g:g};
 }
+/* maaş günü değişince dönemler kayar: ödendi işaretleri bağlı işlemin yeni dönemine taşınır */
+function remapPaid(){S.recurring.forEach(function(r){if(!r.paid)return;var n={};Object.keys(r.paid).forEach(function(k){var t=byId(S.tx,r.paid[k]);if(t)n[pk(t.date)]=t.id;});r.paid=n;});}
 function recPaid(r,k){var id=r.paid&&r.paid[k];return !!id&&S.tx.some(function(t){return t.id===id;});}
 /* bir tarihteki net servet: hesaplar o güne kadarki hareketlerden, yatırımlar bugünkü değerinden, borçlar o güne kadarki ödemelerden */
 function nwAt(D){

@@ -108,7 +108,7 @@ function txSheet(id,force,pre){
    +'<div class="field"><label for="f-amt" id="lb-amt">Tutar (₺)</label><input id="f-amt" class="amtin" inputmode="decimal" placeholder="0,00" value="'+(t?nv(t.amt):(pre.amt>0?nv(pre.amt):''))+'"></div>'
    +'<div class="field" id="row-cat"'+(trf?' hidden':'')+'><span class="flbl">Kategori</span><select id="f-cat" hidden aria-hidden="true">'+(t&&!trf?optsKeep(cats,t.cat):opts(cats,pre.cat&&cats.indexOf(pre.cat)>=0?pre.cat:lastSel(txType,'cat',cats)))+'</select><div class="catchips" id="f-catchips" role="group" aria-label="Kategori"></div></div>'
    +'<div class="two"><div class="field"><label for="f-acct" id="lb-acct">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="f-acct">'+acctOpts(a0)+'</select></div><div class="field" id="row-to"'+(trf?'':' hidden')+'><label for="f-to">Giriş hesabı</label><select id="f-to">'+acctOpts(to0)+'</select></div></div>'
-   +'<div class="field" id="row-amt2" hidden><label for="f-amt2" id="lb-amt2">Giriş tutarı</label><input id="f-amt2" inputmode="decimal" placeholder="0,00" value="'+(t&&t.amt2?nv(t.amt2):'')+'"></div>'
+   +'<div class="field" id="row-amt2" hidden><label for="f-amt2" id="lb-amt2">Giriş tutarı</label><input id="f-amt2" inputmode="decimal" placeholder="0,00"'+(t&&t.amt2?' data-manual="1"':'')+' value="'+(t&&t.amt2?nv(t.amt2):'')+'"></div>'
    +'<div class="field"><label for="f-date">Tarih</label><div class="datew"><input id="f-date" type="date" value="'+(t?t.date:(pre.date||todayS()))+'"><button class="chip" data-act="date-pick" data-v="0">Bugün</button><button class="chip" data-act="date-pick" data-v="1">Dün</button></div></div>'
    +'<div class="field"><label for="f-note">Not</label><input id="f-note" list="note-dl" autocomplete="off" placeholder="İsteğe bağlı, örn. market alışverişi" value="'+esc(t?t.note:(pre.note||''))+'">'+noteDl(txType==='inc'?'inc':'exp')+'</div>'
    +'<div class="balprev" id="f-bal" aria-live="polite"></div><div class="err" id="f-err"></div>'
@@ -293,4 +293,7 @@ function renameAcct(old,nw){
   if(Object.prototype.hasOwnProperty.call(S.opening,old)){S.opening[nw]=S.opening[old];delete S.opening[old];}
   ['exp','inc','trf'].forEach(function(k){if(S.last&&S.last[k]&&S.last[k].acct===old)S.last[k].acct=nw;});
   if(S.defAcct===old)S.defAcct=nw;if(ui.acctF===old)ui.acctF=nw;
+  /* SMS eşleştirmeleri ve bekleyen SMS işlemleri de yeni adı kullansın */
+  if(S.sms){Object.keys(S.sms.map||{}).forEach(function(k){if(S.sms.map[k]===old)S.sms.map[k]=nw;});(S.sms.pend||[]).forEach(function(it){if(it.acct===old)it.acct=nw;if(it.to===old)it.to=nw;});}
+  (S.debts||[]).forEach(function(d){if(d.acct===old)d.acct=nw;});
 }

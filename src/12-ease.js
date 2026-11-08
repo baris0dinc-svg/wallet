@@ -44,5 +44,5 @@ function noteCat(type,txt){if(!txt||txt.length<3)return null;var best=null;
 /* uygulama kısayolları ve adres kısayolları: gider, gelir, transfer, sesle */
 var INTENTS={exp:function(){txSheet(null,'exp');},inc:function(){txSheet(null,'inc');},trf:function(){ACT['qa-trf']();},voice:function(){if(voiceOk())ACT.voice();else txSheet(null,'exp');}};
 function runIntent(){var a=ui.intent;if(!a||ui.locked)return;ui.intent=null;if(!INTENTS[a])return;
-  if(ui.page){finishPage();ui.page=null;}ui.sub='ev';render();INTENTS[a]();}
+  if(ui.page){finishPage();ui.page=null;}if(location.hash){try{history.replaceState(history.state,'',location.pathname+location.search);}catch(e){}}ui.sub='ev';render();INTENTS[a]();}
 window.walletIntent=function(a){ui.intent=String(a||'').replace(/^wallet:\/*/,'').replace(/^yeni-/,'');setTimeout(runIntent,50);};

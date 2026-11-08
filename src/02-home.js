@@ -97,6 +97,8 @@ function nwCard(W){
   if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">son '+ch.days+' günde</span></div>';
   var pm=monthTx(curP()),pi=sum(pm,'inc'),pe=sum(pm,'exp');
   var per='<button class="nwper" data-act="sub" data-v="islem" aria-label="Bu dönemin işlemleri"><span class="pl"><span class="lbl">Bu dönem gelir</span><b class="num inc">'+compactT(pi)+'</b></span><span class="pl"><span class="lbl">Bu dönem gider</span><b class="num exp">'+compactT(pe)+'</b></span>'+ic('r')+'</button>';
+  /* dönem sonu tahmini: değişken harcama hızı + kalan düzenli ödemeler (en az bir geçmiş dönem varsa) */
+  var F=forecast();if(F.hist&&F.rem>0&&F.spent>0)per+='<div class="fcst small muted">Dönem sonu tahmini: gider ≈ '+compactT(F.exp)+(F.expInc>0?' · '+(F.net>=0?'artan':'eksik')+' ≈ '+compactT(Math.abs(F.net))+(F.incAssumed?' (beklenen gelirle)':''):'')+'</div>';
   return h+per+'</div>';
 }
 /* sık kullanılan daireler öne gelir; sıra yalnızca uygulama açılışında değişir */
@@ -122,7 +124,7 @@ function vMain(){
 function vHome(){
   var h=bannerHtml(),W=wealth();
   if(S.name)h+='<p class="small muted" style="margin:0 2px">'+esc(hello())+', <b>'+esc(S.name)+'</b></p>';
-  h+=nwCard(W)+alertsHtml()+smsBanner()+addCard()+favRow('home');
+  h+=nwCard(W)+alertsHtml()+smsBanner()+addCard()+favRow('home')+brainCard(2);
   h+='<div class="scg">'+SCUTS.map(function(x){return '<button class="sc" data-act="'+x[0]+'"'+(x[1]?' data-v="'+x[1]+'"':'')+'><span class="sic" style="--c:'+x[4]+'">'+ic(x[3])+'</span><span class="t">'+x[2]+'</span></button>';}).join('')+'</div>';
   return h+toolsCard()+recentCard();
 }

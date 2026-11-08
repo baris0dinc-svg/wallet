@@ -511,3 +511,11 @@ html[data-nc] body,html[data-nc] header,html[data-nc] .kbar{background:var(--ncc
 .kcol.none{border-color:var(--line)}
 .kcol[aria-pressed="true"]{border-color:var(--accent)}
 .kcol .ic{width:20px;height:20px}
+/* akıllı tespitler */
+.brain h2{display:flex;align-items:center;gap:8px}
+.brain h2 .ic{width:20px;height:20px;color:var(--accent)}
+.bi{align-items:flex-start}
+.bi .sic{width:36px;height:36px;border-radius:12px;flex:none}
+.bacts{display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap}
+.bacts .btn.small{width:auto;padding:8px 14px;min-height:36px}
+.fcst{margin-top:8px}

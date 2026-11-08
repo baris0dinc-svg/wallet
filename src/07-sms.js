@@ -41,7 +41,8 @@ function smsMerchant(b){
   for(var i=w.length-1;i>=0&&out.length<4;i--){var x=w[i].replace(/^[("'*]+|[)"',:;*]+$/g,''),fx=fold(x);if(!x||/\d{2}[.:\/]\d{2}/.test(x)||/^\d+([.,]\d+)?$/.test(x)||SMS_STOP[fx])break;out.unshift(x);}
   return out.length?titleTr(out.join(' ')).slice(0,40):'';
 }
-function smsCat(note,type){
+function smsCat(note,type,amt){return smartCat(note,type,amt);}
+function smsCat0(note,type){
   var n=fold(note),l=type==='inc'?INCC():EXPC();
   var r=S.rules.filter(function(x){return x.kw&&n.indexOf(fold(x.kw))>-1&&l.indexOf(x.cat)>=0;})[0];if(r)return r.cat;
   for(var i=0;i<SMS_CAT.length;i++){if(SMS_CAT[i][1].test(n)&&l.indexOf(SMS_CAT[i][0])>=0)return SMS_CAT[i][0];}
@@ -94,7 +95,7 @@ function smsIngest(list,opt){
     var it={id:uid(),key:key,kind:p.kind,oamt:p.amt,occy:p.ccy,date:p.date,note:p.merchant,from:p.from,last4:p.last4,raw:p.raw,acct:g.a,sure:g.sure};
     if(p.kind==='atm'){it.to=cash||'';it.acct=g.sure?g.a:(acc.filter(function(x){return acctType(x)==='banka';})[0]||g.a);}
     if(p.kind==='cardpay'){it.to=kart||'';it.acct=acc.filter(function(x){return acctType(x)==='banka';})[0]||g.a;}
-    it.cat=it.kind==='exp'||it.kind==='inc'?smsCat(p.merchant+' '+p.raw,it.kind):'Transfer';it.sugCat=it.cat;
+    it.cat=it.kind==='exp'||it.kind==='inc'?smsCat(p.merchant+' '+p.raw,it.kind,it.amt):'Transfer';it.sugCat=it.cat;
     it.dup=S.tx.some(function(t){return t.date===it.date&&Math.abs(txTL(t)-smsTL(it,it.acct))<0.01&&(t.type===it.kind||t.type==='trf'&&(it.kind==='atm'||it.kind==='cardpay'));});
     if(S.sms.auto&&it.sure&&!it.dup&&(it.kind==='exp'||it.kind==='inc')){if(smsCommit(it,{}))auto++;return;}
     S.sms.pend.push(it);added++;});

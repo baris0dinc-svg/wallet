@@ -32,7 +32,7 @@ function flowCard(){
     ['Fark (gelir − gider)',sgnD(s.net),1],
     ['Tasarruf oranı',s.rate==null?'—':(s.rate<0?'−':'')+'%'+NUM1.format(Math.abs(s.rate))],
     ['Günlük ortalama gider',DC0.format(s.exp/el)]];
-  if(isCur&&s.exp>0)rows.push(['Dönem sonu gider tahmini',DC0.format(s.exp/el*days)]);
+  if(isCur&&s.exp>0){var F=forecast();rows.push(['Dönem sonu gider tahmini',DC0.format(F.exp)]);if(F.recLeft>0)rows.push(['Tahmindeki kalan düzenli ödemeler',DC0.format(F.recLeft)]);}
   if(s.debt>0)rows.push(['Borç ödemeleri (anapara)',DC0.format(s.debt)]);
   if(Math.abs(s.inv)>=0.5)rows.push([s.inv>0?'Yatırıma aktarılan':'Yatırımdan çekilen',DC0.format(Math.abs(s.inv))]);
   var fixed=0;S.recurring.forEach(function(r){var id=r.paid&&r.paid[k];var t=id&&byId(monthTx(k),id);if(t&&t.type==='exp')fixed+=txTL(t);});
@@ -135,7 +135,7 @@ ACT['cal-add']=function(el,id,v){txSheet(null,null,{date:v});};
 function analizBody(){
   var v=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet',W=wealth(),k=ui.month,m=monthTx(k),h=segTabs(ANS,v,'an','Analiz');
   if(v==='ozet'){
-    h+=monthNav()+(k===curP()?insights():'')+healthCard()+aiCard()+flowCard();
+    h+=monthNav()+(k===curP()?brainCard()+insights():'')+healthCard()+aiCard()+flowCard();
     h+='<div class="card"><div class="ghead" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Gelir ve gider</h2><div class="seg mini" role="group" aria-label="Süre"><button data-act="trn" data-v="6" aria-pressed="'+(ui.tr===6)+'">6 ay</button><button data-act="trn" data-v="12" aria-pressed="'+(ui.tr===12)+'">12 ay</button></div></div>'+trendSvg(ui.tr)+'</div>';
     return h;
   }

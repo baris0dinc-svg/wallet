@@ -540,7 +540,7 @@ document.addEventListener('input',function(e){
   else if(t.id==='f-note'&&txType!=='trf'){
     var txt=fold(t.value),sel=document.getElementById('f-cat');
     if(sel&&!sel.dataset.manual){var r=S.rules.filter(function(x){return x.kw&&txt.indexOf(fold(x.kw))>-1;})[0];
-      var rc=r?r.cat:noteCat(txType,txt.trim());
+      var g=r?null:catGuess(txType,txt,num(val('f-amt'))),rc=r?r.cat:(g&&g.p>=0.5?g.cat:noteCat(txType,txt.trim()));
       if(rc&&Array.prototype.some.call(sel.options,function(o){return o.value===rc;})){sel.value=rc;syncCatChips();}}
   }
 });

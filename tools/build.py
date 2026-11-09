@@ -11,7 +11,7 @@ target = os.path.join(root, 'app.js')
 # İçerik güvenlik politikası: yalnızca kendi dosyalarımız ve bilinen veri kaynakları; satır içi betikler özetleriyle (hash) izinli
 CSP_T = ("default-src 'self'; script-src 'self' {h}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
          "font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; "
-         "connect-src 'self' https://www.tefas.gov.tr https://www.isyatirim.com.tr https://api.coingecko.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com; "
+         "connect-src 'self' https://www.tefas.gov.tr https://www.isyatirim.com.tr https://api.coingecko.com https://query1.finance.yahoo.com https://query2.finance.yahoo.com https://api.frankfurter.dev; "
          "frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'")
 ip = os.path.join(root, 'index.html')
 html = open(ip, encoding='utf-8').read()

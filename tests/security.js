@@ -11,12 +11,14 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
   {id:'a',type:'exp',amt:10,cat:Y,acct:X,date:T.todayS(),note:X},{id:'b',type:'exp',amt:10,cat:Y,acct:X,date:T.todayS(),note:X},{id:'c',type:'inc',amt:99,cat:'Maaş',acct:'Nakit',date:T.todayS(),note:Y}],
   goals:[{id:'g',name:X,target:100,saved:5}],recurring:[{id:'r',name:X,amt:5,day:new Date().getDate(),cat:Y,acct:X,paid:{}}],debts:[{id:'d',type:X,amt:50,note:Y}],
   holdings:[{id:'h',name:X,type:Y,qty:1,cost:1,price:2}],notes:[{id:'n',title:X,body:Y,ts:Date.now()}],watch:[{k:'bist:THYAO',n:X}]});T.save();
- const visit=async()=>{for(const s of ['ev','islem','analiz','servet','ayar']){T.ui.page=null;T.ui.sub=s;T.render();await wait(20);
+ const visit=async()=>{for(const s of ['ev','islem','plan','analiz','servet']){T.ui.page=null;T.ui.sub=s;T.render();await wait(20);
+   if(s==='plan')for(const a of ['koc','butce','duzenli','hedef']){T.ui.plan=a;T.render();await wait(20);}
    if(s==='analiz')for(const a of ['ozet','harcama','takvim','servet']){T.ui.an=a;T.render();await wait(20);}
    if(s==='servet')for(const v of ['hesap','yatirim','varlik','borc']){T.ui.sv=v;T.render();await wait(20);}}
-  for(const pg of [{k:'plan'},{k:'notlar'},{k:'piyasa'},{k:'fire'}]){T.ui.page=pg;T.ui.plan='hedef';T.render();await wait(20);T.ui.plan='duzenli';T.render();await wait(20);}
+  for(const pg of [{k:'ayar'},{k:'notlar'},{k:'piyasa'},{k:'fire'},{k:'araclar'}]){T.ui.page=pg;T.render();await wait(20);}
+  T.ui.page={k:'piyasa'};T.ui.medit=true;T.render();await wait(20);T.ui.medit=false;
   T.ui.page=null;T.ui.sub='ev';T.render();
-  for(const a of ['new-tx','alerts','tools-edit','qa-save','em-open','ai-open']){try{T.ACT[a]();}catch(e){}await wait(20);T.ACT.close&&T.ACT.close();}
+  for(const a of ['new-tx','alerts','qa-save','em-open','ai-open','qa-debt']){try{T.ACT[a]();}catch(e){}await wait(20);T.ACT.close&&T.ACT.close();}
   T.ACT['edit-tx'](null,'a');await wait(20);T.ACT.close();T.ACT['cal-day'](null,null,T.todayS());await wait(20);T.ACT.close();
   T.ui.sub='islem';T.render();const q=document.getElementById('tq');q.value='img';q.dispatchEvent(new Event('input',{bubbles:true}));await wait(250);};
  await visit();

@@ -11,11 +11,11 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const $=s=>document.q
  T.S=T.norm({fx,accounts:['Nakit','Banka'],opening:{Nakit:0,Banka:30000},tx:[
   {id:'a',type:'inc',amt:40000,cat:'Maaş',acct:'Banka',date:m2+'-05'},{id:'b',type:'exp',amt:10000,cat:'Market',acct:'Banka',date:m2+'-10'},
   {id:'c',type:'exp',amt:10000,cat:'Kira',acct:'Banka',date:m1+'-03'}]});T.save();
- T.ui.page=null;T.ui.sub='analiz';T.ui.an='ozet';T.render();
+ T.ui.page=null;T.ui.sub='plan';T.ui.plan='koc';T.render();
  // fon yokken: likit paraya göre (50.000 / 10.000 = 5 ay), dokunulabilir
  let e=em();chk(e.v==='5 ay','fonsuz gösterge 5 ay: '+e.v);chk(/dokun/.test(e.tip),'dokun ipucu');
- chk(!!$('button.hp[data-act="em-open"]'),'gösterge düğme');
- click('button.hp[data-act="em-open"]');
+ chk(!!$('button.kt[data-act="em-open"]'),'gösterge düğme (Koç)');
+ click('button.kt[data-act="em-open"]');
  chk(/Yeni hedef/.test(sheet()),'yeni hedef penceresi');chk($('#g-name').value==='Acil durum fonu','ad hazır');chk($('#g-em').checked,'kutu işaretli');
  chk(T.num($('#g-target').value)===60000,'önerilen hedef 6 aylık gider: '+$('#g-target').value);
  set('g-saved','15000');click('[data-act="save-g"]');
@@ -23,7 +23,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const $=s=>document.q
  e=em();chk(e.v==='1,5 ay','göstergeye yansıdı: '+e.v);chk(/15\.000/.test(e.tip),'ipucunda tutar');
  chk(/1,5 ay/.test($('#view').innerText),'ekranda 1,5 ay');
  // uyarı dokunulabilir ve hedefi açar
- const w=[...document.querySelectorAll('button.item[data-act="em-open"]')];chk(w.length===1,'uyarı düğme');w[0]&&w[0].click();
+ const w=[...document.querySelectorAll('.kocnow [data-act="em-open"]')];chk(w.length===1,'Koç adımında acil durum fonu düğmesi');w[0]&&w[0].click();
  chk(/Hedefi düzenle/.test(sheet())&&$('#g-saved').value.replace(/\D/g,'')==='15000','uyarıdan hedef açıldı');
  // birikim penceresinden düzenle ve sil
  T.ACT['qa-save']();chk(/acil durum fonu/.test(sheet()),'birikimde etiket');

@@ -31,16 +31,15 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  ch.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:bx.right-1,clientY:bx.top+10}));chk(new RegExp(new Date().getFullYear()).test($('#nwpick').innerText)&&!$('.nwdot').hidden,'son nokta');
  act('an',null,'harcama');const wk=document.querySelector('[data-act="wk-pick"][data-v="0"]');if(wk){wk.click();chk(/pazartesi/.test(document.body.innerText),'gün seçimi');}
  // 4 Planlama
- act('sub',null,'plan');act('plan',null,'butce');chk(T.ui.page&&T.ui.page.k==='plan'&&!!$('[data-act="plan"][data-v="butce"][aria-pressed="true"]'),'planlama bütçe');
- act('plan',null,'duzenli');chk(!!$('#view [data-act="new-r"]'),'düzenli ödemeler');act('plan',null,'hedef');chk(!!$('#view [data-act="new-g"]'),'hedefler');window.walletBack();
+ act('sub',null,'plan');act('plan',null,'butce');chk(!T.ui.page&&T.ui.sub==='plan'&&!!$('[data-act="plan"][data-v="butce"][aria-pressed="true"]'),'Plan sekmesi bütçe');
+ act('plan',null,'duzenli');chk(!!$('#view [data-act="new-r"]'),'düzenli ödemeler');act('plan',null,'hedef');chk(!!$('#view [data-act="new-g"]'),'hedefler');act('plan',null,'koc');chk(!!$('#view .kocnow'),'Koç');window.walletBack();
  act('sub',null,'ev');const tb=$('#tabbar .tbin');chk(tb.scrollWidth<=tb.clientWidth+1&&[...tb.children].every(b=>b.scrollWidth<=b.clientWidth+1),'5 sekme 320 genişlikte sığar');
  // 5 şifreli yedek
  await T.setBkPw('gizli-sifre');const txt=await T.backupText();const ob=JSON.parse(txt);chk(ob.wallet===1&&ob.d&&!/Market/.test(txt),'yedek şifreli');
  const dec=JSON.parse(await T.decText(ob,'gizli-sifre'));chk(dec.tx.length===T.S.tx.length&&!dec.bkKey&&!dec.pin,'yedek açıldı, anahtar yedekte yok');
  let bad=false;try{await T.decText(ob,'yanlis');}catch(e){bad=true;}chk(bad,'yanlış şifre açamaz');chk(!JSON.parse(T.exportJson()).bkKey,'dışa aktarmada anahtar yok');
- // 6 daire sırası
- T.S.qaUse={'qa-calc':9,'qa-save':4};T.ui.qaOrd=null;T.ui.sub='islem';T.render();const qs=T.qaOrder().map(x=>x[0]);
- chk(qs[0]==='qa-calc'&&qs[1]==='qa-save'&&qs[2]==='qa-inc','daire sırası '+qs.slice(0,3));
+ // 6
+ // (4.0: hızlı işlem daireleri kaldırıldı; tüm eylemler sabit yerlerinde)
  // 7 uyarılar kısalır
  T.S.recurring=[1,2,3,4,5].map(i=>({id:'r'+i,name:'Ödeme '+i,amt:10,day:new Date().getDate(),cat:'Fatura',acct:'Banka',paid:{}}));T.ui.sub='ev';T.render();
  chk(!!$('.alertbar')&&/\+4/.test($('.alertbar').innerText),'uyarı şeridi tek satır +4');act('alerts');chk(document.querySelectorAll('.sheet .item').length===5&&document.querySelectorAll('.sheet [data-act="al-pay"]').length===5,'uyarı penceresi 5 + Ödendi');act('close');

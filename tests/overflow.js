@@ -24,6 +24,9 @@ for(const W of [320,360,412]){for(const scheme of ['light','dark']){
       if(txt&&el.scrollWidth>el.clientWidth+1&&cs.overflow!=='visible'&&!/ell/.test(el.className)&&!el.matches('.item .t,.note-row .t,.note-card .t')&&el.tagName!=='INPUT'&&el.tagName!=='TEXTAREA')out.push(label+': kesik metin <'+el.tagName.toLowerCase()+' class="'+el.className+'"> "'+el.innerText.slice(0,40)+'"');
     });};
   for(const s of ['islem','hesap','analiz','butce','portfoy','duzenli','hedef','notlar']){act('sub',null,s);check('bölüm '+s);}
+  for(const s of ['ev','koc']){act('sub',null,s);check('bölüm '+s);}
+  document.querySelectorAll('#view details').forEach(d=>d.open=true);check('Koç (tüm adımlar açık)');
+  act('open-mkt');check('piyasalar');act('m-edit');check('piyasa düzenleme');act('m-edit');act('back');
   for(const q of ['qa-inc','qa-trf','qa-cash','qa-bank','qa-debt','qa-inv','qa-save','qa-asset']){act(q);check('pencere '+q);act('close');}
   act('acct-open','Ziraat Bankası Vadesiz Maaş Hesabı');check('hesap detay');act('close');
   act('edit-d','dd');check('borç');act('close');

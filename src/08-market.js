@@ -2,6 +2,9 @@
 /* ---------- Piyasalar: arama, takip listesi, yatırımları piyasa fiyatına bağlama ----------
    Kaynaklar: Truncgil (döviz, altın, BIST 100), İş Yatırım (Borsa İstanbul hisseleri, ~15 dk gecikmeli),
    CoinGecko (kripto), Yahoo Finance (yabancı borsalar, deneysel), TEFAS (fonlar, deneysel).
+   Yedek ve geçmiş: Frankfurter (Avrupa Merkez Bankası günlük referans kurları; anahtarsız, tarayıcıdan erişilebilir):
+   Truncgil'e ulaşılamazsa USD/EUR/GBP/CHF kuru buradan alınır; döviz grafiği tarayıcıda da buradan çizilir.
+   Takip listesindeki her kalemin son 30 günlük kapanışı cihazda tutulur (küçük grafik).
    Tarayıcı İş Yatırım, Yahoo ve TEFAS'a doğrudan erişemez; bunlar Android uygulamasının yerel köprüsüyle alınır.
    Anahtar biçimi: kaynak:sembol (fx:USD, bist:THYAO, fon:AFT, cg:bitcoin, yh:AAPL). */
 var MSRC={fx:'Döviz ve altın',bist:'Borsa İstanbul',fon:'Yatırım fonu',cg:'Kripto',yh:'Yabancı borsa'};
@@ -9,7 +12,7 @@ var MGOLD={GRA:'Gram altın',CEYREKALTIN:'Çeyrek altın',YARIMALTIN:'Yarım alt
 var MUNIT={ONS:'USD',BRENT:'USD',XU100:'pt'};
 /* uygulamanın kendi kur alanlarıyla eşleşenler (yatırım eklerken mevcut kur bağlantısı kullanılır) */
 var MFXK={USD:'USD',EUR:'EUR',GBP:'GBP',CHF:'CHF',GRA:'XAU',GUMUS:'XAG',CEYREKALTIN:'CEY'};
-var MSUG=[['fx:USD','Dolar'],['fx:EUR','Euro'],['fx:GRA','Gram altın'],['fx:XU100','BIST 100'],['bist:THYAO','THYAO'],['bist:ASELS','ASELS'],['cg:bitcoin','Bitcoin']];
+var MSUG=[['fx:USD','Dolar'],['fx:EUR','Euro'],['fx:GRA','Gram altın'],['fx:CEYREKALTIN','Çeyrek altın'],['fx:XU100','BIST 100'],['cg:bitcoin','Bitcoin'],['fx:GUMUS','Gram gümüş'],['fx:ONS','Ons altın']];
 var FXALL=null,FXALLT=0,BIST=null,BISTM=null,BISTP=null,MCAND={},mAsync={},mTimer=0,mCur=null;
 var DNC=null;try{DNC=new Intl.DisplayNames(['tr'],{type:'currency'});}catch(e){}
 function mk(k){k=String(k||'');var i=k.indexOf(':');return {src:k.slice(0,i),sym:k.slice(i+1)};}
@@ -41,7 +44,7 @@ window.walletHttp=function(id,code,text){var f=hreq[id];if(f){delete hreq[id];f(
 function canNet(){return nb('http');}
 /* o.cors: tarayıcı da doğrudan alabilir (CoinGecko gibi) */
 function nget(url,o){o=o||{};return new Promise(function(ok,no){
-  if(canNet()){var id='h'+(++hseq)+'_'+Date.now(),tm=setTimeout(function(){delete hreq[id];no(new Error('zaman aşımı'));},o.timeout||20000);
+  if(canNet()&&!o.web){var id='h'+(++hseq)+'_'+Date.now(),tm=setTimeout(function(){delete hreq[id];no(new Error('zaman aşımı'));},o.timeout||20000);
     hreq[id]=function(code,text){clearTimeout(tm);if(code>=200&&code<300&&text!=null)ok(text);else no(new Error('http '+code));};
     try{NB.http(id,url,o.method||'GET',o.body||'',JSON.stringify(o.headers||{}));}catch(e){clearTimeout(tm);delete hreq[id];no(e);}return;}
   if(!o.cors){no(new Error('yalnızca uygulamada'));return;}
@@ -81,6 +84,16 @@ function yhCloses(r){var ts=r.timestamp||[],cl=(r.indicators&&r.indicators.quote
   ts.forEach(function(t,i){if(cl[i]!=null&&cl[i]>0)out.push([t*1000,cl[i]/d]);});return out;}
 function qYh(s){return yhChart(s,'5d').then(function(r){var m=r.meta||{},cc=yhCcy(m.currency),cl=yhCloses(r),p=(+m.regularMarketPrice||0)/cc.d||(cl.length?cl[cl.length-1][1]:0),pv=cl.length>=2?cl[cl.length-2][1]:0;
   if(!(p>0))throw new Error('bulunamadı');return {p:p,prev:pv,c:pv>0?(p/pv-1)*100:null,hi:(+m.regularMarketDayHigh||0)/cc.d,lo:(+m.regularMarketDayLow||0)/cc.d,ccy:cc.c,at:(+m.regularMarketTime||0)*1000||Date.now(),n:m.longName||m.shortName||''};});}
+/* Frankfurter (ECB): v2 yanıtı satır dizisidir [{date,base,quote,rate}]; eski v1 biçimi {rates:{..}} de okunur */
+var FRK='https://api.frankfurter.dev/v2/',FRKC=['USD','EUR','GBP','CHF'];
+function frkRows(j){if(Array.isArray(j))return j.filter(function(x){return x&&x.quote&&+x.rate>0;});
+  if(j&&j.rates&&typeof j.rates==='object'){var out=[];Object.keys(j.rates).forEach(function(k){var v=j.rates[k];if(v&&typeof v==='object')Object.keys(v).forEach(function(q){out.push({date:k,base:j.base,quote:q,rate:+v[q]});});else out.push({date:j.date,base:j.base,quote:k,rate:+v});});return out.filter(function(x){return x.rate>0;});}
+  return [];}
+/* 1 birim döviz kaç TL: taban TRY ile alınıp çevrilir */
+function frkLatest(){return njson(FRK+'rates?base=TRY&quotes='+FRKC.join(','),{cors:1,web:1,timeout:12000}).then(function(j){var o={date:''};
+  frkRows(j).forEach(function(x){var q=String(x.quote).toUpperCase();if(FRKC.indexOf(q)>=0&&x.rate>0){o[q]=r2(1/x.rate*1e4)/1e4;if(x.date>o.date)o.date=x.date;}});if(!(o.USD>0))throw new Error('kur yok');return o;});}
+function frkHist(c,days){var d=new Date();d.setDate(d.getDate()-days);
+  return njson(FRK+'rates?base='+c+'&quotes=TRY&from='+isoDate(d),{cors:1,web:1}).then(function(j){return frkRows(j).filter(function(x){return String(x.quote).toUpperCase()==='TRY';}).map(function(x){return [pdate(x.date).getTime(),+x.rate];}).sort(function(a,b){return a[0]-b[0];});});}
 /* TEFAS fon sayfası metninden son fiyat, günlük getiri ve fon adı */
 function fonParse(t,s){
   var L=String(t||'').split(/\n+/).map(function(x){return x.replace(/\s+/g,' ').trim();}).filter(Boolean);
@@ -92,6 +105,23 @@ function fonParse(t,s){
   return {p:p,c:c,ccy:'TRY',at:Date.now(),n:nm?titleTr(nm):''};}
 function qFon(s){return nweb('https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod='+encodeURIComponent(s),'Son Fiyat',25000).then(function(o){return fonParse(o.t,s);});}
 
+/* ---------- küçük grafik için yerel geçmiş: gün başına son fiyat, en çok 30 gün ---------- */
+function qHist(h,day,p){h=Array.isArray(h)?h.filter(function(x){return Array.isArray(x)&&x[1]>0;}):[];if(!(p>0))return h;
+  if(h.length&&h[h.length-1][0]===day)h[h.length-1]=[day,p];else if(!h.length||h[h.length-1][0]<day)h.push([day,p]);
+  return h.slice(-30);}
+/* ayrıntı grafiği geldiğinde son 30 günün kapanışları yerel geçmişe eklenir */
+function qSeed(k,pts){var q=S.quotes[k];if(!q||!pts||!pts.length)return;var m={};(q.h||[]).forEach(function(x){m[x[0]]=x[1];});
+  var from=new Date();from.setDate(from.getDate()-31);var fs=isoDate(from);pts.forEach(function(x){var d=isoDate(new Date(x[0]));if(d>=fs&&!(d in m))m[d]=x[1];});
+  q.h=Object.keys(m).sort().map(function(d){return [d,m[d]];}).slice(-30);}
+function sparkSvg(h,w,hh){if(!h||h.length<3)return '';var v=h.map(function(x){return x[1];}),mn=Math.min.apply(null,v),mx=Math.max.apply(null,v),rg=(mx-mn)||1,W=w||60,H=hh||22;
+  var pts=v.map(function(y,i){return (i/(v.length-1)*W).toFixed(1)+','+(H-2-(y-mn)/rg*(H-4)).toFixed(1);}).join(' '),col=v[v.length-1]>=v[0]?'var(--inc)':'var(--exp)';
+  return '<svg class="msp" viewBox="0 0 '+W+' '+H+'" width="'+W+'" height="'+H+'" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="'+col+'" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>';}
+/* ne kadar önce: "az önce", "12 dk önce", "3 sa önce", "dün", tarih */
+function ago(t){if(!t)return '';var d=(Date.now()-t)/6e4;if(d<1.5)return 'az önce';if(d<60)return Math.round(d)+' dk önce';if(d<24*60)return Math.round(d/60)+' sa önce';
+  var a=today0(),b=new Date(t);b=new Date(b.getFullYear(),b.getMonth(),b.getDate());var dd=Math.round((a-b)/864e5);return dd===1?'dün':new Date(t).toLocaleDateString('tr-TR',{day:'numeric',month:'short'});}
+/* eski veri: fon günde bir açıklandığından 30 saat, diğerleri 2 saat */
+function qStale(k,q){if(!q||!q.ts)return true;return Date.now()-q.ts>(mk(k).src==='fon'?30:2)*36e5;}
+function offline(){try{return navigator.onLine===false;}catch(e){return false;}}
 /* ---------- yenileme ---------- */
 function mKeys(){var ks=S.watch.map(function(w){return w.k;});S.holdings.forEach(function(h){if(h.mk&&ks.indexOf(h.mk)<0)ks.push(h.mk);});return ks;}
 /* takipte ve yatırımda olmayan fiyatları siler (açık ayrıntı penceresindeki hariç) */
@@ -104,16 +134,20 @@ function refreshMarket(opt){
     if(!MSRC[src])return false;if(src==='fon'&&!opt.fon&&!opt.keys&&age<3*36e5)return false;return opt.force||age>60000;});
   if(!ks.length)return Promise.resolve({ok:true,n:0,bad:0});
   var by={},n=0,bad=0,errs={};ks.forEach(function(k){var m=mk(k);(by[m.src]=by[m.src]||[]).push(m.sym);});
-  var put=function(k,q){var o=S.quotes[k]||{};q.ts=Date.now();if(!q.n&&o.n)q.n=o.n;delete q.err;S.quotes[k]=q;n++;
+  var put=function(k,q){var o=S.quotes[k]||{};q.ts=Date.now();if(!q.n&&o.n)q.n=o.n;q.h=qHist(o.h,isoDate(new Date(q.at||q.ts)),q.p);delete q.err;S.quotes[k]=q;n++;
     S.holdings.forEach(function(h){if(h.mk===k){var tl=mTL(k);if(tl>0)h.price=r2(tl*1e4)/1e4;}});};
   var fail=function(k,e){var q=S.quotes[k];if(q)q.err=1;errs[k]=String(e&&e.message||e||'hata');bad++;};
   var jobs=[];
-  if(by.fx)jobs.push(fxAll(opt.force).then(function(a){by.fx.forEach(function(s){var o=a&&a[s],p=rPrice(o);if(p>0)put('fx:'+s,{p:p,c:rChg(o),ccy:MUNIT[s]||'TRY',at:Date.now()});else fail('fx:'+s,'kur yok');});},function(e){by.fx.forEach(function(s){fail('fx:'+s,e);});}));
+  /* Truncgil'e ulaşılamadıysa uygulamanın (yedek kaynaktan alınmış) güncel kuru kullanılır */
+  var fxBack=function(s){var f=MFXK[s];if(f&&+S.fx[f]>0&&S.fxTs&&Date.now()-S.fxTs<36e5){put('fx:'+s,{p:+S.fx[f],c:S.fxChg?S.fxChg[f]:null,ccy:'TRY',at:S.fxTs,src:S.fxSrc||''});return true;}return false;};
+  if(by.fx)jobs.push(fxAll(opt.force).then(function(a){by.fx.forEach(function(s){var o=a&&a[s],p=rPrice(o);if(p>0)put('fx:'+s,{p:p,c:rChg(o),ccy:MUNIT[s]||'TRY',at:FXALLT||Date.now()});else if(!fxBack(s))fail('fx:'+s,'kur yok');});},function(e){by.fx.forEach(function(s){if(!fxBack(s))fail('fx:'+s,e);});}));
   if(by.bist)jobs.push(bistList().then(function(){return Promise.all(by.bist.map(function(s){return qBist(s).then(function(q){put('bist:'+s,q);},function(e){fail('bist:'+s,e);});}));}));
   if(by.cg)jobs.push(qCg(by.cg).then(function(o){by.cg.forEach(function(s){if(o[s])put('cg:'+s,o[s]);else fail('cg:'+s,'bulunamadı');});},function(e){by.cg.forEach(function(s){fail('cg:'+s,e);});}));
   if(by.yh)jobs.push(Promise.all(by.yh.map(function(s){return qYh(s).then(function(q){put('yh:'+s,q);},function(e){fail('yh:'+s,e);});})));
   /* fonlar sırayla: her biri görünmez bir sayfa açar */
   if(by.fon)jobs.push(by.fon.reduce(function(pr,s){return pr.then(function(){return qFon(s).then(function(q){put('fon:'+s,q);},function(e){fail('fon:'+s,e);});});},Promise.resolve()));
+  /* her kaynak bitince kaydedilir: yavaş bir kaynak (ör. kripto) diğerlerinin yeni fiyatlarını bekletmesin */
+  jobs=jobs.map(function(j){return j.then(function(){if(n)save();});});
   var run=Promise.all(jobs).then(function(){if(!opt.keys)mPrune();save();return {ok:n>0||!bad,n:n,bad:bad,errs:errs};},function(){return {ok:false,n:n,bad:bad,errs:errs};});
   if(!opt.keys){mRun=run;run.then(function(){mRun=null;});}
   return run;
@@ -157,28 +191,32 @@ function mResults(){
   return h;}
 
 /* ---------- takip listesi sayfası ---------- */
-function mRow(k){var q=mQ(k),u=q&&q.ccy||'TRY';
-  return '<button class="item" data-act="m-open" data-id="'+esc(k)+'"><span class="mid"><div class="t">'+esc(mName(k))+'</div><div class="small muted ell">'+esc(mSub(k))+'</div></span><span class="mq"><span class="num">'+(q&&q.p>0?fmtPx(q.p,u,k):'—')+'</span>'+(q?chgSpan(q.c):'')+(q&&q.err?'<span class="small muted">eski veri</span>':'')+'</span></button>';}
+function mRow(k,i,n){var q=mQ(k),u=q&&q.ccy||'TRY',st=q&&q.p>0&&qStale(k,q);
+  if(ui.medit)return '<div class="item mrow"><span class="mid"><div class="t">'+esc(mName(k))+'</div><div class="small muted ell">'+esc(mSub(k))+'</div></span><span class="medit"><button class="icon-btn sm" data-act="m-up" data-id="'+esc(k)+'" aria-label="Yukarı taşı"'+(i===0?' disabled':'')+'>'+ic('l')+'</button><button class="icon-btn sm" data-act="m-down" data-id="'+esc(k)+'" aria-label="Aşağı taşı"'+(i===n-1?' disabled':'')+'>'+ic('r')+'</button><button class="icon-btn sm" data-act="m-del" data-id="'+esc(k)+'" aria-label="Takipten çıkar">'+ic('x')+'</button></span></div>';
+  return '<button class="item mrow" data-act="m-open" data-id="'+esc(k)+'"><span class="mid"><div class="t">'+esc(mName(k))+'</div><div class="small muted ell">'+esc(mSub(k))+'</div></span>'+sparkSvg(q&&q.h)+'<span class="mq"><span class="num">'+(q&&q.p>0?fmtPx(q.p,u,k):'—')+'</span>'+(q?chgSpan(q.c):'')+(q&&q.p>0&&(q.err||st)?'<span class="small muted">'+esc(ago(q.ts))+'</span>':'')+'</span></button>';}
 function mLast(){var t=0;S.watch.forEach(function(w){var q=mQ(w.k);if(q&&q.ts>t)t=q.ts;});return t;}
 function mWatch(){
-  var h='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="lbl">Takip listem</span><button class="btn small ghost" data-act="m-refresh">'+ic('refresh')+' Yenile</button></div>';
-  h+=S.watch.length?'<div class="card" style="padding-top:4px;padding-bottom:4px"><div class="list">'+S.watch.map(function(w){return mRow(w.k);}).join('')+'</div></div>':'<div class="empty">Takip listen boş. Yukarıdan arayıp ekleyebilirsin.</div>';
+  var n=S.watch.length,h='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="lbl">Takip listem</span><span style="display:flex;gap:6px">'+(n?'<button class="btn small ghost" data-act="m-edit" aria-pressed="'+!!ui.medit+'">'+(ui.medit?'Bitti':'Düzenle')+'</button>':'')+(ui.medit?'':'<button class="btn small ghost" data-act="m-refresh">'+ic('refresh')+' Yenile</button>')+'</span></div>';
+  h+=n?'<div class="card" style="padding-top:4px;padding-bottom:4px"><div class="list">'+S.watch.map(function(w,i){return mRow(w.k,i,n);}).join('')+'</div></div>':'<div class="empty">Takip listen boş. Yukarıdan arayıp ekleyebilirsin.</div>';
   var sug=MSUG.filter(function(x){return !mW(x[0]);});
-  if(sug.length)h+='<div class="lbl" style="margin:4px 2px 0">Hızlı ekle</div><div class="chips">'+sug.map(function(x){return '<button class="chip" data-act="m-sug" data-id="'+x[0]+'">+ '+esc(x[1])+'</button>';}).join('')+'</div>';
-  var t=mLast();h+='<div class="small muted" id="m-ts">'+(t?'Son güncelleme: '+esc(fmtTs(t)):'')+'</div>';
-  h+='<p class="small muted" style="margin:0">Kaynaklar: döviz ve altın Truncgil; Borsa İstanbul İş Yatırım (yaklaşık 15 dk gecikmeli); kripto CoinGecko; yabancı borsalar Yahoo Finance; fonlar TEFAS (fon fiyatı günde bir kez açıklanır). Bilgi amaçlıdır, yatırım tavsiyesi değildir.</p>';
+  if(sug.length&&!ui.medit)h+='<div class="lbl" style="margin:4px 2px 0">Hızlı ekle</div><div class="chips">'+sug.map(function(x){return '<button class="chip" data-act="m-sug" data-id="'+x[0]+'">+ '+esc(x[1])+'</button>';}).join('')+'</div>';
+  var t=mLast();h+='<div class="small muted" id="m-ts">'+(t?'Son güncelleme: '+esc(fmtTs(t))+' ('+esc(ago(t))+')':'')+(S.fxSrc==='ecb'?' · döviz yedek kaynaktan (ECB günlük referans kuru)':'')+'</div>';
+  h+='<p class="small muted" style="margin:0">Kaynaklar: döviz, altın ve BIST 100 Truncgil (ulaşılamazsa döviz Avrupa Merkez Bankası günlük kuru, Frankfurter üzerinden); Borsa İstanbul hisseleri İş Yatırım (yaklaşık 15 dk gecikmeli); kripto CoinGecko; yabancı borsalar Yahoo Finance; fonlar TEFAS (fon fiyatı günde bir açıklanır). Küçük grafikler son 30 günün cihazda tutulan kapanışlarıdır. Bilgi amaçlıdır, yatırım tavsiyesi değildir.</p>';
   return h;}
 function mBody(){return (ui.mq||'').trim()?mResults():mWatch();}
+function offBanner(){if(!offline())return '';var t=mLast();return '<div class="banner"><span>Çevrimdışısın. '+(t?'Gösterilen fiyatlar '+esc(fmtTs(t))+' tarihli.':'Fiyatlar internet gelince alınır.')+'</span></div>';}
 function vPiyasa(){
   var lk=ui.mlink&&byId(S.holdings,ui.mlink);
-  return (lk?'<div class="banner"><span>“'+esc(lk.name)+'” için fiyat kaynağı seç: ara ve sonuca dokun.</span><button class="btn small ghost" data-act="m-linkoff">Vazgeç</button></div>':'')
+  return offBanner()+(lk?'<div class="banner"><span>“'+esc(lk.name)+'” için fiyat kaynağı seç: ara ve sonuca dokun.</span><button class="btn small ghost" data-act="m-linkoff">Vazgeç</button></div>':'')
    +'<div class="search">'+ic('search')+'<input id="mq" type="search" placeholder="Hisse, fon, döviz, altın, kripto ara" value="'+esc(ui.mq||'')+'" aria-label="Piyasalarda ara" autocomplete="off" autocapitalize="characters"></div>'
    +'<div id="mres" class="stack" style="gap:10px">'+mBody()+'</div>';}
 function mTile(k){var q=mQ(k);return '<span class="rt"><span class="lbl ell">'+esc(mk(k).src==='fx'?mName(k).replace(' endeksi',''):mSym(k))+'</span><span class="num">'+(q&&q.p>0?fmtPx(q.p,q.ccy||'TRY',k):'—')+'</span>'+(q?chgSpan(q.c):'')+'</span>';}
-/* Yatırımlar sekmesindeki kart: takip listesinin ilk dördü */
-function mCard(){var l=S.watch.slice(0,4),t=mLast();
-  if(!l.length)return '<button class="card ratecard" data-act="open-mkt"><span><b>Piyasaları takip et</b></span><span class="small muted">Hisse, fon, döviz, altın ve kripto ara; takip listesi oluştur ›</span></button>';
-  return '<button class="card ratecard" data-act="open-mkt"><span class="rgrid">'+l.map(function(w){return mTile(w.k);}).join('')+'</span><span class="small muted" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>'+(t?'Güncelleme: '+esc(fmtTs(t)):'Fiyatlar henüz alınmadı')+'</span><span>Piyasalar ve takip listem ›</span></span></button>';}
+/* Ana sayfa şeridi: takip listesinin ilk dördü, değişim yüzdesi ve küçük grafik */
+function mStrip(){var l=S.watch.slice(0,4),t=mLast();if(!l.length)return '';
+  return '<button class="card mstrip" data-act="open-mkt" aria-label="Piyasalar"><span class="mhead"><b>Piyasalar</b><span class="small muted">'+(offline()?'Çevrimdışı · ':'')+(t?esc(ago(t)):'fiyatlar alınıyor')+' ›</span></span><span class="rgrid">'+l.map(function(w){var q=mQ(w.k);return '<span class="rt"><span class="lbl ell">'+esc(mk(w.k).src==='fx'?mName(w.k).replace(' endeksi',''):mSym(w.k))+'</span><span class="num">'+(q&&q.p>0?fmtPx(q.p,q.ccy||'TRY',w.k):'—')+'</span><span class="rtb">'+(q?chgSpan(q.c):'')+sparkSvg(q&&q.h,44,16)+'</span></span>';}).join('')+'</span></button>';}
+/* Yatırımlar sekmesindeki bağlantı */
+function mCard(){var t=mLast();
+  return '<button class="setcard" data-act="open-mkt"><span class="sic" style="--c:var(--blue)">'+ic('pulse')+'</span><span class="mid"><div class="t">Piyasalar ve takip listem</div><div class="small muted">'+(t?'Son güncelleme '+esc(ago(t)):'Hisse, fon, döviz, altın ve kripto ara')+'</div></span>'+ic('r')+'</button>';}
 
 /* ---------- ayrıntı penceresi ve grafik ---------- */
 function mUrl(k){var m=mk(k),s=encodeURIComponent(m.sym);
@@ -191,6 +229,7 @@ function mHist(k,r){
   if(m.src==='bist'&&!isIdx(m.sym)){var e=new Date(),s=new Date();s.setDate(s.getDate()-days);
     return njson(ISY+'HisseTekil?hisse='+encodeURIComponent(m.sym)+'&startdate='+dmy(s)+'&enddate='+dmy(e)).then(function(j){return ((j&&j.value)||[]).map(function(x){var p=String(x.HGDG_TARIH||'').split('-');return [new Date(+p[2],+p[1]-1,+p[0]).getTime(),+x.HGDG_KAPANIS];}).filter(function(x){return x[1]>0&&!isNaN(x[0]);});});}
   if(m.src==='cg')return njson(CG+'coins/'+encodeURIComponent(m.sym)+'/market_chart?vs_currency=try&days='+days+'&interval=daily',{cors:1}).then(function(j){return ((j&&j.prices)||[]).filter(function(x){return x[1]>0;});});
+  if(m.src==='fx'&&FRKC.indexOf(m.sym)>=0)return frkHist(m.sym,days).then(function(p){if(p.length<2)throw new Error('grafik yok');return p;});
   var ys=m.src==='yh'?m.sym:(m.src==='bist'?m.sym+'.IS':(m.src==='fx'?YHFX[m.sym]:''));
   if(ys&&canNet())return yhChart(ys,yr).then(yhCloses);
   return Promise.reject(new Error('grafik yok'));}
@@ -211,7 +250,7 @@ function mDet(k){
   var when=q.at||q.ts;
   return '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><p class="big num" style="margin:0">'+fmtPx(q.p,u,k)+'</p>'+(q.c!=null&&isFinite(q.c)?'<span class="num '+(q.c>=0?'inc':'exp')+'">'+(abs!=null?(abs>=0?'+':'−')+pxf(Math.abs(abs)<1?4:2).format(Math.abs(abs))+' ':'')+'('+pctTxt(q.c)+')</span>':'')+'</div>'
    +(rows.length?'<div class="list">'+rows.map(function(r){return '<div class="item" style="padding:7px 0"><span class="mid small muted">'+r[0]+'</span><span class="num small">'+r[1]+'</span></div>';}).join('')+'</div>':'')
-   +'<div class="small muted" id="m-st">'+(when?esc(fmtTs(when)):'')+(q.site?' · yayın sunucusundan, gecikmeli kapanış':'')+(m.src==='bist'&&!q.site?' · yaklaşık 15 dk gecikmeli':'')+(m.src==='fon'?' · fon fiyatı günde bir açıklanır':'')+(q.err?' · son yenileme başarısız, eski veri':'')+'</div>';}
+   +'<div class="small muted" id="m-st">'+(when?esc(fmtTs(when))+' ('+esc(ago(q.ts||when))+')':'')+(q.src==='ecb'?' · ECB günlük referans kuru':'')+(q.site?' · yayın sunucusundan, gecikmeli kapanış':'')+(m.src==='bist'&&!q.site?' · yaklaşık 15 dk gecikmeli':'')+(m.src==='fon'?' · fon fiyatı günde bir açıklanır':'')+(q.err?' · son yenileme başarısız, eski veri':'')+'</div>';}
 function mHoldType(k){var m=mk(k);if(m.src==='bist')return 'Hisse';if(m.src==='fon')return 'Fon';if(m.src==='cg')return 'Kripto';if(m.src==='yh')return 'Hisse';
   if(m.sym==='GUMUS')return 'Gümüş';return MGOLD[m.sym]?'Altın':'Döviz';}
 function mSheet(k){
@@ -229,13 +268,17 @@ function mAfterQuiet(){if(ui.page&&ui.page.k==='piyasa')mUpd();}
 function mDraw(){var c=mCur;if(!c)return;var k=c.k,r=c.r,box=document.getElementById('mchart');if(!box)return;
   if(mk(k).src==='fon'){box.innerHTML='<div class="small muted">Fon getiri grafiği için TEFAS sayfasını aç.</div>';return;}
   box.innerHTML='<div class="small muted">Grafik yükleniyor…</div>';
-  mHist(k,r).then(function(p){var b=document.getElementById('mchart');if(!b||!mCur||mCur.k!==k||mCur.r!==r)return;var q=mQ(k);b.innerHTML=mChart(p,q&&q.ccy||'TRY',k);},
+  mHist(k,r).then(function(p){/* aynı kaynaktan gelen geçmiş küçük grafiğe eklenir (döviz grafiği ECB'den geldiğinden eklenmez: kaynaklar karışmasın) */if(mW(k)&&!(mk(k).src==='fx')){qSeed(k,p);save();}var b=document.getElementById('mchart');if(!b||!mCur||mCur.k!==k||mCur.r!==r)return;var q=mQ(k);b.innerHTML=mChart(p,q&&q.ccy||'TRY',k)+(mk(k).src==='fx'&&FRKC.indexOf(mk(k).sym)>=0?'<div class="small muted">Grafik: Avrupa Merkez Bankası günlük referans kuru (Frankfurter).</div>':'');},
     function(e){var b=document.getElementById('mchart');if(!b||!mCur||mCur.k!==k)return;b.innerHTML='<div class="small muted">'+(/uygulamada|grafik yok/.test(String(e&&e.message))&&!canNet()?'Grafik yalnızca Android uygulamasında görünür.':'Grafik verisi alınamadı.')+'</div>';});}
 
 /* ---------- eylemler ---------- */
-function mOpenPage(){openPage({k:'piyasa'},'piyasa');bistList().then(function(){if((ui.mq||'').trim())mUpd();});refreshMarket({}).then(mAfter);}
+function mOpenPage(){ui.medit=false;openPage({k:'piyasa'},'piyasa');bistList().then(function(){if((ui.mq||'').trim())mUpd();});refreshMarket({}).then(mAfter);}
 ACT['open-mkt']=function(){mOpenPage();};
-ACT['qa-mkt']=function(el){if(el&&el.closest&&el.closest('#qa,#qaall'))qaCount('qa-mkt');mOpenPage();};
+ACT['qa-mkt']=function(){mOpenPage();};
+ACT['m-edit']=function(){ui.medit=!ui.medit;mUpd();};
+function mMove(k,d){var i=S.watch.findIndex(function(w){return w.k===k;}),j=i+d;if(i<0||j<0||j>=S.watch.length)return;var t=S.watch[i];S.watch[i]=S.watch[j];S.watch[j]=t;save();mUpd();}
+ACT['m-up']=function(el,k){mMove(k,-1);};ACT['m-down']=function(el,k){mMove(k,1);};
+ACT['m-del']=function(el,k){var i=S.watch.findIndex(function(w){return w.k===k;});if(i<0)return;var w=S.watch[i];S.watch.splice(i,1);save();mUpd();toast(mName(k)+' takipten çıkarıldı',function(){S.watch.splice(Math.min(i,S.watch.length),0,w);save();mUpd();});};
 ACT['m-open']=function(el,k){mSheet(k);};
 ACT['m-pick']=function(el,k){
   if(ui.mlink){var x=byId(S.holdings,ui.mlink);if(!x){ui.mlink=null;mUpd();return;}

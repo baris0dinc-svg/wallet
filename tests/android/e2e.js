@@ -66,8 +66,8 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
    for(const i of [1,2,3,4])console.log('ℹ AÇILIŞ'+i+'PNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/sp'+i+'.png')).toString('base64'));
    ok('açılıştan sonra bağlanıldı',await connect());}
   // yeni yapı: alt menü, ana sayfa kartları, sesle ekleme düğmesi (telefonda ses tanıma varsa)
-  {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,sc:document.querySelectorAll(".sc").length,add:!!document.querySelector(".addmain"),voice:!!document.querySelector(".addvoice"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
-   console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===5&&j.sc===6&&j.add,h);ok('sesle ekle düğmesi ses tanıma durumuna uyuyor',j.voice===(j.vok==='ok'),h);
+  {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,left:!!document.querySelector("#left-now"),gear:!!document.querySelector("header [data-act=open-settings]"),add:!!document.querySelector(".addmain"),voice:!!document.querySelector(".addvoice"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
+   console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===5&&j.left&&j.gear&&j.add,h);ok('sesle ekle düğmesi ses tanıma durumuna uyuyor',j.voice===(j.vok==='ok'),h);
    sh('adb shell screencap -p /sdcard/home.png');sh('adb pull /sdcard/home.png /tmp/home.png');try{console.log('ℹ ANASAYFAPNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/home.png')).toString('base64'));}catch(e){}}
   // 3 WebView deposu silinirse yerel kopyadan döner
   await ev('localStorage.removeItem("kumbara-v1");return 1');ok('yeniden başlatıldı (depo silindi)',await restart());d=await data();ok('depo silinse de veri geri geldi',has(d));

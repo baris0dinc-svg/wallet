@@ -28,6 +28,7 @@ function aiSummary(){
     if(S.recurring.length){var rt=S.recurring.reduce(function(a,r){return a+toTL(+r.amt||0,r.acct);},0);L.push('','Düzenli ödemeler: '+S.recurring.length+' kalem, aylık yaklaşık '+T0(rt));}
     if(S.goals.length){L.push('','Hedefler:');S.goals.forEach(function(x){L.push('- '+x.name+': '+T0(goalSaved(x))+' / '+T0(x.target)+(x.date?' (hedef tarih '+x.date+')':''));});}
     var H=health(),hp=H.parts.filter(function(p){return p.p!=null;});if(hp.length)L.push('','Göstergeler: '+hp.map(function(p){return p.k.toLocaleLowerCase('tr-TR')+' '+p.v;}).join(', ')+'.');
+    try{var cl=coachSteps(),ci=coachCur(cl);if(ci>=0)L.push('','Wallet koçunun sıradaki adımı: '+cl[ci].t+' ('+String(cl[ci].sum).replace(/<[^>]*>/g,'')+')');}catch(e){}
     return L.join('\n');
   }finally{maskOn=m;}
 }
@@ -57,4 +58,3 @@ ACT['ai-go']=function(){var t=aiText();copyTxt(t).then(function(ok){
   msg(ok?'Metin kopyalandı, Claude açılıyor.':'Claude açılıyor; metni “Yalnızca kopyala” ile kopyalayabilirsin.',ok,'f-ai');openExt(u);});};
 ACT['ai-share']=function(){var t=aiText();if(nb('shareText')){try{NB.shareText(t,'Claude’a gönder');}catch(e){}return;}try{navigator.share({text:t}).catch(function(){});}catch(e){}};
 ACT['ai-copy']=function(){copyTxt(aiText()).then(function(ok){msg(ok?'Kopyalandı. Claude’a yapıştırabilirsin.':'Kopyalanamadı; özet metnini elle seçip kopyala.',ok,'f-ai');});};
-function aiCard(){return '<button class="card setcard" data-act="ai-open"><span class="sic" style="--c:var(--accent)">'+ic('sparkles')+'</span><span class="mid"><div class="t">Claude’a sor</div><div class="small muted">Finansal durumunun özetiyle kişisel öneri al</div></span>'+ic('r')+'</button>';}

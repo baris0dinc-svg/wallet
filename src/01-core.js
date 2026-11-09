@@ -1,10 +1,10 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='3.8';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.0';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
-var INVT=['Hisse','Fon','Altın','Gümüş','Döviz','Kripto','Mevduat','Diğer yatırım'];
+var INVT=['Hisse','Fon','Altın','Gümüş','Döviz','Kripto','Mevduat','BES','Diğer yatırım'];
 var ASTT=['Gayrimenkul','Araç','Diğer varlık'];
 var DTYPES=['Kredi','Kredi kartı','Taksit','Kişisel borç','Diğer'];
 /* para birimleri: hesaplar ve görüntüleme için; kur kaynakları varlık fiyatı için */
@@ -13,7 +13,7 @@ var CSYM={TRY:'₺',USD:'$',EUR:'€',GBP:'£',CHF:'CHF',XAU:'gr'};
 var CCYN={TRY:'Türk lirası',USD:'Dolar',EUR:'Euro',GBP:'Sterlin',CHF:'İsviçre frangı',XAU:'Gram altın'};
 var CCYS_SHORT={TRY:'₺ TL',USD:'$ USD',EUR:'€ EUR',GBP:'£ GBP',CHF:'CHF',XAU:'Altın (gr)'};
 /* takip listesinin ilk hali (Piyasalar) */
-var WDEF=[{k:'fx:USD',n:'ABD doları',s:'USD'},{k:'fx:EUR',n:'Euro',s:'EUR'},{k:'fx:GRA',n:'Gram altın',s:'GRA'},{k:'fx:XU100',n:'BIST 100 endeksi',s:'XU100'}];
+var WDEF=[{k:'fx:USD',n:'ABD doları',s:'USD'},{k:'fx:EUR',n:'Euro',s:'EUR'},{k:'fx:GRA',n:'Gram altın',s:'GRA'},{k:'fx:CEYREKALTIN',n:'Çeyrek altın',s:'CEYREKALTIN'},{k:'fx:XU100',n:'BIST 100 endeksi',s:'XU100'},{k:'cg:bitcoin',n:'Bitcoin',s:'BTC'}];
 var FXK=['USD','EUR','GBP','CHF','XAU','XAG','CEY'];
 var FXL={USD:'USD/TL',EUR:'EUR/TL',GBP:'GBP/TL',CHF:'CHF/TL',XAU:'Gram altın',XAG:'Gram gümüş',CEY:'Çeyrek altın'};
 var R0=new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:0});
@@ -84,32 +84,22 @@ var ICONS={
   sparkles:'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z'
 };
 function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="'+ICONS[n]+'"/></svg>';}
-/* bölümler: kaydırmadan tek satıra sığan 6 sekme; Bütçe, Düzenli ve Hedefler Planlama altında */
-/* alt menü: Ana Sayfa, İşlemler, Analiz, Hesaplar, Ayarlar. Planlama ve Notlar ayrı sayfa olarak açılır. */
-var SECS=[['ev','Ana Sayfa','home'],['islem','İşlemler','list'],['analiz','Analiz','chart'],['servet','Hesaplar','wallet'],['ayar','Ayarlar','cog']];
-/* ana sayfa kısayolları: [eylem, değer, ad, simge, renk] */
-var SCUTS=[['sv-go','yatirim','Yatırımlar','trend','var(--blue)'],['sv-go','varlik','Varlıklarım','home','var(--warn)'],['qa-trf','','Transfer','swap','var(--accent)'],['plan-go','hedef','Hedefler','flag','var(--warn)'],['sv-go','borc','Borçlar','card','var(--exp)'],['plan-go','duzenli','Düzenli ödemeler','repeat','var(--blue)']];
-/* hızlı araçlar (kullanıcı seçer): [kimlik, ad, simge, renk, eylem, değer] */
-var TOOLS=[['piyasa','Piyasalar','pulse','var(--blue)','open-mkt',''],['butce','Bütçe','scale','var(--inc)','plan-go','butce'],['notlar','Notlar','note','var(--warn)','sub','notlar'],
- ['takvim','Takvim','cal','var(--accent)','an-go','takvim'],['calc','Hesaplayıcılar','calc','var(--ink2)','qa-calc',''],['fire','Finansal özgürlük','fire','var(--exp)','open-fire',''],
- ['claude','Claude’a sor','sparkles','var(--accent)','ai-open',''],['ekstre','Ekstre aktar','archive','var(--blue)','open-set','veri'],['oto','Banka mesajları','msg','var(--inc)','open-set','oto']];
-var TOOLDEF=['piyasa','butce','notlar'];
-/* Servetim: net servet kartındaki kutucuklarla aynı gruplar */
+/* alt menü: Ana Sayfa, İşlemler, Plan (Koç, Bütçe, Düzenli, Hedefler), Analiz, Hesaplar. Ayarlar başlıktaki çark simgesiyle açılır. */
+var SECS=[['ev','Ana Sayfa','home'],['islem','İşlemler','list'],['plan','Plan','flag'],['analiz','Analiz','chart'],['servet','Hesaplar','wallet']];
 var WEALTH=[['hesap','Hesaplar'],['yatirim','Yatırımlar'],['varlik','Varlıklar'],['borc','Borçlar']];
 var ANS=[['ozet','Özet'],['harcama','Kategori'],['takvim','Takvim'],['servet','Servet']];
-var PLANS=[['butce','Bütçe'],['duzenli','Düzenli'],['hedef','Hedefler']];
-var QA=[['qa-inc','Gelir','inc','var(--inc)'],['qa-exp','Gider','exp','var(--exp)'],['qa-trf','Transfer','swap','var(--accent)'],['qa-mkt','Piyasalar','pulse','var(--blue)'],['qa-cash','Nakit','cash','var(--warn)'],['qa-bank','Banka','bank','var(--blue)'],['qa-inv','Yatırım','trend','var(--inc)'],['qa-debt','Borç','card','var(--exp)'],['qa-save','Birikim','coins','var(--warn)'],['qa-asset','Varlık','home','var(--blue)'],['qa-calc','Hesaplayıcı','calc','var(--ink2)']];
+var PLANS=[['koc','Koç'],['butce','Bütçe'],['duzenli','Düzenli'],['hedef','Hedefler']];
 var SETS=[
- {g:'Genel',id:'profil',t:'Profil ve dönem',d:'Adın ve maaş günün',i:'user',c:'var(--inc)'},
- {g:'Genel',id:'gor',t:'Görünüm',d:'Tema, yazı boyutu, tutarları gizleme',i:'palette',c:'var(--blue)'},
- {g:'Genel',id:'kurlar',t:'Para birimi ve kurlar',d:'Görüntüleme para birimi, canlı döviz ve altın',i:'trend',c:'var(--inc)'},
- {g:'Para',id:'hesap',t:'Varsayılan hesap',d:'Yeni işlemde seçili gelen hesap',i:'bank',c:'var(--blue)'},
- {g:'Para',id:'kat',t:'Kategoriler ve kurallar',d:'Gelir ve gider kategorileri, otomatik kurallar',i:'shapes',c:'var(--warn)'},
- {g:'Otomasyon',id:'oto',t:'Otomatik işlemler',d:'Banka SMS’leri ve uygulama bildirimlerinden harcama ve gelirleri yakala',i:'sparkles',c:'var(--accent)'},
+ {g:'Genel',id:'genel',t:'Genel',d:'Adın, maaş günü, varsayılan hesap, tema ve yazı boyutu',i:'user',c:'var(--inc)'},
+ {g:'Genel',id:'kurlar',t:'Para birimi ve kurlar',d:'Görüntüleme para birimi, kurların güncellenmesi',i:'trend',c:'var(--blue)'},
+ {g:'Genel',id:'kat',t:'Kategoriler ve kurallar',d:'Gelir ve gider kategorileri, otomatik kurallar',i:'shapes',c:'var(--warn)'},
+ {g:'Otomasyon',id:'oto',t:'Otomatik işlemler',d:'Banka SMS’leri ve uygulama bildirimlerinden işlem yakala',i:'sparkles',c:'var(--accent)'},
  {g:'Otomasyon',id:'bild',t:'Bildirimler ve hatırlatıcılar',d:'Fatura ve ödeme hatırlatıcısı, bütçe uyarıları',i:'bell',c:'var(--warn)'},
  {g:'Güvenlik ve veri',id:'guv',t:'Güvenlik ve gizlilik',d:'PIN kilidi, parmak izi, ekran gizliliği',i:'shield',c:'var(--inc)'},
- {g:'Güvenlik ve veri',id:'veri',t:'Veri ve yedek',d:'Otomatik yedek, yedekten yükleme, CSV, sıfırlama',i:'server',c:'var(--blue)'}
+ {g:'Güvenlik ve veri',id:'veri',t:'Veri ve yedek',d:'Yedek, geri yükleme, ekstre ve CSV, sıfırlama',i:'server',c:'var(--blue)'}
 ];
+/* eski ayar sayfası adları birleştirilenlere gider */
+var SETMAP={profil:'genel',hesap:'genel',gor:'genel'};
 var ACT={};
 var dl=null;
 try{if(window.claude&&window.claude.use){window.claude.use('downloads').then(function(x){dl=x||null;},function(){});}}catch(e){}
@@ -264,7 +254,7 @@ function dueDate(r,k){var st=pStart(k),e=pEnd(k),y=+st.slice(0,4),m=+st.slice(5,
 function daysLeft(k){return daysBetween(todayS(),pEnd(k))+1;}
 function pDays(k){return daysBetween(pStart(k),pEnd(k))+1;}
 
-var ui={tab:'cuzdan',sub:'ev',rng:'ay',plan:'butce',sv:'hesap',an:'ozet',nwr:6,trPick:null,wk:null,alAll:false,qaOrd:null,month:curP(),filter:'all',acctF:'',calc:'kredi',cv:{},nq:'',sq:'',tq:'',nv:'act',tr:6,page:null,locked:!!S.pin,pinBuf:'',fails:0,lockUntil:0,forgot:false,hiddenAt:0,mq:'',mlink:null};
+var ui={tab:'cuzdan',sub:'ev',rng:'ay',plan:'koc',sv:'hesap',an:'ozet',nwr:6,trPick:null,wk:null,alAll:false,qaOrd:null,month:curP(),filter:'all',acctF:'',calc:'kredi',cv:{},nq:'',sq:'',tq:'',nv:'act',tr:6,page:null,locked:!!S.pin,pinBuf:'',fails:0,lockUntil:0,forgot:false,hiddenAt:0,mq:'',mlink:null};
 
 /* ---------- hesap ---------- */
 var MC={v:-1};

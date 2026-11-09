@@ -81,9 +81,12 @@ for(const seed of SEEDS){
         const d=$('.sheet [data-act="del-tx"]');d.click();if(S().tx.length!==n0-1)bad.push('delTx: silinmedi');if(rnd()<0.5){const u=$('#toast button');if(u){u.click();if(S().tx.length!==n0)bad.push('undo: geri gelmedi');}}},
       dupTx(){const rows=$$('[data-act="edit-tx"]');if(!rows.length)return;pick(rows).click();const n0=S().tx.length;const d=$('.sheet [data-act="dup-tx"]');if(d){d.click();if(S().tx.length!==n0+1)bad.push('dup');}else act('close');},
       nav(){act(pick(['mprev','mnext','mnext','mprev']));},
-      tabs(){if(rnd()<0.15)act('open-settings');else if(rnd()<0.1)act('qa-calc');else act('sub',null,pick(['islem','hesap','analiz','butce','hedef','duzenli','portfoy','notlar']));},
+      tabs(){if(rnd()<0.15)act('open-settings');else if(rnd()<0.1)act('qa-calc');else act('sub',null,pick(['islem','hesap','analiz','butce','hedef','duzenli','portfoy','notlar','plan','koc','ev']));},
+      coach(){act('sub',null,'koc');const b=$$('#secbody .kocnow [data-act], #secbody .kt, #secbody .kstep [data-act]');if(b.length)pick(b).click();if(sheetOpen()&&rnd()<0.6)act('close');},
+      mkt(){act('open-mkt');act('m-edit');const b=$$('[data-act="m-up"],[data-act="m-down"],[data-act="m-del"]');if(b.length)pick(b).click();act('m-edit');if(rnd()<0.3)act('undo');window.walletBack();},
+      budSug(){act('sub',null,'butce');const b=$('[data-act="bud-sug"]');if(b)b.click();},
       qa(){act(pick(['qa-inc','qa-exp','qa-cash','qa-bank','qa-trf','qa-debt','qa-inv','qa-save','qa-asset']));if(rnd()<0.3){const b=$$('.sheet [data-act]').filter(x=>x.dataset.act!=='close'&&!/save|del|trade|pay|rc-/.test(x.dataset.act));if(b.length)pick(b).click();}},
-      debt(){if(rnd()<0.4||!S().debts.length){act('new-d');setVal('#d-name',pick(['Kredi','','Borç']));setVal('#d-amt',pick(AMTS));pickOpt('#d-acct');$('.sheet .btn[data-act="save-d"]').click();}
+      debt(){if(rnd()<0.4||!S().debts.length){act('new-d');setVal('#d-name',pick(['Kredi','','Borç']));setVal('#d-amt',pick(AMTS));setVal('#d-rate',pick(['','3,5','0','abc','45','1.2']));pickOpt('#d-acct');$('.sheet .btn[data-act="save-d"]').click();}
         else{const d=pick(S().debts),l0=T.debtLeft(d);act('edit-d',d.id);if($('#dp-amt')){const a=pick(AMTS);setVal('#dp-amt',a);setVal('#dp-int',pick(['','10','abc']));pickOpt('#dp-acct');const n0=S().tx.length;$('[data-act="pay-d"]').click();const p=T.r2(T.num(a));if(p>0&&p<=l0&&S().tx.length===n0&&!/küçük|seç/.test(($('#f-err2')||{}).textContent||''))bad.push('borç ödemesi eklenmedi '+a);if(p>l0+0.01&&T.debtLeft(d)<l0-0.01)bad.push('fazla ödeme kabul edildi');}}},
       trade(){const h=S().holdings.length&&pick(S().holdings);if(!h)return;act(rnd()<0.5?'h-buy':'h-sell',h.id);setVal('#tr-qty',pick(AMTS));setVal('#tr-price',pick(AMTS));pickOpt('#tr-acct');$('.sheet [data-act="trade"]').click();},
       recon(){const a=pick(S().accounts);act('acct-rec',a);setVal('#rc-amt',pick(AMTS.concat(['-500'])));if(rnd()<0.5)$('#rc-mode').click();const v=$('#rc-amt').value;$('[data-act="rc-save"]').click();if(!sheetOpen()&&Math.abs(T.acctBal(a)-T.r2(T.num(v)))>0.005)bad.push('eşitleme sonucu '+T.acctBal(a)+' ≠ '+v+' '+a+' '+JSON.stringify(S().accx[a])+' '+JSON.stringify(S().tx.filter(t=>t.acct===a||t.to===a).slice(-3))+' open='+S().opening[a]);},
@@ -117,7 +120,7 @@ for(const seed of SEEDS){
       backup(){const before=T.exportJson();act('open-set','veri');setVal('#rs-txt',before);$('[data-act="rs-go"]').click();const after=T.exportJson();
         const a=JSON.parse(before),c=JSON.parse(after);delete a.hist;delete c.hist;delete a.savedAt;delete c.savedAt;delete a.bkTs;delete c.bkTs;if(JSON.stringify(a)!==JSON.stringify(c))bad.push('yedek gidiş-dönüş farklı');act('back');},
     };
-    const names=Object.keys(A),W={qa:2,debt:2,trade:2,recon:1,dccy:1,eye:1,wipe:1,addTx:6,editTx:3,delTx:2,dupTx:1,nav:2,tabs:2,search:1,addAcct:2,editAcct:2,delAcct:1,addRec:2,payRec:2,goal:1,budget:2,payday:1,holding:1,cats:1,rule:1,fx:1,csv:1,backup:1,notes:2,hide:1};
+    const names=Object.keys(A),W={qa:2,debt:2,trade:2,recon:1,dccy:1,eye:1,wipe:1,addTx:6,editTx:3,delTx:2,dupTx:1,nav:2,tabs:2,search:1,addAcct:2,editAcct:2,delAcct:1,addRec:2,payRec:2,goal:1,budget:2,payday:1,holding:1,cats:1,rule:1,fx:1,csv:1,backup:1,notes:2,hide:1,coach:2,mkt:1,budSug:1};
     const bag=[];names.forEach(n=>{for(let i=0;i<(W[n]||1);i++)bag.push(n);});
     act('sample-clear');
     for(let i=0;i<STEPS;i++){const n=pick(bag);log.push(n);const b0=bad.length;

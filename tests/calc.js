@@ -6,7 +6,7 @@ const out=await p.evaluate(async()=>{
  const T=window.__T,F=[],ok=(c,m)=>{if(!c)F.push(m);};
  let seed=777;const rnd=()=>{seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296;};
  // 1 ayarlar: 8 bölüm, hepsi açılır, boş değil, kaldırılanlar yok
- ok(T.SETS.length===9,'ayar sayısı '+T.SETS.length);
+ ok(T.SETS.length===7,'ayar sayısı '+T.SETS.length);
  T.SETS.forEach(s=>{let h='';try{h=T.setBody(s.id);}catch(e){F.push('ayar hata '+s.id+' '+e.message);}ok(h&&h.length>50,'ayar boş '+s.id);});
  ok(!T.SETS.some(s=>['notlar','hak','demo'].includes(s.id)),'eski bölüm duruyor');
  // 2 kuruş: float tuzakları

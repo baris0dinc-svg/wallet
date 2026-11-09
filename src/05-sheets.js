@@ -5,16 +5,18 @@ function pageInfo(){
   if(p.k==='fire')return {title:'Finansal özgürlük',body:vFire};
   if(p.k==='araclar')return {title:'Hesaplayıcılar',body:vArac};
   if(p.k==='piyasa')return {title:'Piyasalar',body:vPiyasa};
-  if(p.k==='plan')return {title:'Planlama',body:planBody};
+  if(p.k==='ayar')return {title:'Ayarlar',body:vAyarlar};
   if(p.k==='notlar')return {title:'Notlar',body:vNotlar};
   if(p.k==='set'&&p.s==='notlar')return {title:'Not ayarları',body:setNotlar};
-  if(p.k==='set'){var s=SETS.filter(function(x){return x.id===p.s;})[0]||SETS[SETS.length-1];return {title:s.t,body:function(){return setBody(s.id);}};}
+  if(p.k==='set'){var sid=SETMAP[p.s]||p.s,s=SETS.filter(function(x){return x.id===sid;})[0]||SETS[SETS.length-1];return {title:s.t,body:function(){return setBody(s.id);}};}
   var n=p.id&&byId(S.notes,p.id);
   return {title:n&&n.trash?'Silinen not':'',body:vNote,btns:noteBtns};
 }
 function render(){RIN=true;try{render0();}finally{RIN=false;}}
 function render0(){
   TXV++;
+  /* eski Planlama sayfası artık Plan sekmesi */
+  if(ui.page&&ui.page.k==='plan'){ui.page=null;ui.sub='plan';}
   try{snap();}catch(e){}
   var L=document.getElementById('lock');
   document.body.classList.toggle('locked',!!ui.locked);
@@ -41,20 +43,20 @@ function render0(){
   document.getElementById('fab').hidden=!(!ui.page&&ui.sub==='islem');
 }
 function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({nv:ui.nv,plan:ui.plan,sv:ui.sv,an:ui.an,rng:ui.rng}));}catch(e){}}
-/* sekme başlığı: Ana Sayfa'da logo, diğerlerinde sekme adı */
+/* sekme başlığı: Ana Sayfa'da logo, diğerlerinde sekme adı; ayarlar her sekmede sağdaki çark simgesinde */
 function tabHead(){
+  var gear='<button class="icon-btn" data-act="open-settings" aria-label="Ayarlar" title="Ayarlar">'+ic('cog')+'</button>';
   var rf='<button class="icon-btn" id="rfb" data-act="refresh" aria-label="Yenile: güncel kurlar ve piyasalar" title="Yenile">'+ic('refresh')+'</button>';
   if(ui.sub==='ev'){var n=alertItems().length;
-    return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns"><button class="icon-btn" data-act="srch" aria-label="İşlemlerde ara" title="Ara">'+ic('search')+'</button><button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>'+rf+'</span>';}
+    return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns"><button class="icon-btn" data-act="srch" aria-label="İşlemlerde ara" title="Ara">'+ic('search')+'</button><button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>'+gear+'</span>';}
   var t=(SECS.filter(function(x){return x[0]===ui.sub;})[0]||SECS[0])[1],b='';
-  if(ui.sub==='analiz')b='<button class="icon-btn" data-act="ai-open" aria-label="Claude’a sor" title="Claude’a sor">'+ic('sparkles')+'</button>';
-  else if(ui.sub==='servet')b=rf+'<button class="icon-btn" data-act="new-a" aria-label="Hesap ekle" title="Hesap ekle">'+ic('plus')+'</button>';
+  if(ui.sub==='servet')b=rf+'<button class="icon-btn" data-act="new-a" aria-label="Hesap ekle" title="Hesap ekle">'+ic('plus')+'</button>';
   else if(ui.sub==='islem')b='<button class="icon-btn" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>';
-  return '<h1 class="tt">'+esc(t)+'</h1>'+(b?'<span class="hbtns">'+b+'</span>':'');
+  return '<h1 class="tt">'+esc(t)+'</h1><span class="hbtns">'+b+gear+'</span>';
 }
-/* eski bölüm adları (Bütçe, Düzenli, Hedefler) Planlama'nın alt sekmelerine gider */
+/* eski bölüm adları: Bütçe, Düzenli, Hedefler ve Koç Plan sekmesinin; Yatırımlar, Varlıklar, Borçlar Hesaplar sekmesinin alt sekmeleri */
 function mapSec(s){if(s==='portfoy')s='yatirim';if(WEALTH.some(function(x){return x[0]===s;})){ui.sv=s;return 'servet';}
-  if(s==='ayarlar')return 'ayar';
+  if(PLANS.some(function(x){return x[0]===s;})){ui.plan=s;return 'plan';}if(s==='planlama')return 'plan';
   return SECS.some(function(x){return x[0]===s;})?s:'ev';}
 function restoreUi(){
   try{var u=JSON.parse(localStorage.getItem(UIKEY)||'{}');
@@ -63,17 +65,17 @@ function restoreUi(){
     if(u.nv==='arch'||u.nv==='trash')ui.nv=u.nv;}catch(e){}
   var h=(location.hash||'').slice(1);
   var IH={'yeni-gider':'exp','yeni-gelir':'inc','yeni-transfer':'trf','yeni-ses':'voice'};if(IH[h])ui.intent=IH[h];
-  ui.page=pageFromHash(h);if(h==='ayarlar')ui.sub='ayar';
+  ui.page=pageFromHash(h);if(h==='planlama'||h==='koc')ui.sub='plan';if(h==='koc')ui.plan='koc';
   if(h&&!ui.page){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
 }
 /* adres çubuğundaki #… ile sayfa eşleşmesi (tarayıcı/telefon geri tuşu için) */
-function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='planlama')return {k:'plan'};if(h==='notlar')return {k:'notlar'};if(/^ayar-[a-z]+$/.test(h))return {k:'set',s:h.slice(5)};return null;}
+function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='ayarlar')return {k:'ayar'};if(h==='notlar')return {k:'notlar'};if(/^ayar-[a-z]+$/.test(h))return {k:'set',s:h.slice(5)};return null;}
 function openPage(p,hash){closeSheet();if(ui.page&&ui.page!==p&&ui.page.k!==p.k){finishPage();p.prev=ui.page;}ui.page=p;try{if(hash)location.hash=hash;}catch(e){}render();window.scrollTo(0,0);}
 function finishPage(){if(ui.page&&ui.page.k==='note')saveNote();}
 function closePage(){finishPage();var p=ui.page;ui.page=(p&&p.prev)||null;render();try{if(location.hash.length>1)history.back();}catch(e){}}
 function goSec(s){closeSheet();
-  if(s==='plan'||PLANS.some(function(x){return x[0]===s;})){if(s!=='plan')ui.plan=s;persistUi();openPage({k:'plan'},'planlama');return;}
   if(s==='notlar'){openPage({k:'notlar'},'notlar');return;}
+  if(s==='ayar'||s==='ayarlar'){openPage({k:'ayar'},'ayarlar');return;}
   /* sayfadan sekmeye geçerken adresi yerinde temizle (history.back gecikmeli çalışıp sonraki sayfayı kapatmasın) */
   var from=ui.page?null:ui.sub,to=mapSec(s);
   if(ui.page){finishPage();ui.page=null;try{if(location.hash.length>1)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
@@ -197,6 +199,7 @@ function dSheet(id){
   var pay=d&&left>0?'<div class="card stack" style="gap:10px;background:var(--bg)"><h2 style="margin:0">Ödeme yap</h2><div class="two"><div class="field"><label for="dp-amt">Anapara (₺)</label><input id="dp-amt" inputmode="decimal" placeholder="Örn. '+nv(Math.min(left,5000))+'"></div><div class="field"><label for="dp-int">Faiz ve masraf (₺)</label><input id="dp-int" inputmode="decimal" placeholder="Varsa"></div></div><div class="two"><div class="field"><label for="dp-acct">Ödeme hesabı</label><select id="dp-acct">'+acctOpts(grpAccts('banka')[0]||defAcct('exp'))+'</select></div><div class="field"><label for="dp-date">Tarih</label><input id="dp-date" type="date" value="'+todayS()+'"></div></div><div class="err" id="f-err2"></div><button class="btn" data-act="pay-d" data-id="'+d.id+'">Ödemeyi kaydet</button><p class="small muted" style="margin:0">Anapara borçtan düşer; faiz ve masraf gider olarak kaydedilir. İkisi de hesabından çıkar.</p></div>':'';
   openSheet('<h2>'+(d?'Borç: '+esc(d.name):'Borç ekle')+'</h2>'+(d?'<div class="row3" style="margin:0"><div><div class="lbl">Toplam</div><span class="num">'+TRY0.format(d.amt)+'</span></div><div><div class="lbl">Ödenen</div><span class="num inc">'+TRY0.format(paid)+'</span></div><div><div class="lbl">Kalan</div><span class="num exp">'+TRY0.format(left)+'</span></div></div><div class="bar"><i style="width:'+(d.amt>0?clamp(paid/d.amt*100,0,100):0)+'%"></i></div>':'')+pay
    +'<div class="field"><label for="d-name">Ad</label><input id="d-name" placeholder="Örn. Taşıt kredisi" value="'+esc(d?d.name:'')+'"></div><div class="two"><div class="field"><label for="d-type">Tür</label><select id="d-type">'+optsKeep(DTYPES,d&&d.type)+'</select></div><div class="field"><label for="d-amt">'+(d?'Toplam borç (₺)':'Kalan borç (₺)')+'</label><input id="d-amt" inputmode="decimal" value="'+(d?nv(d.amt):'')+'"></div></div>'
+   +'<div class="field"><label for="d-rate">Aylık faiz oranı (%)</label><input id="d-rate" inputmode="decimal" placeholder="İsteğe bağlı, örn. 3,5" value="'+(d&&+d.rate>0?nv(d.rate):'')+'"><div class="small muted" style="margin-top:4px">Koç, hangi borcu önce kapatman gerektiğini buna göre hesaplar. Sözleşmedeki aylık akdi faizi yaz.</div></div>'
    +(d?'':'<div class="field"><label for="d-acct">Para bir hesaba girdi mi?</label><select id="d-acct">'+acctOpts('', 'Hayır, eski borç')+'</select></div><p class="small muted" style="margin:0">Yeni çektiğin kredi ya da aldığın borç para bir hesaba yattıysa seç: o hesabın bakiyesi artar, net servetin değişmez.</p>')
    +'<div class="err" id="f-err"></div><button class="btn'+(d?' ghost':'')+'" data-act="save-d" data-id="'+(d?d.id:'')+'">'+(d?'Bilgileri kaydet':'Kaydet')+'</button>'+(d?delBtn('del-d',d.id,'Borcu sil'):''));
 }

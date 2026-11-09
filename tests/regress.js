@@ -21,7 +21,8 @@ const r=await p.evaluate(()=>{const T=window.__T,o={};const $=s=>document.queryS
  act('sub',null,'portfoy');act('new-h');o.b1=window.walletBack()&&!document.getElementById('sheet-root').innerHTML;
  act('open-set','kurlar');o.b2=window.walletBack()&&!T.ui.page;
  o.b3=window.walletBack()&&T.ui.sub==='ev';o.b4=window.walletBack()===false;
- act('open-settings');document.querySelector('[data-act="open-set"][data-id="hesap"]').click();o.nest1=T.ui.page&&T.ui.page.k==='set';window.walletBack();o.nest2=!T.ui.page&&T.ui.sub==='ayar';window.walletBack();o.nest3=T.ui.page===null&&T.ui.sub==='ev';
+ act('open-settings');document.querySelector('[data-act="open-set"][data-id="genel"]').click();o.nest1=T.ui.page&&T.ui.page.k==='set';window.walletBack();o.nest2=!!T.ui.page&&T.ui.page.k==='ayar';window.walletBack();o.nest3=T.ui.page===null&&T.ui.sub==='ev';
+ act('open-set','hesap');o.oldSet=$('header h1').innerText;act('back');
  // 5) banka ekstresi: hedef hesap + kural
  S.rules=[{kw:'migros',cat:'Market'}];
  const r5=T.csvImport('Tarih,Açıklama,Tutar\n05.11.2026,MIGROS KADIKOY,"-250,40"\n06.11.2026,EFT GELEN,"1.000,00"\n','Banka');
@@ -43,5 +44,5 @@ chk(r.nest1&&r.nest2&&r.nest3,'ayarlar geri akışı '+[r.nest1,r.nest2,r.nest3]
 chk(r.bank.r5.added===2&&r.bank.acct.join()==='Banka,Banka'&&r.bank.cat.join()==='Market,Diğer gelir'&&r.bank.type.join()==='exp,inc','banka ekstresi');
 chk(r.hasCcy&&r.newAcctCcy==='USD','para birimi sütunu');
 chk(r.neg0==='₺0,00 −₺12,50 −$3','eksi biçimi: '+r.neg0);
-chk(r.fsLabels==='Küçük,Normal,Büyük,Çok büyük','yazı boyutu adları');
+chk(r.fsLabels==='Küçük,Normal,Büyük,Çok büyük','yazı boyutu adları');chk(r.oldSet==='Genel','eski ayar adı birleşen sayfaya gider: '+r.oldSet);
 console.log(F.length?'FAIL\n'+F.join('\n'):'ALL PASS');console.log(errs.length?errs.join('\n'):'no page errors');await b.close();})();

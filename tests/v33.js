@@ -36,10 +36,10 @@ const ev=async body=>{try{return await p.evaluate(new Function('return (async()=
 /* 1 takip listesi ve arama */
 let r=await ev(`const T=__T,F=[],chk=(c,m)=>{if(!c)F.push(m);};
  T.S=T.norm({tx:[],accounts:['Nakit','Banka'],opening:{Banka:10000},fx:T.S.fx});T.save();
- chk(T.S.watch.length===4&&T.S.watch[0].k==='fx:USD','varsayılan takip listesi '+JSON.stringify(T.S.watch.map(w=>w.k)));
+ chk(T.S.watch.length===6&&T.S.watch[0].k==='fx:USD'&&T.S.watch.some(w=>w.k==='fx:CEYREKALTIN')&&T.S.watch.some(w=>w.k==='cg:bitcoin'),'varsayılan takip listesi '+JSON.stringify(T.S.watch.map(w=>w.k)));
  act('qa-mkt');await wait(600);chk(T.ui.page&&T.ui.page.k==='piyasa'&&location.hash==='#piyasa','Piyasalar sayfası açıldı');
  const rows=[...document.querySelectorAll('#mres [data-act="m-open"]')].map(x=>x.innerText.replace(/\\s+/g,' '));
- chk(rows.length===4&&/41,3100/.test(rows[0])&&/BIST 100/.test(rows[3])&&/11\\.482,60/.test(rows[3]),'takip satırları '+JSON.stringify(rows));
+ chk(rows.length===6&&/41,3100/.test(rows[0])&&/BIST 100/.test(rows[4])&&/11\\.482,60/.test(rows[4]),'takip satırları '+JSON.stringify(rows));
  chk(T.mQ('fx:GRA').p===5530.1&&T.S.quotes['fx:GRA']&&T.S.quotes['fx:GRA'].c===0.5,'altın kotası');
  typ('thy');await wait(50);let res=$('#mres').innerText;chk(/Türk Hava Yolları/.test(res)&&/Borsa İstanbul/.test(res),'BIST yerel arama '+res.slice(0,120));
  typ('dolar');await wait(50);res=$('#mres').innerText;chk(/ABD doları|ABD Doları/i.test(res),'döviz adıyla arama '+res.slice(0,100));
@@ -81,7 +81,8 @@ r=await ev(`const T=__T,F=[],chk=(c,m)=>{if(!c)F.push(m);};
  typ('bit');await wait(900);$('[data-act="m-pick"][data-id="cg:bitcoin"]').click();await wait(400);
  const m1=T.S.holdings.find(x=>x.id==='m1');chk(m1.mk==='cg:bitcoin'&&m1.mks==='BTC'&&T.hPrice(m1)===3808230&&!T.ui.page,'sonradan bağlandı '+JSON.stringify(m1));
  /* servetim > yatırımlar */
- act('sub',null,'servet');act('sv',null,'yatirim');const card=$('.ratecard');chk(card&&card.querySelectorAll('.rt').length===4&&/Piyasalar ve takip listem/.test(card.innerText),'yatırımlar piyasa kartı');
+ act('sub',null,'servet');act('sv',null,'yatirim');const card=$('#secbody [data-act="open-mkt"]');chk(card&&/Piyasalar ve takip listem/.test(card.innerText),'yatırımlar piyasa bağlantısı');
+ act('sub',null,'ev');const ms=$('.mstrip');chk(ms&&ms.querySelectorAll('.rt').length===4,'ana sayfa piyasa şeridi 4 kalem');act('sub',null,'servet');
  chk([...document.querySelectorAll('.hcard')].some(c=>/THYAO/.test(c.innerText)&&!c.querySelector('[data-price]')),'bağlı yatırım kartında elle fiyat yok');
  /* elle fiyata geri dön */
  T.hSheet(h.id);$('#h-ccy').value='';$('#h-ccy').dispatchEvent(new Event('change',{bubbles:true}));$('#h-price').value='300';$('.sheet [data-act="save-h"]').click();
@@ -99,7 +100,7 @@ r=await ev(`const T=__T,F=[],chk=(c,m)=>{if(!c)F.push(m);};T.ui.page=null;
   {id:'c',type:'exp',amt:3000,cat:'Market',acct:'Nakit',date:T.addMonth(cur,-1)+'-10'}],debts:[{id:'d1',name:'Taşıt kredisi',type:'Kredi',amt:85000}],goals:[{id:'g1',name:'Tatil',target:30000,saved:5000}],budgets:{Market:4000}});T.save();T.render();
  const s=T.aiSummary();chk(/Net servet/.test(s)&&/gelir ₺40\\.000/.test(s)&&/Kira: ₺12\\.000/.test(s)&&/Kredi: kalan ₺85\\.000/.test(s)&&/Tatil/.test(s)&&/bütçe limiti ₺4\\.000/.test(s),'özet içeriği\\n'+s);
  chk(!/Ziraat|Mehmet/.test(s),'hesap adı ve not gönderilmez');
- act('an',null,'ozet');act('sub',null,'analiz');chk(!!$('[data-act="ai-open"]'),'Analiz özetinde Claude kartı');act('ai-open');
+ act('sub',null,'plan');act('plan',null,'koc');chk(!!$('#secbody [data-act="ai-open"]'),'Koç’ta Claude’a sor');act('ai-open');
  chk(/Claude’a sor/.test($('.sheet h2').innerText)&&$('#ai-s').value===s,'Claude penceresi');
  $('[data-act="ai-q"][data-id="borc"]').click();chk(/Borçlarımı/.test($('#ai-q').value),'hazır soru');
  $('.sheet [data-act="ai-go"]').click();await wait(100);

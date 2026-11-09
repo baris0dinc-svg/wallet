@@ -170,7 +170,6 @@ body.locked .wrap,body.locked .fab,body.locked #sheet-root{display:none}
 .catrow .cn{display:flex;align-items:center;gap:8px;min-width:0;flex:1}
 .catrow input.lim{width:112px;flex:none;padding:7px 10px;text-align:right}
 /* portföy kur kartı */
-.ratecard{width:100%;text-align:left;display:grid;gap:12px}
 .rgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
 .rt{display:grid;gap:1px;min-width:0}
 .rt .num{font-size:1rem}
@@ -390,20 +389,8 @@ header h1.tt{font-size:1.625rem;font-weight:800;letter-spacing:-.01em}
 .addvoice{display:flex;align-items:center;gap:8px;padding:12px 16px;background:none;border:0;border-left:1px solid var(--line);color:var(--ink);font:inherit;font-weight:600;font-size:.875rem;line-height:1.15;text-align:left;cursor:pointer}
 .vic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--accent)}
 .vic .ic{width:21px;height:21px}
-.scg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.sc{display:flex;align-items:center;gap:12px;padding:14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;text-align:left;color:var(--ink);font:inherit;font-weight:700;min-width:0;cursor:pointer}
-.sc .sic{width:38px;height:38px;border-radius:12px}
-.sc .sic .ic{width:20px;height:20px}
-.sc .t{min-width:0;line-height:1.2;overflow-wrap:break-word;hyphens:auto}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin:6px 2px -4px}
 .hrow h2{margin:0}
-.toolg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.tool{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 6px 14px;background:var(--surface);border:1px solid var(--line);border-radius:16px;color:var(--ink);font:inherit;font-weight:600;font-size:.8125rem;text-align:center;cursor:pointer;min-width:0}
-.tool .sic{width:44px;height:44px;border-radius:14px}
-.tool .t{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#tools-l .sic{width:38px;height:38px;border-radius:12px}
-#tools-l .tick{width:26px;height:26px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:.75rem;font-weight:700;flex:none}
-#tools-l [aria-pressed="true"] .tick{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .chips.rng{flex-wrap:nowrap}
 .chips.rng .chip{flex:1;text-align:center}
 .chips.rng .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -519,3 +506,49 @@ html[data-nc] body,html[data-nc] header,html[data-nc] .kbar{background:var(--ncc
 .bacts{display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap}
 .bacts .btn.small{width:auto;padding:8px 14px;min-height:36px}
 .fcst{margin-top:8px}
+/* 4.0: ana kart net servet satırı, piyasa şeridi, takip listesi düzenleme, Koç */
+.nwline{display:flex;align-items:center;gap:8px;width:100%;margin-top:12px;padding:12px 0 0;border:0;border-top:1px solid var(--line);background:none;text-align:left;color:inherit;font:inherit;cursor:pointer;flex-wrap:wrap}
+.nwline .lbl{font-size:.8125rem}
+.nwline b{font-size:1rem}
+.nwline .small{flex:1;min-width:0}
+.nwline .ic{width:18px;height:18px;color:var(--ink2);margin-left:auto}
+.homelinks>*{min-width:0}
+.homelinks .setcard{padding:12px 14px;gap:8px;flex-direction:column;align-items:flex-start}
+.homelinks .mid{min-width:0;width:100%}
+.homelinks .t{overflow-wrap:break-word}
+.homelinks .sic{width:36px;height:36px}
+.homelinks .sic .ic{width:18px;height:18px}
+.mstrip{width:100%;text-align:left;display:grid;gap:10px;font:inherit;color:inherit;cursor:pointer}
+.mhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;min-width:0}
+.mhead .small{white-space:nowrap}
+.rtb{display:flex;align-items:center;gap:6px;min-height:16px}
+.msp{flex:none;display:block}
+.mrow .msp{margin-left:auto}
+.medit{display:flex;gap:2px;flex:none}
+.medit .icon-btn:disabled{opacity:.3}
+.medit [data-act="m-up"] .ic{transform:rotate(90deg)}
+.medit [data-act="m-down"] .ic{transform:rotate(90deg)}
+.cochome{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.cochome .mid{flex:1;min-width:0}
+.cochome .t{font-weight:700}
+.cochome>.ic{width:18px;height:18px;color:var(--ink2);flex:none}
+.ktg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.kt{display:grid;gap:2px;text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;color:inherit;cursor:pointer;min-width:0}
+.kt .num{font-size:1.0625rem;overflow:hidden;text-overflow:ellipsis}
+.kocnow{border-color:var(--accent)}
+.kb{overflow-wrap:anywhere}
+.kb p{margin:8px 0 0}
+.kacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.why{margin-top:10px;border-top:1px solid var(--line);padding-top:4px}
+.why summary{font-size:.875rem;color:var(--accent)}
+.why p{font-size:.875rem;color:var(--ink2);margin:6px 0 0}
+.cl{margin:6px 0 0;padding-left:18px;display:grid;gap:8px}
+.kstep{border-bottom:1px solid var(--line)}
+.kstep:last-child{border-bottom:0}
+.kstep>summary{list-style:none;border-bottom:0;font-weight:inherit;padding:11px 0}
+.kstep>summary::-webkit-details-marker{display:none}
+.kstep .t{white-space:normal}
+.kstep>.kb{padding:0 0 12px 46px}
+.kstep.st-done .t{color:var(--ink2)}
+.facts summary{padding:0}
+.facts .res .r>span:first-child{min-width:0}

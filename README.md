@@ -24,6 +24,10 @@ Gezinme (4.4): alt menüde Ana Sayfa, İşlemler, Plan, Analiz, Hesaplar; Ayarla
 
 `debug.keystore` depoda açık olduğundan herkes aynı imzayla APK üretebilir. Kendi anahtarına geçmek için: `keytool -genkeypair -keystore wallet.jks -alias wallet -keyalg RSA -keysize 4096 -validity 20000`, sonra depo ayarlarında (Settings › Secrets and variables › Actions) `WALLET_KEYSTORE_B64` (`base64 -w0 wallet.jks` çıktısı) ve `WALLET_KEYSTORE_PASS` sırlarını ekle. Sonraki APK bu anahtarla imzalanır. İmza değiştiği için eski uygulama bir kez kaldırılıp yenisi kurulur: önce yedek al (bulut yedeği ya da dosya), kurduktan sonra geri yükle. `wallet.jks` dosyasını ve şifresini güvenli bir yerde sakla; kaybolursa sonraki güncellemeler yine kaldır-kur ister.
 
+## Sürüm 4.13
+
+Hesap düzeltmeleri: kredi taksidi ödemesi silinince/geri alınınca faiz kaydı da gider; taksit "Ödendi" yapılınca "bu dönem kalan" artmaz; "Bugüne kopyala" ve "Böl" taksit planına bağlı kalmaz; net servet geçmişi işlenmemiş kart taksitlerini sayar; kategori adı değişince bütçe devri korunur. Testler: `tests/fix413.js`.
+
 ## İşlem türleri ve bakiye
 
 | Tür | Hesaba etkisi | Gelir/gider raporu |

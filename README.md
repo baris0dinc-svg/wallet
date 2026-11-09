@@ -17,6 +17,12 @@ Gezinme (4.4): alt menüde Ana Sayfa, İşlemler, Plan, Analiz, Hesaplar; Ayarla
 - Önbellek sürümü: `sw.js` içindeki `CACHE` adını, dosyalar değişince artırın.
 - Güncelleme: yeni `sw.js` etkinleşince sayfa kendiliğinden yenilenir; kullanıcı o an bir pencere/sayfa açıksa "Yeni sürüm hazır · Yenile" bildirimi çıkar. Üst bardaki yenile düğmesi kurları ve yeni sürümü denetler.
 - APK imzası sabittir (`android-app/debug.keystore`) ve `versionCode` her derlemede artar; yeni APK eskisinin üstüne kurulur, veriler silinmez.
+- Yayınlanan APK hata ayıklamaya kapalıdır (USB ile veri ve WebView okunamaz) ve Google otomatik yedeğine veri vermez (4.13); Android E2E derlemesi `-PwebDebug=true` ile açıktır.
+- Kod biçimi: `src/` Prettier ile biçimlidir (`.prettierrc.json`). Değişiklikten sonra `npm i --no-save prettier@3.3.3 && node tools/format.mjs`, sonra `python3 tools/build.py`. CI `node tools/format.mjs --check` ile denetler.
+
+### Kişisel imza (isteğe bağlı)
+
+`debug.keystore` depoda açık olduğundan herkes aynı imzayla APK üretebilir. Kendi anahtarına geçmek için: `keytool -genkeypair -keystore wallet.jks -alias wallet -keyalg RSA -keysize 4096 -validity 20000`, sonra depo ayarlarında (Settings › Secrets and variables › Actions) `WALLET_KEYSTORE_B64` (`base64 -w0 wallet.jks` çıktısı) ve `WALLET_KEYSTORE_PASS` sırlarını ekle. Sonraki APK bu anahtarla imzalanır. İmza değiştiği için eski uygulama bir kez kaldırılıp yenisi kurulur: önce yedek al (bulut yedeği ya da dosya), kurduktan sonra geri yükle. `wallet.jks` dosyasını ve şifresini güvenli bir yerde sakla; kaybolursa sonraki güncellemeler yine kaldır-kur ister.
 
 ## İşlem türleri ve bakiye
 

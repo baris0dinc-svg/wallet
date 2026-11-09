@@ -14,5 +14,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Kod biçimi (Prettier)
+        run: npm i --no-save prettier@3.3.3 && node tools/format.mjs --check
       - run: npm i --no-save playwright@1.49.1 && npx playwright install --with-deps chromium
       - run: bash tests/run.sh

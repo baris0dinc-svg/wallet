@@ -9,7 +9,7 @@ android {
         targetSdk 34
         // her derlemede artar: yeni APK eskisinin üstüne güncelleme olarak kurulur, veriler korunur
         versionCode 100 + (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
-        versionName '4.12'
+        versionName '4.13'
         // test derlemesi: gradle -PwebDebug=true → WebView uzaktan incelenebilir (emülatör testi için)
         buildConfigField 'boolean', 'WEB_DEBUG', (project.findProperty('webDebug') ?: 'false')
     }
@@ -22,8 +22,24 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // İsteğe bağlı kişisel imza: CI'da WALLET_KEYSTORE_B64 sırrı tanımlıysa APK onunla imzalanır (README › Kişisel imza).
+        // Tanımlı değilse yukarıdaki sabit imza kullanılır; mevcut kurulum aynen güncellenir.
+        own {
+            def ks = System.getenv('WALLET_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('WALLET_KEYSTORE_PASS')
+                keyAlias System.getenv('WALLET_KEY_ALIAS') ?: 'wallet'
+                keyPassword System.getenv('WALLET_KEY_PASS') ?: System.getenv('WALLET_KEYSTORE_PASS')
+            }
+        }
     }
     buildTypes {
-        debug { signingConfig signingConfigs.debug }
+        debug {
+            signingConfig(System.getenv('WALLET_KEYSTORE') ? signingConfigs.own : signingConfigs.debug)
+            // Yayınlanan APK hata ayıklamaya kapalı: USB ile uygulama verisi (run-as) ve WebView (chrome://inspect) okunamaz.
+            // İmza aynı kaldığından eski sürümün üstüne kurulur. Emülatör testi -PwebDebug=true ile açık derler.
+            debuggable((project.findProperty('webDebug') ?: 'false') == 'true')
+        }
     }
 }

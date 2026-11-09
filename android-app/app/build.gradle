@@ -36,7 +36,7 @@ android {
     }
     buildTypes {
         debug {
-            signingConfig System.getenv('WALLET_KEYSTORE') ? signingConfigs.own : signingConfigs.debug
+            signingConfig(System.getenv('WALLET_KEYSTORE') ? signingConfigs.own : signingConfigs.debug)
             // Yayınlanan APK hata ayıklamaya kapalı: USB ile uygulama verisi (run-as) ve WebView (chrome://inspect) okunamaz.
             // İmza aynı kaldığından eski sürümün üstüne kurulur. Emülatör testi -PwebDebug=true ile açık derler.
             debuggable((project.findProperty('webDebug') ?: 'false') == 'true')

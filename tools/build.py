@@ -28,8 +28,11 @@ if '--check' not in sys.argv and html2 != html:
     print('index.html güvenlik politikası güncellendi')
 
 # version.json: uygulamadaki "Güncellemeleri denetle" bu dosyayı önbelleksiz okuyup çalışan sürümle karşılaştırır
-mv = re.search(r"VER='([^']+)'", out)
-vj = os.path.join(root, 'version.json'); vtxt = '{"v":"%s"}\n' % (mv.group(1) if mv else '0')
+mv = re.search(r"VER\s*=\s*['\"](\d+\.\d+)['\"]", out)
+if not mv:
+    # 4.13'te kod yeniden biçimlendirilince sürüm okunamamış, version.json "0" yazılmıştı: artık derleme durur
+    sys.exit('HATA: src/01-core.js içinde VER bulunamadı; version.json yazılmadı')
+vj = os.path.join(root, 'version.json'); vtxt = '{"v":"%s"}\n' % mv.group(1)
 vcur = open(vj, encoding='utf-8').read() if os.path.exists(vj) else ''
 if '--check' in sys.argv and vcur != vtxt:
     sys.exit('version.json güncel değil: python3 tools/build.py çalıştırın')

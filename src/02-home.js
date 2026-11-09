@@ -68,8 +68,10 @@ function compactT(tl){if(maskOn||Math.abs(tl)<1e6)return TRY0.format(tl);return 
 function leftNow(){
   var k=curP(),mt=monthTx(k),inc=sum(mt,'inc'),spent=sum(mt,'exp'),ai=avgMonthly('inc'),hasRI=S.recurring.some(function(r){return r.inc&&recOn(r,k);}),expInc=hasRI?inc+recIncDue(k):Math.max(inc+recIncDue(k),ai||0),t0=todayS(),e=pEnd(k),rec=0;
   var RD=recDue(k);rec=RD.tot;
-  var left=r2(expInc-spent-rec),days=daysLeft(k);
-  return {k:k,inc:inc,expInc:r2(expInc),assumed:expInc>inc+0.5,spent:spent,rec:r2(rec),over:RD.over,left:left,days:days,daily:days>0?left/days:0,ok:expInc>0};
+  /* düzenli ödeme olarak ödenen kredi taksitlerinin anaparası da dönemden çıkar (yoksa "Ödendi" deyince kalan artardı) */
+  var paid=recDebtPaid(k);
+  var left=r2(expInc-spent-paid-rec),days=daysLeft(k);
+  return {k:k,inc:inc,expInc:r2(expInc),assumed:expInc>inc+0.5,spent:spent,paid:paid,rec:r2(rec),over:RD.over,left:left,days:days,daily:days>0?left/days:0,ok:expInc>0};
 }
 /* ana kart: önce net servet (büyük), altında bu dönem kalan ve günlük harcama sınırı */
 function heroCard(W){
@@ -83,7 +85,7 @@ function heroCard(W){
   if(L.ok){
     h+='<p class="mid num'+(L.left<0?' exp':'')+'" id="left-now">'+TRY0.format(L.left)+'</p>';
     h+='<div class="small">'+(L.left>0&&L.days>0?'<b>Günde ~'+TRY0.format(L.daily)+'</b> harcayabilirsin · '+L.days+' gün kaldı':(L.left<0?'<b class="exp">Bu dönem beklenen gelirini '+TRY0.format(-L.left)+' aştın.</b>':(L.days>1?'Bu dönem için harcayabileceğin para kalmadı · '+L.days+' gün kaldı':'Dönemin son günü.')))+'</div>';
-    var p=L.expInc>0?clamp((L.spent+L.rec)/L.expInc*100,0,100):0;
+    var p=L.expInc>0?clamp((L.spent+L.paid+L.rec)/L.expInc*100,0,100):0;
     h+='<div class="bar'+(p>=100?' over':(p>85?' warn':''))+'" style="margin-top:8px"><i style="width:'+p+'%"></i></div>';
     var pe=L.spent;h+='<button class="nwper" data-act="sub" data-v="islem" aria-label="Bu dönemin işlemleri"><span class="pl"><span class="lbl">Gelir</span><b class="num inc">'+compactT(L.inc)+'</b></span><span class="pl"><span class="lbl">Gider</span><b class="num exp">'+compactT(pe)+'</b></span>'+(L.rec>0?'<span class="pl"><span class="lbl">Ödenecek</span><b class="num">'+compactT(L.rec)+'</b></span>':'')+ic('r')+'</button>';
     if(L.over>0)h+='<div class="small exp" style="margin-top:6px">Bunun '+compactT(L.over)+' kadarı gecikmiş ödeme.</div>';

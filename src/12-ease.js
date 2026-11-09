@@ -20,7 +20,7 @@ function favRow(where){
     return '<button class="chip fav '+t.type+'" data-act="'+(where==='sheet'?'fav-fill':'fav-add')+'" data-id="'+i+'"><span class="dot" style="background:'+color(t.cat)+'"></span>'+esc(favLabel(t))+'</button>';}).join('')+'</div></div>';
 }
 ACT['fav-add']=function(el,id){
-  var x=freqTx(6)[+id];if(!x)return;var t=x.t,o={id:uid(),type:t.type,amt:t.amt,acct:t.acct,cat:t.cat,date:todayS(),note:t.note||''};
+  var x=freqTx(6)[+id];if(!x)return;var t=x.t,o={id:uid(),type:t.type,amt:t.amt,acct:t.acct,cat:t.cat,date:todayS(),note:t.note||''};if(t.sub&&subsOf(t.cat).indexOf(t.sub)>=0)o.sub=t.sub;
   S.tx.push(o);ui.month=curP();save();render();
   toast((t.note||t.cat)+' eklendi · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct),function(){S.tx=S.tx.filter(function(z){return z.id!==o.id;});save();render();toast('Geri alındı');});
 };

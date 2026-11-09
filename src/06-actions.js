@@ -473,10 +473,25 @@ var refreshing=false;
 ACT.refresh=function(el){
   if(refreshing)return;refreshing=true;el.classList.add('spin');
   Promise.all([refreshRates({force:true}).then(function(r){return refreshMarket({force:true}).then(function(){return r;},function(){return r;});}),checkUpdate()]).then(function(r){refreshing=false;var b=document.getElementById('rfb');if(b)b.classList.remove('spin');
-    if(r[0].ok){try{snap();}catch(e){}}if(!sheetOpen())render();toast(r[1]?'Yeni sürüm yükleniyor…':(r[0].ok?'Piyasalar güncellendi · '+fmtTs(S.fxTs):r[0].msg));});
+    if(r[0].ok){try{snap();}catch(e){}}if(!sheetOpen())render();
+    if(r[1].newer)toast('Yeni sürüm '+r[1].v+' hazır',function(){hardReload();},'Yenile');else toast(r[0].ok?'Piyasalar güncellendi · '+fmtTs(S.fxTs):r[0].msg);});
 };
-function checkUpdate(){try{if(!('serviceWorker' in navigator))return Promise.resolve(false);return navigator.serviceWorker.getRegistration().then(function(rg){if(!rg)return false;return rg.update().then(function(){return !!(rg.installing||rg.waiting);});}).catch(function(){return false;});}catch(e){return Promise.resolve(false);}}
-ACT['check-upd']=function(){msg('Denetleniyor…',true,'f-upd');checkUpdate().then(function(n){msg(n?'Yeni sürüm bulundu, yükleniyor…':'Uygulama güncel.',true,'f-upd');});};
+/* güncelleme denetimi: sunucudaki version.json (önbelleksiz) çalışan sürümle (VER) karşılaştırılır.
+   Eskiden yalnızca yeni hizmet çalışanı aranıyordu; o arka planda zaten kurulduysa sayfa eski kalsa da "güncel" deniyordu. */
+function verNewer(a,b){a=String(a).split('.').map(Number);b=String(b).split('.').map(Number);for(var i=0;i<Math.max(a.length,b.length);i++){var x=a[i]||0,y=b[i]||0;if(x!==y)return x>y;}return false;}
+function latestVer(){try{return fetch('version.json?t='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).then(function(j){return j&&j.v?String(j.v):null;}).catch(function(){return null;});}catch(e){return Promise.resolve(null);}}
+function swUpdate(){try{if(!('serviceWorker' in navigator))return Promise.resolve();return navigator.serviceWorker.getRegistration().then(function(rg){return rg&&rg.update();}).catch(function(){});}catch(e){return Promise.resolve();}}
+function checkUpdate(){return latestVer().then(function(v){var n=!!v&&verNewer(v,VER);if(n)swUpdate();return {v:v,newer:n};});}
+/* eski dosyaları önbellekten atıp yeniden yükle: yeni sürüm sunucudan gelir */
+function hardReload(){try{if(ui.page&&ui.page.k==='note')saveNote();flushNative();}catch(e){}var go=function(){location.reload();};
+  swUpdate().then(function(){return window.caches?caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k);}));}):null;}).then(go,go);}
+ACT['check-upd']=function(){msg('Denetleniyor…',true,'f-upd');checkUpdate().then(function(r){
+  if(!r.v){msg('Sunucuya ulaşılamadı. İnternet bağlantını kontrol edip tekrar dene. (Şu anki sürüm '+VER+')',false,'f-upd');return;}
+  if(r.newer){msg('Yeni sürüm '+r.v+' bulundu, yükleniyor…',true,'f-upd');setTimeout(hardReload,600);}
+  else msg('Uygulama güncel · sürüm '+VER,true,'f-upd');});};
+/* açılışta ve uygulamaya dönünce sessiz denetim: yeni sürüm varsa Yenile düğmesi */
+var UPDT=0;function autoUpd(){if(Date.now()-UPDT<30*60000)return;UPDT=Date.now();checkUpdate().then(function(r){if(r.newer)toast('Yeni sürüm '+r.v+' hazır',function(){hardReload();},'Yenile');});}
+setTimeout(autoUpd,4000);document.addEventListener('visibilitychange',function(){if(!document.hidden)setTimeout(autoUpd,1500);});
 
 /* ---------- bildirim ve hatırlatıcı ---------- */
 ACT['notif-ask']=function(){if(nb('askNotif')){try{NB.askNotif();}catch(e){}return;}try{Notification.requestPermission().then(function(){render();});}catch(e){}};

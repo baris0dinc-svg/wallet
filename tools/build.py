@@ -27,6 +27,15 @@ if '--check' not in sys.argv and html2 != html:
     open(ip, 'w', encoding='utf-8').write(html2)
     print('index.html güvenlik politikası güncellendi')
 
+# version.json: uygulamadaki "Güncellemeleri denetle" bu dosyayı önbelleksiz okuyup çalışan sürümle karşılaştırır
+mv = re.search(r"VER='([^']+)'", out)
+vj = os.path.join(root, 'version.json'); vtxt = '{"v":"%s"}\n' % (mv.group(1) if mv else '0')
+vcur = open(vj, encoding='utf-8').read() if os.path.exists(vj) else ''
+if '--check' in sys.argv and vcur != vtxt:
+    sys.exit('version.json güncel değil: python3 tools/build.py çalıştırın')
+if '--check' not in sys.argv and vcur != vtxt:
+    open(vj, 'w', encoding='utf-8').write(vtxt)
+
 if '--check' in sys.argv:
     cur = open(target, encoding='utf-8').read() if os.path.exists(target) else ''
     if cur != out:

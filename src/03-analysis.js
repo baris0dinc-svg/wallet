@@ -1,7 +1,7 @@
 
 /* ---------- Analiz ---------- */
 function pstat(k){var m=monthTx(k),inc=sum(m,'inc'),exp=sum(m,'exp');return {k:k,inc:inc,exp:exp,net:r2(inc-exp),rate:inc>0?(inc-exp)/inc*100:null,debt:sumMv(m,'dbt','out'),inv:r2(sumMv(m,'inv','buy')-sumMv(m,'inv','sell'))};}
-function prevKs(k,n){var a=[];for(var i=1;i<=n;i++)a.push(addMonth(k,-i));return a;}
+function prevKs(k,n){var a=[],st=dataStart();for(var i=1;i<=n;i++){var p=addMonth(k,-i);if(st&&p<st)break;a.push(p);}return a;}
 function health(){
   var W=wealth(),ae=avgMonthly('exp'),cur=curP(),parts=[];
   var ks=monthBase().ks.slice(0,3).filter(function(k){return sum(monthTx(k),'inc')>0;});if(!ks.length&&sum(monthTx(cur),'inc')>0)ks=[cur];
@@ -27,7 +27,7 @@ function flowCard(){
   if(!(s.inc>0)&&!(s.exp>0))return '<div class="card"><h2>Nakit akışı</h2><p class="small muted" style="margin:0 0 10px">'+(isCur?'Bu dönemde':'Bu dönemde hiç')+' gelir ya da gider kaydı yok. İşlem ekledikçe gelir, gider, tasarruf oranı ve dönem sonu tahmini burada görünür.</p>'+(isCur?'<button class="btn small" data-act="new-tx">İşlem ekle</button>':'')+'</div>';
   var rows=[['Gelir',DC0.format(s.inc)+(pv.inc>0?' <span class="small '+(s.inc>=pv.inc?'inc':'exp')+'">'+(s.inc>=pv.inc?'▲':'▼')+'%'+Math.round(Math.abs((s.inc-pv.inc)/pv.inc*100))+'</span>':'')],
     ['Gider',DC0.format(s.exp)+(pv.exp>0?' <span class="small '+(s.exp<=pv.exp?'inc':'exp')+'">'+(s.exp>=pv.exp?'▲':'▼')+'%'+Math.round(Math.abs((s.exp-pv.exp)/pv.exp*100))+'</span>':'')],
-    ['Fark (gelir − gider)',sgnD(s.net),1],
+    ['Fark (gelir − gider)',sgnD(s.net),s.net<0?'neg':1],
     ['Tasarruf oranı',s.rate==null?'—':(s.rate<0?'−':'')+'%'+NUM1.format(Math.abs(s.rate))],
     ['Günlük ortalama gider',DC0.format(s.exp/el)]];
   if(isCur&&s.exp>0){var F=forecast();rows.push(['Dönem sonu gider tahmini',DC0.format(F.exp)]);if(F.recLeft>0)rows.push(['Tahmindeki kalan düzenli ödemeler',DC0.format(F.recLeft)]);}

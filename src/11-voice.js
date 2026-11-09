@@ -40,13 +40,18 @@ function voiceAccts(n){var out=[];ACCS().forEach(function(a){var f=fold(a).trim(
   if(!out.length){var ty={nakit:/nakit|cuzdan|cebimden/,kart:/kredi karti|kartla|karttan|kartimdan/,banka:/bankadan|hesabimdan/};Object.keys(ty).forEach(function(t){var m=n.match(ty[t]);if(m){var a=ACCS().filter(function(x){return acctType(x)===t&&!ax(x).arch;})[0];if(a)out.push({a:a,i:m.index,l:3});}});}
   return out.sort(function(x,y){return x.i-y.i||y.l-x.l;}).filter(function(x,i,arr){return arr.findIndex(function(z){return z.a===x.a;})===i;});}
 function voiceParse(text){
-  var n=fold(text||''),trf=/\btransfer|aktar|gonder|yatir(dim|)\b.*\b(hesab|kart)|\b(e|a|ye|ya) (para )?(gecir|at)/.test(n)&&!/maas|gelir/.test(n),type=trf?'trf':(VINC.test(n)?'inc':'exp'),amt=voiceAmt(text||'');
-  var l=type==='inc'?INCC():EXPC(),cat=type==='trf'?'Transfer':(l.filter(function(c){var f=fold(c);return f.length>2&&n.indexOf(f.slice(0,Math.max(4,f.length-2)))>-1;})[0]||smsCat(text||'',type));
+  var n=fold(text||''),atm=/\b(para )?cektim\b|atm(den)?\b|bankamatik/.test(n),trf=atm||(/\btransfer|aktar|gonder|yatir(dim|)\b.*\b(hesab|kart)|\b(e|a|ye|ya) (para )?(gecir|at)/.test(n)&&!/maas|gelir/.test(n)),type=trf?'trf':(VINC.test(n)?'inc':'exp'),amt=voiceAmt(text||'');
+  /* kategori aranırken hesap sözleri çıkarılır ("kredi kartından" Kredi kategorisi sanılmasın) */
+  var nc=n.replace(/kredi kart\w*|kart(tan|la|imdan|ımdan)\b|nakit\w*|banka\w*|hesab\w*|cuzdan\w*/g,' ');voiceAccts(n).forEach(function(x){var f=fold(x.a).trim();if(f.length>=3)nc=nc.split(f.length>5?f.slice(0,f.length-1):f).join(' ');});
+  var l=type==='inc'?INCC():EXPC(),cat=type==='trf'?'Transfer':(l.filter(function(c){var f=fold(c);return f.length>2&&nc.indexOf(f.slice(0,Math.max(4,f.length-2)))>-1;})[0]||smsCat(nc,type));
   /* tarih: dün, evvelsi gün / önceki gün */
   var dt=null,d0=today0();if(/\b(evvelsi gun|onceki gun|dunden once)\b/.test(n)){d0.setDate(d0.getDate()-2);dt=isoDate(d0);}else if(/\bdun\b/.test(n)){d0.setDate(d0.getDate()-1);dt=isoDate(d0);}
+  else{/* "geçen cuma", "salı günü": en yakın geçmiş gün */var WD=['pazar','pazartesi','sali','carsamba','persembe','cuma','cumartesi'],wm=n.match(/\b(gecen )?(pazartesi|sali|carsamba|persembe|cumartesi|cuma|pazar)\b( gunu)?/);
+    if(wm&&(wm[1]||wm[3])){var w=WD.indexOf(wm[2]),back=(d0.getDay()-w+7)%7;if(back===0)back=7;d0.setDate(d0.getDate()-back);dt=isoDate(d0);}}
   /* para birimi: "20 dolar netflix" → dolar hesabı varsa o, yoksa TL karşılığı */
   var cc=/\b(dolar|usd)\b/.test(n)?'USD':(/\b(euro|avro|eur)\b/.test(n)?'EUR':(/\b(sterlin|gbp)\b/.test(n)?'GBP':'')),acs=voiceAccts(n),acct=acs.length?acs[0].a:null,to=null;
-  if(type==='trf'){acct=acs[0]?acs[0].a:null;to=acs[1]?acs[1].a:null;}
+  if(type==='trf'){acct=acs[0]?acs[0].a:null;to=acs[1]?acs[1].a:null;
+    /* bankadan para çekmek: bankadan nakite transfer */if(atm){var na=ACCS().filter(function(x){return acctType(x)==='nakit'&&!ax(x).arch;})[0];if(!acct||acct===na){var bk=ACCS().filter(function(x){return acctType(x)==='banka'&&!ax(x).arch;})[0];acct=bk||acct;}if(!to&&na&&na!==acct)to=na;}}
   var fxNote='';if(cc&&amt>0){var fa=ACCS().filter(function(a){return ccyOf(a)===cc&&!ax(a).arch;})[0];if(!acct||ccyOf(acct)!==cc){if(fa&&type!=='trf')acct=fa;else if(rateOf(cc)>0){fxNote=' ('+NUM2.format(amt)+' '+CCYS_SHORT[cc]+')';amt=r2(amt*rateOf(cc));}}}
   var note=String(text||'').trim();note=note.charAt(0).toLocaleUpperCase('tr-TR')+note.slice(1);
   return {type:type,amt:amt,cat:cat,note:(note+fxNote).slice(0,80),date:dt,acct:acct,to:to};

@@ -25,7 +25,7 @@ function aiSummary(){
     if(tot>0){L.push('','Yatırım dağılımı:');Object.keys(by).sort(function(a,b){return by[b]-by[a];}).forEach(function(k){L.push('- '+k+': %'+Math.round(by[k]/tot*100)+' ('+T0(by[k])+')');});}
     var ds=S.debts.filter(function(d){return debtLeft(d)>0;});
     if(ds.length){L.push('','Borçlar:');ds.forEach(function(d){L.push('- '+d.type+': kalan '+T0(debtLeft(d))+' (toplam '+T0(d.amt)+')');});}
-    if(S.recurring.length){var rt=S.recurring.reduce(function(a,r){return a+toTL(+r.amt||0,r.acct);},0);L.push('','Düzenli ödemeler: '+S.recurring.length+' kalem, aylık yaklaşık '+T0(rt));}
+    if(S.recurring.length){var rt=recMonthlyTot(),ri=S.recurring.filter(function(r){return r.inc;}).reduce(function(a,r){return a+recMonthly(r);},0);L.push('','Düzenli ödemeler: '+S.recurring.filter(function(r){return !r.inc;}).length+' kalem, aylık yaklaşık '+T0(rt)+(ri>0?'; düzenli gelir aylık '+T0(ri):''));}
     if(S.goals.length){L.push('','Hedefler:');S.goals.forEach(function(x){L.push('- '+x.name+': '+T0(goalSaved(x))+' / '+T0(x.target)+(x.date?' (hedef tarih '+x.date+')':''));});}
     var H=health(),hp=H.parts.filter(function(p){return p.p!=null;});if(hp.length)L.push('','Göstergeler: '+hp.map(function(p){return p.k.toLocaleLowerCase('tr-TR')+' '+p.v;}).join(', ')+'.');
     try{var cl=coachSteps(),ci=coachCur(cl);if(ci>=0)L.push('','Wallet koçunun sıradaki adımı: '+cl[ci].t+' ('+String(cl[ci].sum).replace(/<[^>]*>/g,'')+')');}catch(e){}

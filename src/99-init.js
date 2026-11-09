@@ -3,8 +3,9 @@ document.getElementById('fab').innerHTML=ic('plus');
 try{if('scrollRestoration' in history)history.scrollRestoration='manual';}catch(e){}
 purgeTrash();
 try{autoPost();}catch(e){}
+var H0=(location.hash||'').slice(1);
 restoreUi();
-try{var h0=(location.hash||'').slice(1);if(TABH[h0]){ui.page=null;ui.sub=TABH[h0];}}catch(e){}
+try{if(TABH[H0]){ui.page=null;ui.sub=TABH[H0];persistUi();}}catch(e){}
 try{var lu=+localStorage.getItem('wallet-lock')||0;if(lu>Date.now())ui.lockUntil=lu;}catch(e){}
 render();
 if(ui.locked)setTimeout(askBio,400);

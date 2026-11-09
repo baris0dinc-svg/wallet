@@ -53,7 +53,7 @@ function coachData(){
   var n=ks.length;inc=n?r2(inc/n):0;exp=n?r2(exp/n):0;
   var incN=ks.filter(function(k){return sum(monthTx(k),'inc')>0;}).length;
   var surplus=r2(inc-exp),sr=inc>0?surplus/inc*100:null;
-  var eg=emGoal(),em=eg?goalSaved(eg):Math.max(W.g.liquid,0),emM=exp>0?em/exp:null;
+  var eg=emGoal(),em=eg?goalSaved(eg):Math.max(W.g.liquid,0),aex=avgMonthly('exp'),emM=aex>0?em/aex:null;
   /* vadesiz TL: nakit ve banka türü TL hesaplardaki artı bakiyeler (birikim hesapları faizli sayılır) */
   var vad=0,buck={tl:0,fx:0,gold:0,eq:0,fon:0,kripto:0,bes:0,diger:0};
   ACCS().forEach(function(a){var b=acctBal(a),t=acctType(a),c=ccyOf(a);if(b<=0||t==='kart')return;var tl=toTL(b,a);
@@ -103,7 +103,7 @@ function coachSteps(){
   (function(){var s={id:'borc',t:'Pahalı borçları kapat'},lines=[],now=false,need=[];
     D.cards.forEach(function(c){var r=c.rate[1],mpP=c.mp,mpA=mpP!=null?c.debt*mpP/100:null,left=mpA!=null?c.debt-mpA:c.debt*0.8,intr=left*r/100;
       var cover=D.liquid>=c.debt;if(!cover)now=true;
-      lines.push('<li><b>'+esc(c.a)+'</b>: borç '+T(c.debt)+'. '+(mpP!=null?'Asgari ödeme dönem borcunun %'+mpP+'’i ('+T(mpA)+'). ':'Kart limiti girilmediği için asgari ödeme %'+FACTS.minpay.lo+' varsayıldı (limit ₺'+NUM1.format(FACTS.minpay.lim/1000)+' binin üstündeyse %'+FACTS.minpay.hi+'). ')+'Yalnızca asgariyi ödersen kalan '+T(left)+' için ayda yaklaşık <b>'+T(intr)+'</b> faiz işler (yasal üst sınır aylık '+fPct(r,1)+').'+(cover?' Nakit ve banka bakiyen ('+T(D.liquid)+') borcun tamamını karşılıyor: son ödeme gününde tamamını öde.':' <b class="exp">Nakit ve banka bakiyen ('+T(D.liquid)+') borcu karşılamıyor.</b>')+'</li>');});
+      lines.push('<li><b>'+esc(c.a)+'</b>: borç '+T(c.debt)+'. '+(mpP!=null?'Asgari ödeme dönem borcunun %'+mpP+sfx(mpP)+' ('+T(mpA)+'). ':'Kart limiti girilmediği için asgari ödeme %'+FACTS.minpay.lo+' varsayıldı (limit ₺'+NUM1.format(FACTS.minpay.lim/1000)+' binin üstündeyse %'+FACTS.minpay.hi+'). ')+'Yalnızca asgariyi ödersen kalan '+T(left)+' için ayda yaklaşık <b>'+T(intr)+'</b> faiz işler (yasal üst sınır aylık '+fPct(r,1)+').'+(cover?' Nakit ve banka bakiyen ('+T(D.liquid)+') borcun tamamını karşılıyor: son ödeme gününde tamamını öde.':' <b class="exp">Nakit ve banka bakiyen ('+T(D.liquid)+') borcu karşılamıyor.</b>')+'</li>');});
     var hi=D.debts.filter(function(x){return x.rate!=null&&x.ann>I;}).sort(function(a,b){return b.rate-a.rate;}),lo=D.debts.filter(function(x){return x.rate!=null&&x.ann<=I;});
     hi.forEach(function(x,i){now=true;var P=Math.max(S0,0)+x.inst,n=P>0?payoffMonths(x.left,x.rate/100,P):Infinity,it=isFinite(n)?payoffInterest(x.left,x.rate/100,P):null;
       lines.push('<li>'+(i===0&&hi.length>1?'<b>Önce bu:</b> ':'')+'<b>'+esc(x.d.name)+'</b>: kalan '+T(x.left)+', aylık faiz '+fPct(x.rate,1)+' (yıllık bileşik '+fPct(x.ann)+'; enflasyon '+fPct(I,1)+'). '+(isFinite(n)?(x.inst>0?'Taksitin ('+T(x.inst)+') ve aylık fazlan':'Aylık fazlan')+' ('+T(P)+') ile yaklaşık <b>'+n+' ayda</b> kapanır, toplam faiz ~'+T(it)+'.':(P>0?'Ayda '+T(P)+' ödeme faizi ('+T(x.left*x.rate/100)+') bile karşılamıyor.':'Aylık fazlan olmadığı için erken kapatma planı yapılamıyor.'))+'</li>');});

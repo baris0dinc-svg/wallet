@@ -43,7 +43,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   ok('yerel köprü işlevleri',/saveData/.test(br)&&/schedule/.test(br)&&/smsQueue/.test(br)&&/shareFile/.test(br)&&/http/.test(br)&&/webText/.test(br)&&/ntfState/.test(br)&&/shareText/.test(br)&&/copyText/.test(br)&&/openUrl/.test(br)&&/splashDone/.test(br)&&/voiceOk/.test(br),br);
   // 1 veri kaydı ve yerel kopya
   await ev(ACTJS+'act("sample-clear");return 1');await sleep(500);
-  await ev(ACTJS+'act("qa-exp");setv("f-amt","123,45");document.querySelector(".sheet [data-act=\\"save-tx\\"]").click();return 1');await sleep(800);
+  await ev(ACTJS+'act("qa-exp");setv("f-amt","123,45");const sb=()=>document.querySelector(".sheet [data-act=\\"save-tx\\"]");sb().click();await new Promise(r=>setTimeout(r,300));if(sb())sb().click();return 1');await sleep(800);
   let d=await data();const has=x=>x&&x.tx&&x.tx.some(t=>t.amt===123.45);
   ok('işlem kaydedildi',has(d),d&&d.tx&&d.tx.length);
   const nat=await ev('return AndroidBridge.loadData()');ok('uygulama içi kopya yazıldı',/123\.45/.test(nat||''));
@@ -66,7 +66,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
    for(const i of [1,2,3,4])console.log('ℹ AÇILIŞ'+i+'PNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/sp'+i+'.png')).toString('base64'));
    ok('açılıştan sonra bağlanıldı',await connect());}
   // yeni yapı: alt menü, ana sayfa kartları, sesle ekleme düğmesi (telefonda ses tanıma varsa)
-  {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,left:!!document.querySelector("#left-now"),gear:!!document.querySelector("header [data-act=open-settings]"),add:!!document.querySelector(".addmain"),voice:!!document.querySelector(".addvoice"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
+  {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,left:!!document.querySelector("#left-now"),gear:!!document.querySelector("header [data-act=open-settings]"),add:!!document.querySelector("#qa [data-act=qa-exp]"),voice:!!document.querySelector("header [data-act=voice]"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
    console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===5&&j.left&&j.gear&&j.add,h);ok('sesle ekle düğmesi ses tanıma durumuna uyuyor',j.voice===(j.vok==='ok'),h);
    sh('adb shell screencap -p /sdcard/home.png');sh('adb pull /sdcard/home.png /tmp/home.png');try{console.log('ℹ ANASAYFAPNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/home.png')).toString('base64'));}catch(e){}}
   // 3 WebView deposu silinirse yerel kopyadan döner
@@ -161,7 +161,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
    await ev(ACTJS+'act("close");return 1');
    ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1000);sh('adb shell am start -a android.intent.action.VIEW -d wallet:inc -n '+ACT);await sleep(5000);
    ok('kısayoldan açılışta bağlanıldı',await connect());ok('soğuk açılışta Gelir kısayolu',await sheet()==='inc');await ev(ACTJS+'act("close");return 1');}
-  await ev(ACTJS+'act("open-set","veri");await new Promise(r=>setTimeout(r,300));const b=document.querySelector("[data-act=\\"reset-all\\"]");b.click();b.click();await new Promise(r=>setTimeout(r,1500));return 1');
+  await ev(ACTJS+'act("open-set","veri");await new Promise(r=>setTimeout(r,300));document.querySelector("[data-act=\\"reset-all\\"]").click();await new Promise(r=>setTimeout(r,300));document.getElementById("wipe-c").value="SİL";document.querySelector("[data-act=\\"reset-go\\"]").click();await new Promise(r=>setTimeout(r,1500));return 1');
   d=await data();const dl2=sh('adb shell ls /sdcard/Download/Wallet/');const nat2=await ev('return AndroidBridge.loadData()');
   ok('tüm veriler silindi',d.tx&&d.tx.length===0&&!d.pin&&!/123\.45/.test(nat2||''),d.tx&&d.tx.length);
   ok('otomatik yedek dosyası da silindi',!/Wallet-otomatik-yedek\.json/.test(dl2),dl2.trim());

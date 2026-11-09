@@ -15,9 +15,10 @@ sys.path.insert(0, HERE)
 from wordmark import wordmark  # noqa: E402
 
 # ---- marka: renkler ve yazı ----
-BG = '#131315'                      # açılış ekranı düz zemin (Android 12 yalnızca düz renk kabul eder)
-BG_HI, BG_LO = '#2A2B30', '#08080A'  # simge ve web açılışındaki ışık / köşe tonları
-GOLD = ['#FFFFFF', '#D9DCE2', '#9CA2AD', '#E9EBEF']   # platin geçişi (sol üstten sağ alta)
+# 4.16: uygulamanın arayüz rengi (yeşil, style.css --accent #0E6B58) ile aynı; logo beyazdan nane yeşiline
+BG = '#0E6B58'                      # açılış ekranı düz zemin (Android 12 yalnızca düz renk kabul eder)
+BG_HI, BG_LO = '#1C8C73', '#07443A'  # simge ve web açılışındaki ışık / köşe tonları
+GOLD = ['#FFFFFF', '#E3F6EE', '#A9DEC9', '#F2FBF7']   # logo geçişi (sol üstten sağ alta)
 GOLD_OFF = [0, .45, .75, 1]
 FONT = '/usr/share/fonts/truetype/google-fonts/Poppins-Medium.ttf'
 WORD, WORD_TRACK = 'WALLET', .42

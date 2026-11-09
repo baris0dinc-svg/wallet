@@ -53,18 +53,18 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   const files=sh('adb shell run-as '+PKG+' ls files');ok('veri dosyası cihazda',/wallet-data\.json/.test(files),files.trim());
   // 2 kapatıp açma
   ok('yeniden başlatıldı',await restart());d=await data();ok('kapatıp açınca veri duruyor',has(d));
-  // açılış ekranı: soğuk açılışta beyaz/gri yanıp sönme yok, logo lacivert zeminde, sonra uygulama renkleri
+  // açılış ekranı: soğuk açılışta beyaz/gri yanıp sönme yok, logo uygulamanın yeşil zemininde (4.16), sonra uygulama renkleri
   {ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1500);
    sh('adb shell "rm -f /sdcard/sp*.png; am start -n '+ACT+'; sleep 0.5; screencap -p /sdcard/sp1.png; sleep 0.3; screencap -p /sdcard/sp2.png; sleep 0.3; screencap -p /sdcard/sp3.png; sleep 4; screencap -p /sdcard/sp4.png"');
    const shots=[1,2,3,4].map(i=>{sh('adb pull /sdcard/sp'+i+'.png /tmp/sp'+i+'.png');try{return png(require('fs').readFileSync('/tmp/sp'+i+'.png'));}catch(e){return null;}});
-   const navy=c=>c&&c[0]<45&&c[1]<55&&c[2]<80&&c[2]>=c[0],light=c=>c&&c[0]>200&&c[1]>200&&c[2]>200,gold=c=>c&&c[0]+c[1]+c[2]>420;
+   const navy=c=>c&&c[0]<60&&c[1]>70&&c[1]<170&&c[2]>50&&c[2]<140&&c[1]>c[0]+40,light=c=>c&&c[0]>200&&c[1]>200&&c[2]>200,gold=c=>c&&c[0]+c[1]+c[2]>420;
    const desc=im=>im?JSON.stringify({ust:im.at(im.w/2,8),orta:im.at(20,im.h/2),alt:im.at(im.w/2,im.h-8)}):'yok';
    shots.forEach((im,i)=>console.log('ℹ açılış '+(i+1)+': '+desc(im)));
    // emülatörde ekran görüntüsü bazen saniyeler sürer; ilk kare açılışı yakalar, sonrakiler uygulamayı gösterebilir
    const early=shots.slice(0,1).filter(Boolean);
    ok('açılışta beyaz/gri ekran yanıp sönmedi',early.length===1&&early.every(im=>navy(im.at(20,im.h/2))&&navy(im.at(im.w/2,8))),early.map(desc).join(' | '));
    const hasGold=im=>{if(!im)return false;for(let y=im.h*0.35;y<im.h*0.6;y+=3)for(let x=im.w*0.25;x<im.w*0.75;x+=3)if(gold(im.at(x,y)))return true;return false;};
-   ok('açılışta platin logo görünüyor',hasGold(shots[0])||hasGold(shots[1]));
+   ok('açılışta logo görünüyor',hasGold(shots[0])||hasGold(shots[1]));
    ok('açılıştan sonra uygulama ve açık renk çubuklar',shots[3]&&light(shots[3].at(shots[3].w/2,8))&&light(shots[3].at(20,shots[3].h/2)),desc(shots[3]));
    for(const i of [1,2,3,4])console.log('ℹ AÇILIŞ'+i+'PNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/sp'+i+'.png')).toString('base64'));
    ok('açılıştan sonra bağlanıldı',await connect());}

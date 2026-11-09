@@ -39,7 +39,7 @@ const out=await p.evaluate(async()=>{
  // 5 sil + geri al
  const before=JSON.stringify(T.S.tx.find(t=>t.id==='a'));T.ACT['del-tx'](null,'a');ok(!T.S.tx.some(t=>t.id==='a'),'silinmedi');
  const tEl=document.getElementById('toast');ok(tEl&&!tEl.hidden&&/Geri al/.test(tEl.innerText),'toast yok');
- T.ACT.undo();ok(JSON.stringify(T.S.tx.find(t=>t.id==='a'))===before,'geri al aynı değil');ok(T.S.tx.length===4,'geri al sayı '+T.S.tx.length);
+ T.ACT.undo();const nots=x=>{const o=JSON.parse(x);delete o.ts;return JSON.stringify(o);};ok(nots(JSON.stringify(T.S.tx.find(t=>t.id==='a')))===nots(before),'geri al aynı değil');ok(T.S.tx.length===4,'geri al sayı '+T.S.tx.length);
  // 6 kopyala
  const n0=T.S.tx.length;T.ACT['dup-tx'](null,'b');ok(T.S.tx.length===n0+1,'kopyalanmadı');const cp=T.S.tx[T.S.tx.length-1];ok(cp.amt===900&&cp.cat==='Eğlence'&&cp.date===d&&cp.id!=='b','kopya alanları');
  // 7 hesaplayıcılar: NaN/Infinity yok

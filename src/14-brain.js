@@ -88,12 +88,17 @@ function dupTx(){
   return out;
 }
 /* ---- 3. dönem sonu tahmini ---- */
+/* hıza katılmayan giderler: kira, fatura, aidat gibi ayda bir ödenenler ve tek seferlik büyük kalemler
+   (dönemin olağan giderinin dörtte biri ve üstü) — bunlar zaten ödendi, dönemin kalanına yayılmaz */
+var FIXC=/^(kira|fatura|aidat|egitim|okul|sigorta|vergi|abonelik|kredi|taksit|kasko|mtv|emlak)/;
+function lumpy(t,big){return FIXC.test(fold(t.cat||''))||(big>0&&txTL(t)>=big);}
 function forecast(){
   var k=curP(),s=pStart(k),e=pEnd(k),t0=todayS(),days=pDays(k),el=Math.min(days,Math.max(1,daysBetween(s,t0)+1)),rem=days-el,pid=recPaidIds();
-  var mt=monthTx(k),spent=sum(mt,'exp'),inc=sum(mt,'inc'),varNow=0;mt.forEach(function(t){if(t.type==='exp'&&!pid[t.id])varNow+=txTL(t);});
-  var hist=prevKs(k,3).map(function(p){var v=0;monthTx(p).forEach(function(t){if(t.type==='exp'&&!pid[t.id])v+=txTL(t);});return v>0?v/pDays(p):null;}).filter(function(x){return x!=null;});
+  var big=avgMonthly('exp')*0.25;
+  var mt=monthTx(k),spent=sum(mt,'exp'),inc=sum(mt,'inc'),varNow=0;mt.forEach(function(t){if(t.type==='exp'&&!pid[t.id]&&!lumpy(t,big))varNow+=txTL(t);});
+  var hist=monthBase().ks.slice(0,3).map(function(p){var v=0;monthTx(p).forEach(function(t){if(t.type==='exp'&&!pid[t.id]&&!lumpy(t,big))v+=txTL(t);});return v>0?v/pDays(p):null;}).filter(function(x){return x!=null;});
   var hRate=hist.length?median(hist):null,cRate=varNow/el,w=Math.min(1,el/days*1.5),rate=hRate==null?cRate:(cRate*w+hRate*(1-w));
-  var recLeft=0;S.recurring.forEach(function(r){if(recPaid(r,k))return;var d=dueDate(r,k);if(d>=t0&&d<=e)recLeft+=toTL(+r.amt||0,r.acct);});
+  var recLeft=recDue(k).tot;
   var exp=r2(spent+rate*rem+recLeft),ai=avgMonthly('inc'),expInc=Math.max(inc,ai||0);
   return {spent:spent,exp:exp,recLeft:r2(recLeft),rate:rate,rem:rem,inc:inc,expInc:r2(expInc),incAssumed:expInc>inc+1,net:r2(expInc-exp),hist:hist.length};
 }
@@ -101,7 +106,9 @@ function forecast(){
 function budgetPace(){
   var k=curP(),s=pStart(k),e=pEnd(k),t0=todayS(),days=pDays(k),el=Math.max(1,daysBetween(s,t0)+1),sp=spentByCat(k),out=[];
   if(el<3||el>=days)return out;
-  EXPC().forEach(function(c){var b=+S.budgets[c];if(!(b>0))return;var v=sp[c]||0;if(v>=b||v<b*0.25)return;var rate=v/el,need=(b-v)/rate;if(el+need>=days)return;
+  /* ayda bir ödenen kategoriler (kira, fatura…) ve 3'ten az işlemli kategoriler için hız tahmini yapılmaz */
+  var cnt={};monthTx(k).forEach(function(t){if(t.type==='exp')cnt[t.cat]=(cnt[t.cat]||0)+1;});
+  EXPC().forEach(function(c){var b=+S.budgets[c];if(!(b>0)||FIXC.test(fold(c))||(cnt[c]||0)<3)return;var v=sp[c]||0;if(v>=b||v<b*0.25)return;var rate=v/el,need=(b-v)/rate;if(el+need>=days)return;
     var d=pdate(t0);d.setDate(d.getDate()+Math.ceil(need));out.push({key:'pace:'+c+':'+k,c:c,date:isoDate(d),left:b-v});});
   return out;
 }

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.6';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.7';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -224,7 +224,7 @@ var TXV=0,storeWarned=false,planT=null,bkT=null,NSJ=null,NST=null;
 function flushNative(){clearTimeout(NST);NST=null;var j=NSJ;NSJ=null;if(j&&nb('saveData')){try{NB.saveData(j);}catch(e){}}}
 document.addEventListener('visibilitychange',function(){if(document.hidden)flushNative();});
 window.addEventListener('pagehide',flushNative);
-function save(){
+function save(){var ts0=Date.now();S.tx.forEach(function(t){if(!t.ts)t.ts=ts0;});
   TXV++;S.savedAt=Date.now();
   try{stampFx();}catch(e){}
   var j;try{j=JSON.stringify(S);}catch(e){return;}
@@ -349,6 +349,10 @@ function wealth(){
 }
 /* maaş günü değişince dönemler kayar: ödendi işaretleri bağlı işlemin yeni dönemine taşınır */
 function remapPaid(){S.recurring.forEach(function(r){if(!r.paid)return;var n={};Object.keys(r.paid).forEach(function(k){var t=byId(S.tx,r.paid[k]);if(t)n[pk(t.date)]=t.id;});r.paid=n;});}
+/* dönemde ödenmemiş düzenli ödemeler (gecikmişler dahil): ana kart, tahmin ve Plan › Düzenli aynı sayıyı kullanır */
+/* işlem sırası: tarih, sonra aynı gün içinde en son eklenen üstte */
+function txCmp(a,b){return b.date<a.date?-1:b.date>a.date?1:((b.ts||0)-(a.ts||0))||(b.id>a.id?1:-1);}
+function recDue(k,from){var t0=from||'',tot=0,over=0;S.recurring.forEach(function(r){if(r.inc||recPaid(r,k))return;var d=dueDate(r,k);if(d<t0)return;var v=toTL(+r.amt||0,r.acct);tot+=v;if(d<todayS())over+=v;});return {tot:r2(tot),over:r2(over)};}
 function recPaid(r,k){var id=r.paid&&r.paid[k];return !!id&&S.tx.some(function(t){return t.id===id;});}
 /* bir tarihteki net servet: hesaplar o güne kadarki hareketlerden, yatırımlar bugünkü değerinden, borçlar o güne kadarki ödemelerden */
 function nwAt(D){
@@ -390,21 +394,33 @@ function nwSeries(){
   var v=Object.keys(pts).sort().map(function(k){return [k,pts[k].v,pts[k].e];});
   NWC={k:key,v:v};return v;
 }
+/* net servetin tam "days" gün önceki değerine göre değişimi; kayıtlar daha yeniyse ilk kayıttan beri (since) */
 function histChange(days){
   var s=nwSeries();if(s.length<2)return null;
-  var last=s[s.length-1],from=pdate(last[0]);from.setDate(from.getDate()-days);var fk=isoDate(from),base=null;
-  for(var i=s.length-2;i>=0;i--){if(s[i][0]<=fk){base=s[i];break;}}
-  if(!base)base=s[0];if(base===last)return null;
-  var a=base[1],b=last[1];return {d:r2(b-a),p:Math.abs(a)>0.5?(b-a)/Math.abs(a)*100:null,days:daysBetween(base[0],last[0])};
+  var last=s[s.length-1],from=pdate(last[0]);from.setDate(from.getDate()-days);var fk=isoDate(from),a;
+  if(s[0][0]>fk){if(s[0]===last)return null;a=s[0][1];return {d:r2(last[1]-a),p:Math.abs(a)>0.5?(last[1]-a)/Math.abs(a)*100:null,days:daysBetween(s[0][0],last[0]),since:true};}
+  a=S.hist[fk]!=null?+S.hist[fk]:nwAtMany([fk])[fk];
+  return {d:r2(last[1]-a),p:Math.abs(a)>0.5?(last[1]-a)/Math.abs(a)*100:null,days:days};
 }
 
+/* ---------- gösterge tabanı ----------
+   Koç, Analiz, FIRE, acil durum fonu ve Claude özeti aynı dönemleri kullanır: kullanım başlangıcından (ilk gelir ya da
+   açılış bakiyesi tarihi) sonraki, en çok 6 tamamlanmış dönem. Başlangıçtan önceki tek tük eski işlemler sayılmaz;
+   tamamlanmış dönem yoksa bu dönem kullanılır (part:true). */
+function dataStart(){var f=S.openDate||'';S.tx.forEach(function(t){if(t.type==='inc'&&(!f||t.date<f))f=t.date;});
+  if(!f)S.tx.forEach(function(t){if(t.type==='exp'&&(!f||t.date<f))f=t.date;});return f?pk(f):null;}
+var MBC={k:''};
+function monthBase(){var key=TXV+'|'+S.savedAt+'|'+todayS();if(MBC.k===key)return MBC.v;
+  var cur=curP(),st=dataStart(),ks=[];
+  for(var i=1;i<=6;i++){var k=addMonth(cur,-i);if(st&&k<st)break;if(monthTx(k).some(function(t){return t.type==='inc'||t.type==='exp';}))ks.push(k);}
+  var v={ks:ks,n:ks.length,part:!ks.length,cur:cur,start:st};MBC={k:key,v:v};return v;}
+function avgMonthly(type){var B=monthBase(),v=[];B.ks.forEach(function(k){var s=sum(monthTx(k),type);if(s>0)v.push(s);});
+  if(!v.length){var s0=sum(monthTx(B.cur),type);if(s0>0)v.push(s0);}
+  return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
+function avgSave(){var B=monthBase(),v=[];B.ks.forEach(function(k){var l=monthTx(k);v.push(sum(l,'inc')-sum(l,'exp'));});
+  if(!v.length){var l0=monthTx(B.cur);if(l0.length)v.push(sum(l0,'inc')-sum(l0,'exp'));}
+  return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
 /* ---------- FIRE ---------- */
-function avgMonthly(type){var cur=curP(),v=[];for(var i=1;i<=6;i++){var s=sum(monthTx(addMonth(cur,-i)),type);if(s>0)v.push(s);}
-  if(!v.length){var s0=sum(monthTx(cur),type);if(s0>0)v.push(s0);}
-  return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
-function avgSave(){var cur=curP(),v=[];for(var i=1;i<=6;i++){var l=monthTx(addMonth(cur,-i));if(l.length)v.push(sum(l,'inc')-sum(l,'exp'));}
-  if(!v.length){var l0=monthTx(cur);if(l0.length)v.push(sum(l0,'inc')-sum(l0,'exp'));}
-  return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
 function monthsToFI(P,C,rm,T){
   if(P>=T)return 0;
   if(rm===0){return C<=0?Infinity:(T-P)/C;}

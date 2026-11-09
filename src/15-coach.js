@@ -48,7 +48,7 @@ var BUCK=[['tl','TL nakit ve mevduat'],['fx','Döviz'],['gold','Altın ve gümü
 /* kullanıcının verisinden ölçümler */
 function coachData(){
   var key=TXV+'|'+S.savedAt+'|'+S.fxTs+'|'+todayS();if(CK.k===key)return CK.v;
-  var cur=curP(),W=wealth(),ks=prevKs(cur,6).filter(function(k){return monthTx(k).some(function(t){return t.type==='inc'||t.type==='exp';});}).slice(0,3);
+  var cur=curP(),W=wealth(),ks=monthBase().ks.slice(0,3);
   var inc=0,exp=0;ks.forEach(function(k){var m=monthTx(k);inc+=sum(m,'inc');exp+=sum(m,'exp');});
   var n=ks.length;inc=n?r2(inc/n):0;exp=n?r2(exp/n):0;
   var incN=ks.filter(function(k){return sum(monthTx(k),'inc')>0;}).length;

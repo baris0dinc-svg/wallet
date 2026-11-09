@@ -10,7 +10,7 @@ window.addEventListener('unhandledrejection',function(e){var r=e.reason;errLog('
 document.addEventListener('securitypolicyviolation',function(e){errLog('politika',e.violatedDirective,e.blockedURI);});
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.6';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.7';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -234,7 +234,7 @@ var TXV=0,storeWarned=false,planT=null,bkT=null,NSJ=null,NST=null;
 function flushNative(){clearTimeout(NST);NST=null;var j=NSJ;NSJ=null;if(j&&nb('saveData')){try{NB.saveData(j);}catch(e){}}}
 document.addEventListener('visibilitychange',function(){if(document.hidden)flushNative();});
 window.addEventListener('pagehide',flushNative);
-function save(){
+function save(){var ts0=Date.now();S.tx.forEach(function(t){if(!t.ts)t.ts=ts0;});
   TXV++;S.savedAt=Date.now();
   try{stampFx();}catch(e){}
   var j;try{j=JSON.stringify(S);}catch(e){return;}
@@ -359,6 +359,10 @@ function wealth(){
 }
 /* maaş günü değişince dönemler kayar: ödendi işaretleri bağlı işlemin yeni dönemine taşınır */
 function remapPaid(){S.recurring.forEach(function(r){if(!r.paid)return;var n={};Object.keys(r.paid).forEach(function(k){var t=byId(S.tx,r.paid[k]);if(t)n[pk(t.date)]=t.id;});r.paid=n;});}
+/* dönemde ödenmemiş düzenli ödemeler (gecikmişler dahil): ana kart, tahmin ve Plan › Düzenli aynı sayıyı kullanır */
+/* işlem sırası: tarih, sonra aynı gün içinde en son eklenen üstte */
+function txCmp(a,b){return b.date<a.date?-1:b.date>a.date?1:((b.ts||0)-(a.ts||0))||(b.id>a.id?1:-1);}
+function recDue(k,from){var t0=from||'',tot=0,over=0;S.recurring.forEach(function(r){if(r.inc||recPaid(r,k))return;var d=dueDate(r,k);if(d<t0)return;var v=toTL(+r.amt||0,r.acct);tot+=v;if(d<todayS())over+=v;});return {tot:r2(tot),over:r2(over)};}
 function recPaid(r,k){var id=r.paid&&r.paid[k];return !!id&&S.tx.some(function(t){return t.id===id;});}
 /* bir tarihteki net servet: hesaplar o güne kadarki hareketlerden, yatırımlar bugünkü değerinden, borçlar o güne kadarki ödemelerden */
 function nwAt(D){
@@ -400,21 +404,33 @@ function nwSeries(){
   var v=Object.keys(pts).sort().map(function(k){return [k,pts[k].v,pts[k].e];});
   NWC={k:key,v:v};return v;
 }
+/* net servetin tam "days" gün önceki değerine göre değişimi; kayıtlar daha yeniyse ilk kayıttan beri (since) */
 function histChange(days){
   var s=nwSeries();if(s.length<2)return null;
-  var last=s[s.length-1],from=pdate(last[0]);from.setDate(from.getDate()-days);var fk=isoDate(from),base=null;
-  for(var i=s.length-2;i>=0;i--){if(s[i][0]<=fk){base=s[i];break;}}
-  if(!base)base=s[0];if(base===last)return null;
-  var a=base[1],b=last[1];return {d:r2(b-a),p:Math.abs(a)>0.5?(b-a)/Math.abs(a)*100:null,days:daysBetween(base[0],last[0])};
+  var last=s[s.length-1],from=pdate(last[0]);from.setDate(from.getDate()-days);var fk=isoDate(from),a;
+  if(s[0][0]>fk){if(s[0]===last)return null;a=s[0][1];return {d:r2(last[1]-a),p:Math.abs(a)>0.5?(last[1]-a)/Math.abs(a)*100:null,days:daysBetween(s[0][0],last[0]),since:true};}
+  a=S.hist[fk]!=null?+S.hist[fk]:nwAtMany([fk])[fk];
+  return {d:r2(last[1]-a),p:Math.abs(a)>0.5?(last[1]-a)/Math.abs(a)*100:null,days:days};
 }
 
+/* ---------- gösterge tabanı ----------
+   Koç, Analiz, FIRE, acil durum fonu ve Claude özeti aynı dönemleri kullanır: kullanım başlangıcından (ilk gelir ya da
+   açılış bakiyesi tarihi) sonraki, en çok 6 tamamlanmış dönem. Başlangıçtan önceki tek tük eski işlemler sayılmaz;
+   tamamlanmış dönem yoksa bu dönem kullanılır (part:true). */
+function dataStart(){var f=S.openDate||'';S.tx.forEach(function(t){if(t.type==='inc'&&(!f||t.date<f))f=t.date;});
+  if(!f)S.tx.forEach(function(t){if(t.type==='exp'&&(!f||t.date<f))f=t.date;});return f?pk(f):null;}
+var MBC={k:''};
+function monthBase(){var key=TXV+'|'+S.savedAt+'|'+todayS();if(MBC.k===key)return MBC.v;
+  var cur=curP(),st=dataStart(),ks=[];
+  for(var i=1;i<=6;i++){var k=addMonth(cur,-i);if(st&&k<st)break;if(monthTx(k).some(function(t){return t.type==='inc'||t.type==='exp';}))ks.push(k);}
+  var v={ks:ks,n:ks.length,part:!ks.length,cur:cur,start:st};MBC={k:key,v:v};return v;}
+function avgMonthly(type){var B=monthBase(),v=[];B.ks.forEach(function(k){var s=sum(monthTx(k),type);if(s>0)v.push(s);});
+  if(!v.length){var s0=sum(monthTx(B.cur),type);if(s0>0)v.push(s0);}
+  return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
+function avgSave(){var B=monthBase(),v=[];B.ks.forEach(function(k){var l=monthTx(k);v.push(sum(l,'inc')-sum(l,'exp'));});
+  if(!v.length){var l0=monthTx(B.cur);if(l0.length)v.push(sum(l0,'inc')-sum(l0,'exp'));}
+  return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
 /* ---------- FIRE ---------- */
-function avgMonthly(type){var cur=curP(),v=[];for(var i=1;i<=6;i++){var s=sum(monthTx(addMonth(cur,-i)),type);if(s>0)v.push(s);}
-  if(!v.length){var s0=sum(monthTx(cur),type);if(s0>0)v.push(s0);}
-  return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
-function avgSave(){var cur=curP(),v=[];for(var i=1;i<=6;i++){var l=monthTx(addMonth(cur,-i));if(l.length)v.push(sum(l,'inc')-sum(l,'exp'));}
-  if(!v.length){var l0=monthTx(cur);if(l0.length)v.push(sum(l0,'inc')-sum(l0,'exp'));}
-  return v.length?v.reduce(function(a,b){return a+b;},0)/v.length:0;}
 function monthsToFI(P,C,rm,T){
   if(P>=T)return 0;
   if(rm===0){return C<=0?Infinity:(T-P)/C;}
@@ -512,9 +528,9 @@ function compactT(tl){if(maskOn||Math.abs(tl)<1e6)return TRY0.format(tl);return 
 /* bu dönem ne kadar kaldı: beklenen gelir − harcanan − dönem sonuna kadar ödenecek düzenli ödemeler */
 function leftNow(){
   var k=curP(),mt=monthTx(k),inc=sum(mt,'inc'),spent=sum(mt,'exp'),ai=avgMonthly('inc'),expInc=Math.max(inc,ai||0),t0=todayS(),e=pEnd(k),rec=0;
-  S.recurring.forEach(function(r){if(recPaid(r,k))return;var d=dueDate(r,k);if(d>=t0&&d<=e)rec+=toTL(+r.amt||0,r.acct);});
+  var RD=recDue(k);rec=RD.tot;
   var left=r2(expInc-spent-rec),days=daysLeft(k);
-  return {k:k,inc:inc,expInc:r2(expInc),assumed:expInc>inc+0.5,spent:spent,rec:r2(rec),left:left,days:days,daily:days>0?left/days:0,ok:expInc>0};
+  return {k:k,inc:inc,expInc:r2(expInc),assumed:expInc>inc+0.5,spent:spent,rec:r2(rec),over:RD.over,left:left,days:days,daily:days>0?left/days:0,ok:expInc>0};
 }
 /* ana kart: önce net servet (büyük), altında bu dönem kalan ve günlük harcama sınırı */
 function heroCard(W){
@@ -523,14 +539,15 @@ function heroCard(W){
   h+='<button class="nwbig" data-act="sub" data-v="servet" aria-label="Net servet: hesaplar ve yatırımlar"><span class="big num">'+DC0.format(W.net)+'</span>'+ic('r')+'</button>';
   if(S.dccy!=='TRY'&&dccy()==='TRY')h+='<div class="small exp">'+esc(CCYN[S.dccy])+' kuru henüz yok; TL gösteriliyor.</div>';
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
-  if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">son '+ch.days+' günde</span></div>';
+  if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">'+(ch.since?'ilk kayıttan beri':'son '+ch.days+' günde')+'</span></div>';
   h+='<div class="leftblk"><div class="lbl">'+esc(plabel(L.k))+' · bu dönem kalan</div>';
   if(L.ok){
     h+='<p class="mid num'+(L.left<0?' exp':'')+'" id="left-now">'+TRY0.format(L.left)+'</p>';
-    h+='<div class="small">'+(L.left>0&&L.days>0?'<b>Günde ~'+TRY0.format(L.daily)+'</b> harcayabilirsin · '+L.days+' gün kaldı':(L.left<0?'<b class="exp">Bu dönem beklenen gelirini '+TRY0.format(-L.left)+' aştın.</b>':'Dönemin son günü.'))+'</div>';
+    h+='<div class="small">'+(L.left>0&&L.days>0?'<b>Günde ~'+TRY0.format(L.daily)+'</b> harcayabilirsin · '+L.days+' gün kaldı':(L.left<0?'<b class="exp">Bu dönem beklenen gelirini '+TRY0.format(-L.left)+' aştın.</b>':(L.days>1?'Bu dönem için harcayabileceğin para kalmadı · '+L.days+' gün kaldı':'Dönemin son günü.')))+'</div>';
     var p=L.expInc>0?clamp((L.spent+L.rec)/L.expInc*100,0,100):0;
     h+='<div class="bar'+(p>=100?' over':(p>85?' warn':''))+'" style="margin-top:8px"><i style="width:'+p+'%"></i></div>';
     var pe=L.spent;h+='<button class="nwper" data-act="sub" data-v="islem" aria-label="Bu dönemin işlemleri"><span class="pl"><span class="lbl">Gelir</span><b class="num inc">'+compactT(L.inc)+'</b></span><span class="pl"><span class="lbl">Gider</span><b class="num exp">'+compactT(pe)+'</b></span>'+(L.rec>0?'<span class="pl"><span class="lbl">Ödenecek</span><b class="num">'+compactT(L.rec)+'</b></span>':'')+ic('r')+'</button>';
+    if(L.over>0)h+='<div class="small exp" style="margin-top:6px">Bunun '+compactT(L.over)+' kadarı gecikmiş ödeme.</div>';
     if(L.assumed)h+='<div class="small muted" style="margin-top:6px">Kalan, ortalama gelirin ('+compactT(L.expInc)+') üzerinden hesaplandı.</div>';
     var F=forecast();if(F.hist&&F.rem>0&&F.spent>0)h+='<div class="fcst small muted">Dönem sonu tahmini: gider ≈ '+compactT(F.exp)+(F.expInc>0?' · '+(F.net>=0?'artan':'eksik')+' ≈ '+compactT(Math.abs(F.net))+(F.incAssumed?' (beklenen gelirle)':''):'')+'</div>';
   }else{
@@ -579,7 +596,7 @@ function addCard(){
 ACT['tx-all']=function(){ui.txv='list';goSec('islem');};
 function recentCard(){
   /* tüm listeyi sıralamadan en yeni 5 işlem */
-  var cmp=function(a,b){return b.date<a.date?-1:b.date>a.date?1:(b.id>a.id?1:-1);},l=[];
+  var cmp=txCmp,l=[];
   for(var i=0;i<S.tx.length;i++){var t=S.tx[i];if(l.length<5||cmp(t,l[4])<0){l.push(t);l.sort(cmp);if(l.length>5)l.pop();}}
   if(!l.length)return '';
   return '<div class="card" style="padding-top:12px"><div class="ghead"><h2 style="margin:0;flex:1">Son işlemler</h2><button class="linkbtn" data-act="tx-all" data-v="islem">Tümü ›</button></div><div class="list">'+l.map(txRow).join('')+'</div></div>';
@@ -614,7 +631,7 @@ function txFilt(t){if(ui.acctF&&t.acct!==ui.acctF&&t.to!==ui.acctF)return false;
 function dayNet(l){var n=0;l.forEach(function(t){if(t.type==='inc')n+=txTL(t);else if(t.type==='exp')n-=txTL(t);});return r2(n);}
 function txList(){
   var q=fold((ui.tq||'').trim());
-  var mt=(q?S.tx.filter(function(t){return txFilt(t)&&txMatch(t,q);}):rangeTx().filter(txFilt)).sort(function(a,b){return b.date.localeCompare(a.date)||(b.id>a.id?1:-1);});
+  var mt=(q?S.tx.filter(function(t){return txFilt(t)&&txMatch(t,q);}):rangeTx().filter(txFilt)).sort(txCmp);
   if(!mt.length)return q?'<div class="empty">“'+esc(ui.tq.trim())+'” için işlem bulunamadı.</div>':'<div class="empty">'+(ui.acctF?esc(ui.acctF)+' hesabında bu dönemde hareket yok.':'Bu dönemde işlem yok. Sağ alttaki + ile ekle.')+'</div>';
   var cap=q?(ui.tqN||100):1e9,more=0;if(mt.length>cap){more=mt.length-cap;mt=mt.slice(0,cap);}
   var cur='',out=(q?'<div class="small muted" style="margin:0 2px 6px">'+mt.length+(more?'+':'')+' sonuç · tüm dönemler</div>':'')+'<div class="card" style="padding-top:2px">';
@@ -714,8 +731,11 @@ function budgetBody(){
   rest.sort(function(a,b){return (sp[b]||0)-(sp[a]||0);});
   var h,left=r2(limSum-spSum),days=ui.month===curP()?daysLeft(ui.month):0,sug=budgetSuggest();
   if(limSum>0){
-    h='<div class="card"><div class="lbl">'+(left>=0?'Bütçeden kalan':'Bütçe aşıldı')+'</div><p class="big'+(left<0?' exp':'')+'">'+TRY0.format(Math.abs(left))+'</p><div class="small muted">Harcanan '+TRY0.format(spSum)+' / '+TRY0.format(limSum)+' · '+lims.length+' kategoride limit var</div><div class="bar'+(spSum>limSum?' over':(spSum>limSum*.8?' warn':''))+'" style="margin-top:10px"><i style="width:'+Math.min(spSum/limSum*100,100)+'%"></i></div>'
-      +(left>0&&days>0?'<div class="small" style="margin-top:8px">Bütçede kalmak için günde en fazla <b>~'+TRY0.format(left/days)+'</b> · '+days+' gün kaldı</div>':'')+'</div>';
+    /* aşan kategoriler toplamı gizlemesin: kalan yalnızca aşılmayan kategorilerden, aşımlar ayrı satırda */
+    var okLeft=0,over=[];lims.forEach(function(c){var d=+S.budgets[c]-(sp[c]||0);if(d>=0)okLeft+=d;else over.push([c,-d]);});okLeft=r2(okLeft);
+    h='<div class="card"><div class="lbl">'+(over.length?'Aşılmayan kategorilerde kalan':'Bütçeden kalan')+'</div><p class="big">'+TRY0.format(okLeft)+'</p><div class="small muted">Harcanan '+TRY0.format(spSum)+' / '+TRY0.format(limSum)+' · '+lims.length+' kategoride limit var</div>'
+      +(over.length?'<div class="small exp" style="margin-top:6px">Aşıldı: '+over.map(function(x){return esc(x[0])+' '+TRY0.format(x[1]);}).join(' · ')+'</div>':'')+'<div class="bar'+(spSum>limSum?' over':(spSum>limSum*.8?' warn':''))+'" style="margin-top:10px"><i style="width:'+Math.min(spSum/limSum*100,100)+'%"></i></div>'
+      +(okLeft>0&&days>0?'<div class="small" style="margin-top:8px">Bütçede kalmak için günde en fazla <b>~'+TRY0.format(okLeft/days)+'</b> · '+days+' gün kaldı</div>':'')+'</div>';
     h+='<div class="card"><h2>Limitler</h2>'+lims.map(function(c){return catRow(c,sp);}).join('')+'</div>';
   }else{
     h='<div class="card"><div class="lbl">Bütçe</div><p class="small muted" style="margin:6px 0 0">Harcadığın kategorilere aylık limit koy; ne kadar kaldığını ve günde ne kadar harcayabileceğini burada görürsün.</p>'+(sug.length?'<button class="btn small" style="margin-top:10px" data-act="bud-sug">Son 3 dönemin ortalamasıyla doldur</button><div class="small muted" style="margin-top:6px">'+esc(sug.slice(0,4).map(function(x){return x[0]+' '+TRY0.format(x[1]);}).join(' · '))+'</div>':'')+'</div>';
@@ -747,7 +767,7 @@ function hedefBody(){
 function duzenliBody(){
   if(!S.recurring.length)return '<div class="empty">Henüz düzenli ödeme yok. Kira, fatura, kredi taksiti ve abonelikleri ekle; hatırlatıcı ödeme gününü kaçırmamanı sağlar.</div>'+addBtn('new-r','Düzenli ödeme ekle',1);
   var tot=0,rem=0,cur=curP(),t0=todayS(),h='';
-  S.recurring.forEach(function(r){var v=toTL(r.amt,r.acct);tot+=v;if(!recPaid(r,ui.month))rem+=v;});
+  S.recurring.forEach(function(r){if(!r.inc)tot+=toTL(r.amt,r.acct);});rem=recDue(ui.month).tot;
   h+='<div class="card"><div class="row3" style="margin-top:0;grid-template-columns:1fr 1fr"><div><div class="lbl">Aylık toplam</div><span class="num">'+TRY0.format(tot)+'</span></div><div><div class="lbl">Bu dönem ödenecek</div><span class="num">'+TRY0.format(rem)+'</span></div></div></div>';
   var list=S.recurring.slice().sort(function(a,b){return dueDate(a,ui.month).localeCompare(dueDate(b,ui.month));});
   h+='<div class="card" style="padding-top:4px"><div class="list">'+list.map(function(r){
@@ -845,7 +865,7 @@ function pstat(k){var m=monthTx(k),inc=sum(m,'inc'),exp=sum(m,'exp');return {k:k
 function prevKs(k,n){var a=[];for(var i=1;i<=n;i++)a.push(addMonth(k,-i));return a;}
 function health(){
   var W=wealth(),ae=avgMonthly('exp'),cur=curP(),parts=[];
-  var ks=prevKs(cur,3).filter(function(k){return sum(monthTx(k),'inc')>0;});if(!ks.length&&sum(monthTx(cur),'inc')>0)ks=[cur];
+  var ks=monthBase().ks.slice(0,3).filter(function(k){return sum(monthTx(k),'inc')>0;});if(!ks.length&&sum(monthTx(cur),'inc')>0)ks=[cur];
   var sr=ks.length?ks.reduce(function(a,k){return a+pstat(k).rate;},0)/ks.length:null;
   parts.push({k:'Tasarruf oranı',v:sr==null?'—':(sr<0?'−':'')+'%'+Math.round(Math.abs(sr)),p:sr==null?null:clamp(sr/20,0,1),tip:sr==null?'Gelir kaydı yok.':(sr>=20?'Gelirinin en az %20’sini biriktiriyorsun.':'Hedef: gelirin en az %20’si.')});
   var eg=emGoal(),ef=eg?goalSaved(eg):Math.max(W.g.liquid,0),em=ae>0?ef/ae:null,six=ae>0?' 6 aylık gider: '+TRY0.format(ae*6)+'.':'';
@@ -862,7 +882,9 @@ function health(){
 }
 function scoreWord(s){return s>=80?'Çok iyi':(s>=60?'İyi':(s>=40?'Orta':'Geliştirilmeli'));}
 function flowCard(){
-  var k=ui.month,s=pstat(k),pv=pstat(addMonth(k,-1)),isCur=k===curP(),days=pDays(k),el=isCur?Math.max(daysBetween(pStart(k),todayS())+1,1):days;
+  var k=ui.month,s=pstat(k),isCur=k===curP(),days=pDays(k),el=isCur?Math.max(daysBetween(pStart(k),todayS())+1,1):days;
+  /* süren dönem geçen dönemin aynı gününe kadarki kısmıyla kıyaslanır */
+  var pk0=addMonth(k,-1),pm=monthTx(pk0).filter(function(t){return !isCur||daysBetween(pStart(pk0),t.date)<el;}),pv={inc:sum(pm,'inc'),exp:sum(pm,'exp')};
   if(!(s.inc>0)&&!(s.exp>0))return '<div class="card"><h2>Nakit akışı</h2><p class="small muted" style="margin:0 0 10px">'+(isCur?'Bu dönemde':'Bu dönemde hiç')+' gelir ya da gider kaydı yok. İşlem ekledikçe gelir, gider, tasarruf oranı ve dönem sonu tahmini burada görünür.</p>'+(isCur?'<button class="btn small" data-act="new-tx">İşlem ekle</button>':'')+'</div>';
   var rows=[['Gelir',DC0.format(s.inc)+(pv.inc>0?' <span class="small '+(s.inc>=pv.inc?'inc':'exp')+'">'+(s.inc>=pv.inc?'▲':'▼')+'%'+Math.round(Math.abs((s.inc-pv.inc)/pv.inc*100))+'</span>':'')],
     ['Gider',DC0.format(s.exp)+(pv.exp>0?' <span class="small '+(s.exp<=pv.exp?'inc':'exp')+'">'+(s.exp>=pv.exp?'▲':'▼')+'%'+Math.round(Math.abs((s.exp-pv.exp)/pv.exp*100))+'</span>':'')],
@@ -874,7 +896,7 @@ function flowCard(){
   if(Math.abs(s.inv)>=0.5)rows.push([s.inv>0?'Yatırıma aktarılan':'Yatırımdan çekilen',DC0.format(Math.abs(s.inv))]);
   var fixed=0;S.recurring.forEach(function(r){var id=r.paid&&r.paid[k];var t=id&&byId(monthTx(k),id);if(t&&t.type==='exp')fixed+=txTL(t);});
   if(s.exp>0&&fixed>0)rows.push(['Sabit giderler (düzenli ödemeler)','%'+Math.round(fixed/s.exp*100)]);
-  return '<div class="card"><h2>Nakit akışı</h2>'+res(rows,1)+'<p class="small muted" style="margin:8px 0 0">Oklar geçen döneme göre değişimi gösterir. Transferler, borç anapara ödemeleri ve yatırım alımları gider sayılmaz; birikim olarak değerlendirilir.</p></div>';
+  return '<div class="card"><h2>Nakit akışı</h2>'+res(rows,1)+'<p class="small muted" style="margin:8px 0 0">Oklar '+(isCur?'geçen dönemin aynı gününe':'geçen döneme')+' göre değişimi gösterir. Transferler, borç anapara ödemeleri ve yatırım alımları gider sayılmaz; birikim olarak değerlendirilir.</p></div>';
 }
 function trendSvg(n){
   var ks=[];for(var i=n-1;i>=0;i--)ks.push(addMonth(curP(),-i));
@@ -935,7 +957,7 @@ function calBody(){
    +(top&&by[top].x>=1?'<p class="small muted" style="margin:0 4px">En çok harcadığın gün: '+esc(pdate(top).toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'}))+', '+TRY0.format(by[top].x)+'. Güne dokununca o günün işlemleri açılır.</p>':'<p class="small muted" style="margin:0 4px">Güne dokununca o günün işlemleri açılır.</p>');
 }
 ACT['cal-day']=function(el,id,v){
-  var l=S.tx.filter(function(t){return t.date===v;}).sort(function(a,b){return b.id>a.id?1:-1;});
+  var l=S.tx.filter(function(t){return t.date===v;}).sort(txCmp);
   openSheet('<h2>'+esc(pdate(v).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',weekday:'long'}))+'</h2>'+(l.length?'<div class="list">'+l.map(txRow).join('')+'</div>':'<div class="empty">Bu gün işlem yok.</div>')
    +'<button class="btn" data-act="cal-add" data-v="'+v+'">Bu güne işlem ekle</button>');};
 ACT['cal-add']=function(el,id,v){txSheet(null,null,{date:v});};
@@ -1799,9 +1821,9 @@ ACT['save-r']=function(el,id){
 };
 ACT['del-r']=function(el,id){if(!armed(el))return;S.recurring=S.recurring.filter(function(x){return x.id!==id;});save();closeSheet();render();};
 /* düzenli ödemeyi bir dönem için öde: işlem eklenir, bakiye düşer (borca bağlıysa borçtan düşer) */
-function payRec(r,k){var d=r.debt&&byId(S.debts,r.debt),tx;
-  if(d&&debtLeft(d)>0)tx={id:uid(),type:'dbt',side:'out',debt:d.id,dname:d.name,amt:r.amt,acct:r.acct,note:r.name,date:dueDate(r,k)};
-  else tx={id:uid(),type:'exp',amt:r.amt,cat:r.cat,acct:r.acct,note:r.name,date:dueDate(r,k)};
+function payRec(r,k){var d=r.debt&&byId(S.debts,r.debt),tx,dd=dueDate(r,k),pd=dd>todayS()&&todayS()>=pStart(k)?todayS():dd;
+  if(d&&debtLeft(d)>0)tx={id:uid(),type:'dbt',side:'out',debt:d.id,dname:d.name,amt:r.amt,acct:r.acct,note:r.name,date:pd};
+  else tx={id:uid(),type:'exp',amt:r.amt,cat:r.cat,acct:r.acct,note:r.name,date:pd};
   S.tx.push(tx);r.paid=r.paid||{};r.paid[k]=tx.id;save();render();
   /* fatura tutarı her ay değişebilir (elektrik, doğalgaz): tek dokunuşla gerçek tutar girilir */
   toast(r.name+' ödendi · '+r.acct+': '+moneyIn(acctBal(r.acct),r.acct),function(){if(byId(S.tx,tx.id))txSheet(tx.id);},'Tutarı düzenle');}
@@ -3226,12 +3248,17 @@ function dupTx(){
   return out;
 }
 /* ---- 3. dönem sonu tahmini ---- */
+/* hıza katılmayan giderler: kira, fatura, aidat gibi ayda bir ödenenler ve tek seferlik büyük kalemler
+   (dönemin olağan giderinin dörtte biri ve üstü) — bunlar zaten ödendi, dönemin kalanına yayılmaz */
+var FIXC=/^(kira|fatura|aidat|egitim|okul|sigorta|vergi|abonelik|kredi|taksit|kasko|mtv|emlak)/;
+function lumpy(t,big){return FIXC.test(fold(t.cat||''))||(big>0&&txTL(t)>=big);}
 function forecast(){
   var k=curP(),s=pStart(k),e=pEnd(k),t0=todayS(),days=pDays(k),el=Math.min(days,Math.max(1,daysBetween(s,t0)+1)),rem=days-el,pid=recPaidIds();
-  var mt=monthTx(k),spent=sum(mt,'exp'),inc=sum(mt,'inc'),varNow=0;mt.forEach(function(t){if(t.type==='exp'&&!pid[t.id])varNow+=txTL(t);});
-  var hist=prevKs(k,3).map(function(p){var v=0;monthTx(p).forEach(function(t){if(t.type==='exp'&&!pid[t.id])v+=txTL(t);});return v>0?v/pDays(p):null;}).filter(function(x){return x!=null;});
+  var big=avgMonthly('exp')*0.25;
+  var mt=monthTx(k),spent=sum(mt,'exp'),inc=sum(mt,'inc'),varNow=0;mt.forEach(function(t){if(t.type==='exp'&&!pid[t.id]&&!lumpy(t,big))varNow+=txTL(t);});
+  var hist=monthBase().ks.slice(0,3).map(function(p){var v=0;monthTx(p).forEach(function(t){if(t.type==='exp'&&!pid[t.id]&&!lumpy(t,big))v+=txTL(t);});return v>0?v/pDays(p):null;}).filter(function(x){return x!=null;});
   var hRate=hist.length?median(hist):null,cRate=varNow/el,w=Math.min(1,el/days*1.5),rate=hRate==null?cRate:(cRate*w+hRate*(1-w));
-  var recLeft=0;S.recurring.forEach(function(r){if(recPaid(r,k))return;var d=dueDate(r,k);if(d>=t0&&d<=e)recLeft+=toTL(+r.amt||0,r.acct);});
+  var recLeft=recDue(k).tot;
   var exp=r2(spent+rate*rem+recLeft),ai=avgMonthly('inc'),expInc=Math.max(inc,ai||0);
   return {spent:spent,exp:exp,recLeft:r2(recLeft),rate:rate,rem:rem,inc:inc,expInc:r2(expInc),incAssumed:expInc>inc+1,net:r2(expInc-exp),hist:hist.length};
 }
@@ -3239,7 +3266,9 @@ function forecast(){
 function budgetPace(){
   var k=curP(),s=pStart(k),e=pEnd(k),t0=todayS(),days=pDays(k),el=Math.max(1,daysBetween(s,t0)+1),sp=spentByCat(k),out=[];
   if(el<3||el>=days)return out;
-  EXPC().forEach(function(c){var b=+S.budgets[c];if(!(b>0))return;var v=sp[c]||0;if(v>=b||v<b*0.25)return;var rate=v/el,need=(b-v)/rate;if(el+need>=days)return;
+  /* ayda bir ödenen kategoriler (kira, fatura…) ve 3'ten az işlemli kategoriler için hız tahmini yapılmaz */
+  var cnt={};monthTx(k).forEach(function(t){if(t.type==='exp')cnt[t.cat]=(cnt[t.cat]||0)+1;});
+  EXPC().forEach(function(c){var b=+S.budgets[c];if(!(b>0)||FIXC.test(fold(c))||(cnt[c]||0)<3)return;var v=sp[c]||0;if(v>=b||v<b*0.25)return;var rate=v/el,need=(b-v)/rate;if(el+need>=days)return;
     var d=pdate(t0);d.setDate(d.getDate()+Math.ceil(need));out.push({key:'pace:'+c+':'+k,c:c,date:isoDate(d),left:b-v});});
   return out;
 }
@@ -3325,7 +3354,7 @@ var BUCK=[['tl','TL nakit ve mevduat'],['fx','Döviz'],['gold','Altın ve gümü
 /* kullanıcının verisinden ölçümler */
 function coachData(){
   var key=TXV+'|'+S.savedAt+'|'+S.fxTs+'|'+todayS();if(CK.k===key)return CK.v;
-  var cur=curP(),W=wealth(),ks=prevKs(cur,6).filter(function(k){return monthTx(k).some(function(t){return t.type==='inc'||t.type==='exp';});}).slice(0,3);
+  var cur=curP(),W=wealth(),ks=monthBase().ks.slice(0,3);
   var inc=0,exp=0;ks.forEach(function(k){var m=monthTx(k);inc+=sum(m,'inc');exp+=sum(m,'exp');});
   var n=ks.length;inc=n?r2(inc/n):0;exp=n?r2(exp/n):0;
   var incN=ks.filter(function(k){return sum(monthTx(k),'inc')>0;}).length;

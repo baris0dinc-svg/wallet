@@ -49,7 +49,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const chk=(c,m)=
  const ph=T.paydayHint();chk(ph&&ph.day===15,'maaş günü önerisi '+JSON.stringify(ph));T.ACT['br-pay'](null,'15');chk(T.S.payday===15&&!T.paydayHint(),'dönem başlangıcı 15');T.S.payday=1;T.save();
  // 6) bütçe hızı (dönemin 3.–son günü arasında anlamlı)
  const k=T.curP(),el=T.daysBetween(T.pStart(k),T.todayS())+1,days=T.pDays(k);
- if(el>=3&&el<days-2){T.S.budgets={Giyim:10000};const spent=T.spentByCat(k).Giyim||0;const need=Math.max(0,10000*0.5-spent);if(need>0)T.S.tx.push({id:'gy',type:'exp',cat:'Giyim',acct:'Banka',amt:need+1,date:T.todayS(),note:'Koton'});T.save();
+ if(el>=3&&el<days-2){T.S.budgets={Giyim:10000};const spent=T.spentByCat(k).Giyim||0;const need=Math.max(0,10000*0.5-spent);if(need>0)[0,1,2].forEach(i=>T.S.tx.push({id:'gy'+i,type:'exp',cat:'Giyim',acct:'Banka',amt:(need+1)/3,date:T.todayS(),note:'Koton'}));/* 4.7: hız için en az 3 işlem */T.save();
   const bp=T.budgetPace();o.pace=bp;const pace=(10000*0.5+1)/el;const willExceed=el+(10000-(10000*0.5+1))/pace<days;chk(willExceed?bp.some(x=>x.c==='Giyim'):!bp.some(x=>x.c==='Giyim'),'bütçe hızı '+JSON.stringify(bp));T.S.budgets={};}
  // 7) dönem sonu tahmini
  const Fc=T.forecast();o.f=Fc;chk(Fc.exp>=Fc.spent&&Fc.exp<Fc.spent+Fc.rem*20000&&Fc.hist>=1,'tahmin makul '+JSON.stringify(Fc));

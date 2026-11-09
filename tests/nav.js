@@ -18,8 +18,14 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('.nwline');chk(T.ui.sub==='servet'&&!!$('.nw .big'),'net servet satırı Hesaplar’a');click('#tabbar [data-v="ev"]');
  click('.cochome');chk(T.ui.sub==='plan'&&T.ui.plan==='koc'&&!!$('#view .kocnow'),'Koç kartı Plan › Koç');click('#tabbar [data-v="ev"]');
  click('.mstrip');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa şeridi Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','piyasadan geri');
- click('.homelinks [data-v="notlar"]');chk(page()==='notlar'&&location.hash==='#notlar','Notlar');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan geri');
- click('.homelinks [data-act="qa-calc"]');chk(page()==='araclar','Hesaplayıcılar');back();await new Promise(r=>setTimeout(r,50));
+ // 4.2: Notlar ana sayfa başlığındaki simgede (tek dokunuş); Hesaplayıcılar Plan › Koç'ta (ana sayfadaki kutucuklar kaldırıldı)
+ chk(!$('.homelinks')&&!$('header .bellb'),'ana sayfada kutucuk ve zil yok');
+ click('header [data-act="sub"][data-v="notlar"]');chk(page()==='notlar'&&location.hash==='#notlar','başlıktan Notlar');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan geri');
+ click('#tabbar [data-v="plan"]');click('[data-act="plan"][data-v="koc"]');click('#view .homelinks [data-act="qa-calc"]');chk(page()==='araclar','Koç › Hesaplayıcılar');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='plan','hesaplayıcılardan geri Plan’a');
+ // işlem ekle her sekmeden tek dokunuş: ana sayfada kart, diğerlerinde + düğmesi
+ for(const k of ['islem','plan','analiz','servet']){click('#tabbar [data-v="'+k+'"]');chk(!$('#fab').hidden,'+ düğmesi '+k);}
+ click('#fab');chk(/Yeni işlem/.test(sheetT()),'+ düğmesi işlem penceresi');back();
+ click('#tabbar [data-v="ev"]');chk($('#fab').hidden,'ana sayfada + düğmesi yerine kart');
  click('header [data-act="open-settings"]');chk(page()==='ayar'&&location.hash==='#ayarlar'&&$$q('#setlist .setcard').length===7,'çark Ayarlar sayfası');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','ayarlardan geri');
  // Plan sekmesi: Koç, Bütçe, Düzenli, Hedefler
  click('#tabbar [data-v="plan"]');click('[data-act="plan"][data-v="hedef"]');chk(T.ui.plan==='hedef'&&!!$('#view [data-act="new-g"]'),'Plan › Hedefler');
@@ -27,17 +33,19 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('[data-act="plan"][data-v="koc"]');click('#view .kt[data-act="open-fire"]');chk(page()==='fire','Koç › FIRE');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='plan','FIRE’dan geri Plan’a');
  click('#tabbar [data-v="ev"]');
  chk($$q('.list [data-act="edit-tx"]').length===5,'son 5 işlem');click('.linkbtn[data-v="islem"]');chk(T.ui.sub==='islem','son işlemler Tümü');
- // işlemler: bugün / bu hafta / dönem
- const td=T.todayS();T.S.tx.push({id:'tdy',type:'exp',amt:12,cat:'Market',acct:'Nakit',date:td});
- click('[data-act="rng"][data-v="gun"]');const dl=$$q('#txlist [data-act="edit-tx"]').map(e=>T.S.tx.find(t=>t.id===e.dataset.id));chk(dl.length>0&&dl.every(t=>t.date===td),'bugün filtresi');
- click('[data-act="rng"][data-v="hafta"]');const wl=$$q('#txlist [data-act="edit-tx"]').map(e=>T.S.tx.find(t=>t.id===e.dataset.id));chk(wl.some(t=>t.id==='tdy')&&wl.every(t=>T.daysBetween(t.date,td)<7&&t.date<=td||t.date>td),'bu hafta filtresi');
- click('[data-act="rng"][data-v="ay"]');chk(!!$('.period .mnav'),'dönem görünümü');T.S.tx=T.S.tx.filter(t=>t.id!=='tdy');
+ // işlemler: 4.2'de Bugün / Bu hafta kaldırıldı; tek zaman denetimi dönem kartı, liste gün gün (gün toplamlarıyla)
+ chk(!$('[data-act="rng"]')&&!!$('.period .mnav')&&!$('header [data-act="eye"]'),'dönem görünümü, zaman çipleri ve başlıkta göz yok');
+ const td=T.todayS();T.S.tx.push({id:'tdy',type:'exp',amt:12,cat:'Market',acct:'Nakit',date:td});T.ui.month=T.curP();T.render();
+ chk(!!$('#txlist [data-act="edit-tx"][data-id="tdy"]')&&$('#txlist .day').innerText.includes(new Date().getDate()),'bugünün işlemi en üstteki gün başlığında');T.S.tx=T.S.tx.filter(t=>t.id!=='tdy');T.render();
  // analiz: takvim
  click('#tabbar [data-v="analiz"]');click('[data-act="an"][data-v="takvim"]');const days=$$q('.cd:not(.out)');chk(days.length>=28&&days.length<=31,'takvim günleri '+days.length);
  const hd=$('.cd.has');chk(!!hd,'işlem olan gün işaretli');if(hd){hd.click();chk($$q('.sheet [data-act="edit-tx"]').length>0,'güne dokununca işlemler');click('.sheet [data-act="cal-add"]');chk($('#f-date').value===hd.dataset.v,'o güne işlem ekle tarihli');back();}
- click('[data-act="an"][data-v="harcama"]');click('#secbody [data-act="plan-go"][data-v="butce"]');chk(!page()&&T.ui.sub==='plan'&&T.ui.plan==='butce','kategoriden bütçeler');
+ click('[data-act="an"][data-v="harcama"]');chk(!$('#secbody [data-act="plan-go"]')&&!$('#secbody .donut'),'Kategori’de tekrar eden pasta ve bütçe kartı yok');
+ click('#tabbar [data-v="plan"]');click('[data-act="plan"][data-v="butce"]');chk(!page()&&T.ui.sub==='plan'&&T.ui.plan==='butce','Plan › Bütçe');
  click('#view .linkbtn[data-act="an-go"]');chk(!page()&&T.ui.sub==='analiz'&&T.ui.an==='harcama','bütçeden analize');
- click('#tabbar [data-v="analiz"]');click('[data-act="an"][data-v="servet"]');chk(!!$('#secbody .nwchart'),'Analiz › Servet grafiği');
+ click('#tabbar [data-v="analiz"]');chk($$q('[data-act="an"]').length===3,'Analiz: Özet, Kategori, Takvim');
+ act('an',null,'servet');chk(T.ui.sub==='servet'&&!!$('#secbody .nwchart'),'eski Analiz › Servet Hesaplar’daki net servet grafiğine gider');
+ click('#secbody [data-act="nwr"][data-v="12"]');chk(T.ui.nwr===12&&!!$('#secbody [data-act="nwr"][data-v="12"][aria-pressed="true"]'),'grafik süresi 1 yıl');
  // hesaplar: piyasa kartı → Piyasalar → geri
  click('#tabbar [data-v="servet"]');click('[data-act="sv"][data-v="yatirim"]');click('#secbody .setcard[data-act="open-mkt"]');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa kartı Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='servet'&&T.ui.sv==='yatirim','Piyasalar’dan geri yatırımlara');
  // hesap → tüm hareketler
@@ -53,12 +61,19 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  act('sub',null,'notlar');click('[data-act="new-n"]');const ti=$('#n-title');ti.value='Geri ile kayıt';ti.dispatchEvent(new Event('input',{bubbles:true}));back();await new Promise(r=>setTimeout(r,50));
  chk(T.S.notes.some(n=>n.title==='Geri ile kayıt')&&page()==='notlar','geri tuşu notu kaydetti, notlara döndü');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan ana sayfaya');
  // kurulum bandı
- const keep=JSON.stringify(T.S);T.S=T.norm({tx:[]});T.render();chk(!!$('.banner [data-v="hesap"]'),'kurulum bandı');click('.banner [data-v="hesap"]');chk(T.ui.sub==='servet'&&T.ui.sv==='hesap','bant hesaplara götürür');T.ui.sub='ev';
+ const keep=JSON.stringify(T.S);T.S=T.norm({tx:[]});T.render();chk(!!$('.banner [data-act="open-bal"]'),'kurulum bandı');click('.banner [data-act="open-bal"]');
+ const obs=$$q('.sheet [data-ob]');chk(/Hesaplarındaki para/.test(sheetT())&&obs.length===T.S.accounts.length,'bakiyeler tek pencerede '+obs.length);
+ obs[0].value='1.500';obs[1].value='-250';click('.sheet [data-act="save-bal"]');chk(T.S.opening[T.S.accounts[0]]===1500&&T.S.opening[T.S.accounts[1]]===-250&&!$('#sheet-root').innerHTML&&!$('.banner [data-act="open-bal"]'),'başlangıç bakiyeleri kaydedildi '+JSON.stringify(T.S.opening));T.ui.sub='ev';
  T.S=T.norm(JSON.parse(keep));T.save();
  // geri tuşu sırası
  T.ui.sub='servet';T.render();o.b=[back(),T.ui.sub,back()];chk(o.b[0]===true&&o.b[1]==='ev'&&o.b[2]===false,'geri tuşu sırası '+o.b);
  // uyarı şeridi → pencere → Ödendi
- const rd=new Date();T.S.recurring.push({id:'ra',name:'Uyarı testi',amt:5,day:rd.getDate(),cat:'Fatura',acct:'Banka',paid:{}});T.render();click('.alertbar');chk(/Uyarılar/.test(sheetT()),'uyarı penceresi');const pb=document.querySelector('.sheet [data-act="al-pay"][data-id="ra"]');chk(!!pb,'Ödendi düğmesi');if(pb){const n0=T.S.tx.length;pb.click();chk(T.S.tx.length===n0+1,'uyarıdan ödeme');}back();chk(o.b[0]===true&&o.b[1]==='ev'&&o.b[2]===false,'bölümden geri '+o.b);
+ // uyarılar Gündem'de düğmeleriyle: Ödendi tek dokunuş, sonra tutar düzeltilebilir (değişken faturalar)
+ const rd=new Date();T.S.recurring.push({id:'ra',name:'Uyarı testi',amt:5,day:rd.getDate(),cat:'Fatura',acct:'Banka',paid:{}});T.render();
+ const pb=$('.gundem [data-act="al-pay"][data-id="ra"]');chk(!!pb,'Gündem’de Ödendi düğmesi');
+ if(pb){const n0=T.S.tx.length;pb.click();chk(T.S.tx.length===n0+1&&!$('#sheet-root').innerHTML,'Gündem’den tek dokunuşla ödeme');chk(!$('.gundem [data-act="al-pay"][data-id="ra"]'),'ödenen uyarı kalktı');
+  const tb=$('#toast button');chk(tb&&/Tutarı düzenle/.test(tb.innerText),'ödeme sonrası tutar düzeltme');if(tb){tb.click();chk(/İşlemi düzenle/.test(sheetT())&&$('#f-amt').value==='5','düzeltme penceresi ödeme işlemini açar');back();}}
+ T.S.recurring=T.S.recurring.filter(r=>r.id!=='ra');T.render();chk(o.b[0]===true&&o.b[1]==='ev'&&o.b[2]===false,'bölümden geri '+o.b);
  }catch(e){F.push('HATA '+e.message+' @'+String(e.stack||'').split('\n')[1]);}
  return {F,o};});
 console.log(r.F.length?'FAIL\n'+r.F.join('\n'):'ALL PASS');

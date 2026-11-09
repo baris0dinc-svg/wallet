@@ -26,7 +26,7 @@ const r=await p.evaluate(()=>{const T=window.__T,S=T.S;const o={};
  const csv=T.csvAll();const n=S.tx.length;const im=T.csvImport(csv);o.im=im;o.n=S.tx.length===n;
  const saved=S.tx.slice();S.tx=[];T.csvImport(csv);o.rt=S.tx.filter(t=>t.amt2).map(t=>t.amt2);
  // history
- S.goals=[];S.notes=[];S.sampleExtras=false;S.hist={};for(let i=1;i<=5;i++){S.hist['2026-10-0'+i]=1000*i;}T.snap();o.histN=Object.keys(S.hist).length;o.card=T.histSpark().includes('polyline');
+ S.goals=[];S.notes=[];S.sampleExtras=false;S.hist={};for(let i=1;i<=5;i++){S.hist['2026-10-0'+i]=1000*i;}T.snap();o.histN=Object.keys(S.hist).length;o.card=T.nwChart().includes('polyline');
  T.render();return o;});
 console.log(JSON.stringify(r));
 // expected: TL 1000-100.10-400-50=449.90 ; Dolar 100-10.05+9.8=99.75 ; Altın 2.5 ; Kart -450

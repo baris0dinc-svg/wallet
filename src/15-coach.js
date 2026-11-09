@@ -151,7 +151,7 @@ function coachSteps(){
     if(!pre){s.st='todo';s.sum='Önceki adımlar tamamlanınca.';s.body=lines.length?'<ul class="cl">'+lines.join('')+'</ul><p class="small muted">Önce önceki adımları tamamla.</p>':'<p>Önceki adımlar tamamlanınca değerlendirilir.</p>';}
     else if(now){s.st='now';s.sum=lines.length+' konu var.';s.body='<ul class="cl">'+lines.join('')+'</ul>';}
     else{s.st='done';s.sum=hasBes?'BES ve dağılım takipte.':'Varlık dağılımın dengeli görünüyor.';s.body='<p>Finansal varlıkların: '+BUCK.filter(function(b){return D.buck[b[0]]>0;}).map(function(b){return esc(b[1])+' '+fPct(D.buck[b[0]]/D.fa*100,0);}).join(', ')+'.</p>';}
-    s.act=['Varlık dağılımı','an-go',null,'servet'];
+    s.act=['Varlık dağılımı','sv-go',null,'hesap'];
     s.why='<p>Çeşitlendirme: farklı nedenlerle değer kazanıp kaybeden varlıkları bir arada tutmak tek bir riskin seni çok etkilemesini azaltır. Uzun vadede hisse senetlerinin ve hisse yoğun fonların getirisi yüksek ama dalgalıdır; TEFAS’ta işlem gören hisse yoğun fonların kazancında stopaj %'+FACTS.fund.eq+', para piyasası ve borçlanma araçları fonlarında %'+NUM1.format(FACTS.fund.mm)+'.</p><p>Bileşik getiri: getirinin de getiri kazanması. Reel %4 ile 20 yılda para '+NUM2.format(Math.pow(1.04,20))+' katına çıkar.</p>';
     out.push(s);})();
   /* 7. finansal özgürlük */

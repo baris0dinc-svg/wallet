@@ -101,8 +101,9 @@ function forecast(){
   var mt=monthTx(k),spent=sum(mt,'exp'),inc=sum(mt,'inc'),varNow=0;mt.forEach(function(t){if(t.type==='exp'&&!pid[t.id]&&!lumpy(t,big))varNow+=txTL(t);});
   var hist=monthBase().ks.slice(0,3).map(function(p){var v=0;monthTx(p).forEach(function(t){if(t.type==='exp'&&!pid[t.id]&&!lumpy(t,big))v+=txTL(t);});return v>0?v/pDays(p):null;}).filter(function(x){return x!=null;});
   var hRate=hist.length?median(hist):null,cRate=varNow/el,w=Math.min(1,el/days*1.5),rate=hRate==null?cRate:(cRate*w+hRate*(1-w));
-  var recLeft=recDue(k).tot;
-  var exp=r2(spent+rate*rem+recLeft),ai=avgMonthly('inc'),expInc=S.recurring.some(function(r){return r.inc&&recOn(r,k);})?inc+recIncDue(k):Math.max(inc+recIncDue(k),ai||0);
+  /* ödenmiş kredi taksidinin anaparası tahminden düşmesin (ödenince dönem sonu "artan" büyümesin) */
+  var recLeft=recDue(k).tot,debtPaid=recDebtPaid(k);
+  var exp=r2(spent+rate*rem+recLeft+debtPaid),ai=avgMonthly('inc'),expInc=S.recurring.some(function(r){return r.inc&&recOn(r,k);})?inc+recIncDue(k):Math.max(inc+recIncDue(k),ai||0);
   return {spent:spent,exp:exp,recLeft:r2(recLeft),rate:rate,rem:rem,inc:inc,expInc:r2(expInc),incAssumed:expInc>inc+1,net:r2(expInc-exp),hist:hist.length};
 }
 /* ---- 2d. bütçenin dolacağı gün ---- */
@@ -143,7 +144,7 @@ function brainCard(max){
     return '<div class="item bi"><span class="sic" style="--c:var(--'+x.c+')">'+ic(x.ic)+'</span><span class="mid"><div class="wrap-t">'+x.t+'</div><div class="bacts"><button class="btn small" data-act="'+x.act+'" data-id="'+esc(x.id)+'">'+x.btn+'</button><button class="linkbtn" data-act="br-dis" data-id="'+esc(x.key)+'">Gizle</button></div></span></div>';}).join('')+'</div></div>';
 }
 ACT['br-dis']=function(el,id){S.brainDis=S.brainDis||{};S.brainDis[id]=Date.now();save();render();};
-ACT['br-dup']=function(el,id){var t=byId(S.tx,id);if(!t)return;S.tx=S.tx.filter(function(x){return x.id!==id;});save();render();toast('Çift kayıt silindi',function(){S.tx.push(t);save();render();toast('Geri alındı');});};
+ACT['br-dup']=function(el,id){var t=byId(S.tx,id);if(!t)return;var back=txRemove(txGroup(t));save();render();toast('Çift kayıt silindi',function(){back();save();render();toast('Geri alındı');});};
 ACT['br-rec']=function(el,id){var x=recurCands().filter(function(c){return c.key===id;})[0];if(!x)return;
   var r={id:uid(),name:x.name,amt:x.amt,day:x.day,cat:x.cat,acct:x.acct,paid:{}};var k=pk(x.last.date);if(k===curP())r.paid[k]=x.last.id;
   S.recurring.push(r);save();render();toast(x.name+' düzenli ödemelere eklendi');};

@@ -95,7 +95,7 @@ ACT['save-tx']=function(el,id){
   rcCommit(id||o.id);save();closeSheet();render();
   if(id&&other)toast('İşlem'+other+' taşındı');
   if(!id&&rask){var rr=rask.r,rk=rask.k;toast((txType==='inc'?'Gelir':'Gider')+' kaydedildi. Bu, '+rr.name+(rr.inc?' geliri':' ödemesi')+' mi?',function(){var tt=byId(S.tx,o.id);if(tt&&!recPaid(rr,rk)){linkRec(rr,rk,tt);save();render();toast(rr.name+(rr.inc?' geldi':' ödendi')+' olarak işaretlendi');}},'Evet');}
-  else if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi'+other+(rlink?' · '+rlink.name+(rlink.inc?' geldi':' ödendi')+' olarak işaretlendi':'')+(instR?' · '+tk+' taksit, her ay '+moneyIn(instR.amt,o.acct,1):'')+' · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct),function(){S.tx=S.tx.filter(function(z){return z.id!==o.id;});if(instR)S.recurring=S.recurring.filter(function(z){return z!==instR;});save();render();toast('Geri alındı');});
+  else if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi'+other+(rlink?' · '+rlink.name+(rlink.inc?' geldi':' ödendi')+' olarak işaretlendi':'')+(instR?' · '+tk+' taksit, her ay '+moneyIn(instR.amt,o.acct,1):'')+' · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct),function(){var it=o.intId;S.tx=S.tx.filter(function(z){return z.id!==o.id&&!(it&&z.id===it);});if(instR)S.recurring=S.recurring.filter(function(z){return z!==instR;});save();render();toast('Geri alındı');});
 };
 ACT['save-mv']=function(el,id){var t=byId(S.tx,id);if(!t)return;var amt=r2(num(val('m-amt')));
   if(tooBig(amt)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
@@ -111,16 +111,18 @@ ACT.undo=function(){var f=ui.undoFn;ui.undoFn=null;var e=document.getElementById
 ACT['del-tx']=function(el,id){var t=byId(S.tx,id);if(!t)return;
   /* taksitli alışverişin bir taksidi silinirse alışverişin tamamı (plan ve işlenmiş taksitler) silinir, geri alınabilir */
   var ir=t.inst&&byId(S.recurring,t.inst);if(ir){var its=S.tx.filter(function(x){return x.inst===ir.id;});S.tx=S.tx.filter(function(x){return x.inst!==ir.id;});S.recurring=S.recurring.filter(function(x){return x!==ir;});save();closeSheet();render();
-    toast('Taksitli alışveriş silindi ('+ir.n+' taksit)',function(){its.forEach(function(x){S.tx.push(x);});S.recurring.push(ir);save();render();});return;}var i=S.tx.indexOf(t);S.tx=S.tx.filter(function(x){return x.id!==id;});save();closeSheet();render();toast('İşlem silindi, bakiye güncellendi',function(){S.tx.splice(Math.min(i,S.tx.length),0,t);save();render();});};
+    toast('Taksitli alışveriş silindi ('+ir.n+' taksit)',function(){its.forEach(function(x){S.tx.push(x);});S.recurring.push(ir);save();render();});return;}
+  /* kredi taksidi silinince ayrı yazılan faiz gideri de silinir (yoksa bakiye faiz kadar eksik kalır) */
+  var grp=txGroup(t),back=txRemove(grp);save();closeSheet();render();toast(grp.length>1?'Ödeme ve faizi silindi, bakiye güncellendi':'İşlem silindi, bakiye güncellendi',function(){back();save();render();});};
 /* bölünmüş işlem: tek fişin bir kısmı başka kategoriye ayrılır (aynı gün, hesap ve notla ikinci işlem olur) */
 ACT['split-tx']=function(el,id){var t=byId(S.tx,id);if(!t)return;var l=t.type==='inc'?INCC():EXPC();
   openSheet('<h2>İşlemi böl</h2><div class="small muted">'+esc(t.note||t.cat)+' · '+moneyIn(t.amt,t.acct)+' · '+esc(t.cat)+'</div><div class="two"><div class="field"><label for="sp-amt">Ayrılacak tutar</label><input id="sp-amt" inputmode="decimal" placeholder="0,00"></div><div class="field"><label for="sp-cat">Kategorisi</label><select id="sp-cat">'+opts(l.filter(function(c){return c!==t.cat;}))+'</select></div></div><p class="small muted" style="margin:0">Kalan tutar “'+esc(t.cat)+'” olarak kalır. Örn. market fişindeki temizlik ürünlerini ayır.</p><div class="err" id="f-err"></div><button class="btn" data-act="split-go" data-id="'+t.id+'">Böl</button>');
   setTimeout(function(){var e=document.getElementById('sp-amt');if(e)e.focus();},60);};
 ACT['split-go']=function(el,id){var t=byId(S.tx,id);if(!t)return;var a=r2(num(val('sp-amt')));if(!(a>0)||a>=t.amt){ferr('Tutar sıfırdan büyük ve işlem tutarından ('+moneyIn(t.amt,t.acct)+') küçük olmalı.');return;}
-  var c=Object.assign({},t,{id:uid(),amt:a,cat:val('sp-cat'),ts:Date.now(),split:t.split||t.id});delete c.sample;delete c.imp;t.amt=r2(t.amt-a);t.split=t.split||t.id;
+  var c=txCopy(t,{id:uid(),amt:a,cat:val('sp-cat'),split:t.split||t.id});c.ts=Date.now();delete c.sub;t.amt=r2(t.amt-a);t.split=t.split||t.id;
   S.tx.push(c);save();closeSheet();render();
   toast('Bölündü: '+t.cat+' '+moneyIn(t.amt,t.acct,1)+' + '+c.cat+' '+moneyIn(c.amt,c.acct,1),function(){S.tx=S.tx.filter(function(z){return z.id!==c.id;});t.amt=r2(t.amt+a);save();render();});};
-ACT['dup-tx']=function(el,id){var t=byId(S.tx,id);if(!t)return;var c=Object.assign({},t,{id:uid(),date:todayS()});delete c.sample;delete c.fx;S.tx.push(c);ui.month=pk(c.date);save();closeSheet();render();toast('Bugüne kopyalandı');};
+ACT['dup-tx']=function(el,id){var t=byId(S.tx,id);if(!t)return;var c=txCopy(t,{id:uid(),date:todayS()});delete c.fx;delete c.split;c.note=String(c.note||'').replace(/\s*\(\d+\/\d+\)$/,'');S.tx.push(c);ui.month=pk(c.date);save();closeSheet();render();toast('Bugüne kopyalandı');};
 
 /* hesaplar */
 ACT['acct-open']=function(el,id){acctSheet(id);};
@@ -334,7 +336,7 @@ ACT['sub-del']=function(el,id,v){S.subs[id]=subsOf(id).filter(function(x){return
 /* yeniden adlandırma bütün kayıtlara uygulanır: işlemler, bütçe, kurallar, düzenli ödemeler, son seçimler */
 ACT['cat-ren']=function(el,id,v){var nw=val('cr-name').trim().replace(/\s+/g,' ');if(!nw){ferr('Bir ad yaz.');return;}if(nw===id){closeSheet();return;}if(badName(nw)||S.cats[v].indexOf(nw)>=0){ferr('Bu ad kullanılamaz ya da zaten var.');return;}
   S.cats[v]=S.cats[v].map(function(c){return c===id?nw:c;});S.tx.forEach(function(t){if(t.cat===id&&(v==='inc'?t.type==='inc':t.type==='exp'))t.cat=nw;});
-  if(v==='exp'&&S.budgets[id]!=null){S.budgets[nw]=S.budgets[id];delete S.budgets[id];}S.rules.forEach(function(r){if(r.cat===id)r.cat=nw;});S.recurring.forEach(function(r){if(r.cat===id)r.cat=nw;});
+  if(v==='exp'&&S.budgets[id]!=null){S.budgets[nw]=S.budgets[id];delete S.budgets[id];}if(v==='exp'&&S.budSince&&S.budSince[id]){S.budSince[nw]=S.budSince[id];delete S.budSince[id];}S.rules.forEach(function(r){if(r.cat===id)r.cat=nw;});S.recurring.forEach(function(r){if(r.cat===id)r.cat=nw;});
   if(S.subs[id]){S.subs[nw]=S.subs[id];delete S.subs[id];}if(S.catIc[id]){S.catIc[nw]=S.catIc[id];delete S.catIc[id];}
   if(S.last&&S.last[v]&&S.last[v].cat===id)S.last[v].cat=nw;S.catAlias=S.catAlias||{};delete S.catAlias[nw];S.catAlias[id]=nw;save();closeSheet();render();toast('“'+id+'” → “'+nw+'”');};
 ACT['cat-del']=function(el,id,v){if(S.cats[v].length<2)return;if(!armed(el))return;S.cats[v]=S.cats[v].filter(function(x){return x!==id;});if(S.cats.exp.indexOf(id)<0&&S.cats.inc.indexOf(id)<0){delete S.subs[id];delete S.catIc[id];}S.rules=S.rules.filter(function(r){return r.cat!==id||S.cats.exp.indexOf(id)>=0||S.cats.inc.indexOf(id)>=0;});if(v==='exp')delete S.budgets[id];save();closeSheet();render();};

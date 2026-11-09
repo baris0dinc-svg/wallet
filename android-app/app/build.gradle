@@ -9,7 +9,7 @@ android {
         targetSdk 34
         // her derlemede artar: yeni APK eskisinin üstüne güncelleme olarak kurulur, veriler korunur
         versionCode 100 + (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
-        versionName '4.12'
+        versionName '4.13'
         // test derlemesi: gradle -PwebDebug=true → WebView uzaktan incelenebilir (emülatör testi için)
         buildConfigField 'boolean', 'WEB_DEBUG', (project.findProperty('webDebug') ?: 'false')
     }
@@ -24,6 +24,11 @@ android {
         }
     }
     buildTypes {
-        debug { signingConfig signingConfigs.debug }
+        debug {
+            signingConfig signingConfigs.debug
+            // Yayınlanan APK hata ayıklamaya kapalı: USB ile uygulama verisi (run-as) ve WebView (chrome://inspect) okunamaz.
+            // İmza aynı kaldığından eski sürümün üstüne kurulur. Emülatör testi -PwebDebug=true ile açık derler.
+            debuggable((project.findProperty('webDebug') ?: 'false') == 'true')
+        }
     }
 }

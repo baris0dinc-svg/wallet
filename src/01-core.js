@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.12';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.13';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -443,6 +443,17 @@ function recFitN(r,t,k){if((t.type==='inc')!==!!r.inc||(t.type!=='inc'&&t.type!=
   if(named)return Math.abs(b-a)/a<=0.5?2:0;return t.cat===r.cat&&Math.abs(b-a)/a<=0.1?1:0;}
 function recFits(r,t,k){return recFitN(r,t,k)>0;}
 function recLinked(){var o={};S.recurring.forEach(function(r){Object.keys(r.paid||{}).forEach(function(k){o[r.paid[k]]=1;});});return o;}
+/* dönemde düzenli kalem olarak ödenen borç taksitlerinin anaparası: gider sayılmaz ama para hesaptan çıkmıştır.
+   Ödenince "ödenecek"ten düşer; "kalan" ve dönem sonu tahmini artmasın diye ayrıca sayılır */
+function recDebtPaid(k){var L=recLinked(),s=0;monthTx(k).forEach(function(t){if(t.type==='dbt'&&t.side==='out'&&(L[t.id]||(t.rec&&byId(S.recurring,t.rec))))s+=txTL(t);});return r2(s);}
+/* işlemle birlikte silinip geri gelen bağlı kayıtlar: kredi taksidinin ayrı yazılan faiz gideri */
+function txGroup(t){var it=t&&t.intId&&byId(S.tx,t.intId);return it?[t,it]:[t];}
+/* grubu siler; dönen işlev geri alır (işlemler eski sıralarına döner) */
+function txRemove(grp){var pos=grp.map(function(x){return {x:x,i:S.tx.indexOf(x)};}).sort(function(a,b){return a.i-b.i;});
+  S.tx=S.tx.filter(function(x){return grp.indexOf(x)<0;});
+  return function(){pos.forEach(function(p){if(S.tx.indexOf(p.x)<0)S.tx.splice(Math.min(Math.max(p.i,0),S.tx.length),0,p.x);});};}
+/* kopyalanan ya da bölünen işlem: taksit planı, düzenli ödeme, faiz, içe aktarma ve fiş bağları kopyaya geçmez */
+function txCopy(t,extra){var c=Object.assign({},t,extra||{});['inst','rec','intId','conv','rc','auto','sample','ts','imp'].forEach(function(f){delete c[f];});return c;}
 /* yeni işlem için eşleşen ödenmemiş düzenli kalem */
 /* aynı güçte adaylardan: bu dönemin vadesine 10 günden çok varsa önceki dönemin ödenmemiş gecikmiş kalemi, yoksa vadeye en yakın */
 function recMatch(t){var k0=pk(t.date),best=null,bs=0,bd=999;[addMonth(k0,-1),k0].forEach(function(k){S.recurring.forEach(function(r){if(isWk(r)||recPaid(r,k))return;var n=recFitN(r,t,k);if(!n)return;var dd=k<k0&&dueDate(r,k)<=t.date&&!(recOn(r,k0)&&!recPaid(r,k0)&&daysBetween(t.date,dueDate(r,k0))<=10)?-1:Math.abs(daysBetween(dueDate(r,k),t.date));if(n>bs||(n===bs&&dd<bd)){bs=n;bd=dd;best={r:r,k:k,n:n};}});});

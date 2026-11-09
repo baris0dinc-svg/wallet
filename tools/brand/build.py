@@ -17,8 +17,8 @@ from wordmark import wordmark  # noqa: E402
 # ---- marka: renkler ve yazı ----
 # 4.16: renkler uygulamanın arayüzünden (style.css): koyu temada zemin #0E1512 ve nane yeşili vurgu #3FBF9F,
 # açık temada zemin #F2F4F1 ve yeşil vurgu #0E6B58. Açılış ekranı telefonun temasını izler; simge koyu temadaki gibidir.
-DARK = dict(bg='#0E1512', hi='#1A2620', lo='#080C0A', logo=['#8FE6CD', '#3FBF9F', '#2C9E83', '#6DD8BB'])
-LIGHT = dict(bg='#F2F4F1', hi='#FFFFFF', lo='#E1E7E2', logo=['#1C8C73', '#0E6B58', '#0A5546', '#15806A'])
+DARK = dict(accent='#3FBF9F', ink='#E7EEEA', bg='#0E1512', hi='#1A2620', lo='#080C0A', logo=['#8FE6CD', '#3FBF9F', '#2C9E83', '#6DD8BB'])
+LIGHT = dict(accent='#0E6B58', ink='#13201B', bg='#F2F4F1', hi='#FFFFFF', lo='#E1E7E2', logo=['#1C8C73', '#0E6B58', '#0A5546', '#15806A'])
 ICON = dict(DARK, hi='#1D2B24', lo='#0A100D')
 BG, BG_HI, BG_LO, GOLD = DARK['bg'], DARK['hi'], DARK['lo'], DARK['logo']
 
@@ -133,10 +133,11 @@ def main():
 
     # Açılış ekranı simgesi (Android 12+: 288dp kutu, 192dp daireye sığmalı). Web açılışı aynı boyutu kullanır.
     # Gündüz (values, drawable) ve gece (values-night, drawable-night) ayrı: telefonun temasını izler.
-    sp_w = BW * (90 / RMAX)
+    sp_w = 72.0  # 4.18: üst çubuktaki logoya yakın boyut (web açılışında 66 px)
     for t, q, light in ((LIGHT, '', True), (DARK, '-night', False)):
         use(t)
-        w(os.path.join(res, 'drawable%s/splash_icon.xml' % q), vec(288, 288, logo_vec(288, sp_w)))
+        # 4.18: üst çubuktaki logo gibi düz arayüz vurgu rengi (geçiş ve parlama yok)
+        w(os.path.join(res, 'drawable%s/splash_icon.xml' % q), vec(288, 288, logo_vec(288, sp_w, '#FF' + t['accent'][1:])))
         lt = 'true' if light else 'false'
         w(os.path.join(res, 'values%s/splash.xml' % q),
           '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="splash">%s</color>\n'
@@ -166,38 +167,31 @@ def main():
       '    <item android:width="288dp" android:height="288dp" android:gravity="center" android:drawable="@drawable/splash_icon" />\n'
       '</layer-list>\n')
 
-    # Web açılış ekranı: index.html içindeki işaretlerin arası yeniden yazılır
-    s = sp_w / BW
-    lw, lh = BW * s, BH * s
+    # Web açılış ekranı (4.18): üst çubuktaki gibi; solda logo, sağda uygulamanın yazı tipiyle "Wallet".
+    # Renkler arayüzden ve telefonun temasından; geçiş, parlama ve harf aralıklı yazı yok.
     logo_d = path_tf(1, BW / 2, BH / 2, 2)
-    wd, ww, wh = wordmark(FONT, WORD, 26, WORD_TRACK)
     def mask(vw, vh, d):
         svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %.1f %.1f"><path fill-rule="evenodd" d="%s"/></svg>' % (vw, vh, d)
         return 'url("data:image/svg+xml,%s")' % urllib.parse.quote(svg, safe=' /=:,.-#')
-    use(DARK)
-    grad = ','.join('%s %d%%' % (c, o * 100) for c, o in zip(GOLD, GOLD_OFF))
-    lgrad = ','.join('%s %d%%' % (c, o * 100) for c, o in zip(LIGHT['logo'], GOLD_OFF))
     css = (
-        '#splash{position:fixed;inset:0;z-index:9999;background:%(bg)s;overflow:hidden;transition:opacity .45s ease}'
-        '#splash::before{content:"";position:absolute;inset:-10%%;background:radial-gradient(ellipse 70%% 55%% at 50%% 44%%,%(hi)s 0%%,transparent 70%%),radial-gradient(ellipse at 50%% 50%%,transparent 55%%,%(lo)s 100%%);opacity:0;animation:spGlow 1s ease .05s forwards}'
-        '/* yalnızca -webkit-mask: eski Android WebView içinde öneksiz mask öğeyi tümüyle gizler */#splash i{position:absolute;left:50%%;top:50%%;display:block;background:linear-gradient(135deg,%(grad)s)}'
-        '#splash .sp-l{-webkit-mask:%(m1)s center/100%% 100%% no-repeat;width:%(lw).2fpx;height:%(lh).2fpx;margin:%(lmy).2fpx 0 0 %(lmx).2fpx}'
-        '#splash .sp-l::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%%,rgba(255,255,255,.9) 50%%,transparent 65%%);background-size:300%% 100%%;background-position:120%% 0;animation:spShine 1.1s cubic-bezier(.4,0,.2,1) .2s forwards}'
-        '#splash .sp-w{width:%(ww).2fpx;height:%(wh).2fpx;margin:%(wmy).2fpx 0 0 %(wmx).2fpx;-webkit-mask:%(m2)s center/100%% 100%% no-repeat;opacity:0;transform:translateY(10px);animation:spWord .8s cubic-bezier(.2,.7,.2,1) .3s forwards}'
-        '#splash.out{opacity:0}#splash.out .sp-l{transform:scale(1.04);transition:transform .45s ease}'
-        '@keyframes spGlow{to{opacity:1}}@keyframes spShine{to{background-position:-20%% 0}}@keyframes spWord{to{opacity:1;transform:none}}'
-        '@media (prefers-color-scheme:light){#splash{background:%(lbg)s}#splash::before{background:radial-gradient(ellipse 70%% 55%% at 50%% 44%%,%(lhi)s 0%%,transparent 70%%),radial-gradient(ellipse at 50%% 50%%,transparent 55%%,%(llo)s 100%%)}#splash i{background:linear-gradient(135deg,%(lgrad)s)}#splash .sp-l::after{background-image:linear-gradient(105deg,transparent 35%%,rgba(255,255,255,.75) 50%%,transparent 65%%)}}'
-        '@media (prefers-reduced-motion:reduce){#splash *,#splash::before{animation-duration:.01s!important;animation-delay:0s!important}}'
-    ) % dict(bg=BG, hi=BG_HI, lo=BG_LO, grad=grad, lbg=LIGHT['bg'], lhi=LIGHT['hi'], llo=LIGHT['lo'], lgrad=lgrad, m1=mask(BW, BH, logo_d), m2=mask(ww, wh, wd),
-             lw=lw, lh=lh, lmy=-lh / 2, lmx=-lw / 2, ww=ww, wh=wh, wmy=lh / 2 + 34, wmx=-ww / 2)
+        '#splash{position:fixed;inset:0;z-index:9999;background:%(dbg)s;display:flex;align-items:center;justify-content:center;transition:opacity .45s ease}'
+        '#splash .sp-r{display:flex;align-items:center;gap:17px;animation:spIn .5s cubic-bezier(.2,.7,.2,1) both}'
+        '/* yalnızca -webkit-mask: eski Android WebView içinde öneksiz mask öğeyi tümüyle gizler */'
+        '#splash .sp-l{display:block;flex:none;width:66px;height:42px;background:%(dac)s;-webkit-mask:%(m1)s center/100%% 100%% no-repeat}'
+        "#splash .sp-w{font:700 44px/1 'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-.01em;color:%(dink)s}"
+        '@media (prefers-color-scheme:light){#splash{background:%(lbg)s}#splash .sp-l{background:%(lac)s}#splash .sp-w{color:%(link)s}}'
+        '#splash.out{opacity:0}'
+        '@keyframes spIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}'
+        '@media (prefers-reduced-motion:reduce){#splash .sp-r{animation:none}}'
+    ) % dict(dbg=DARK['bg'], dac=DARK['accent'], dink=DARK['ink'], lbg=LIGHT['bg'], lac=LIGHT['accent'], link=LIGHT['ink'], m1=mask(BW, BH, logo_d))
     block = ('<!-- açılış:başla (tools/brand/build.py üretir) -->\n<style>%s</style>\n'
-             '<div id="splash" aria-hidden="true"><i class="sp-l"></i><i class="sp-w"></i></div>\n<!-- açılış:bitir -->') % css
+             '<div id="splash" aria-hidden="true"><div class="sp-r"><i class="sp-l"></i><span class="sp-w">Wallet</span></div></div>\n<!-- açılış:bitir -->') % css
     ip = os.path.join(ROOT, 'index.html')
     h = open(ip, encoding='utf-8').read()
     h2 = re.sub(r'<!-- açılış:başla.*?<!-- açılış:bitir -->', lambda m: block, h, flags=re.S)
     assert h2 != h or block in h, 'index.html içinde açılış işaretleri yok'
     open(ip, 'w', encoding='utf-8').write(h2)
-    print('logo genişliği: simge %.1fdp, açılış %.1fdp; yazı %.0fx%.0f' % (fg_w, sp_w, ww, wh))
+    print('logo genişliği: simge %.1fdp, açılış %.1fdp' % (fg_w, sp_w))
 
 
 if __name__ == '__main__':

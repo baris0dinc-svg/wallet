@@ -22,10 +22,21 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        // İsteğe bağlı kişisel imza: CI'da WALLET_KEYSTORE_B64 sırrı tanımlıysa APK onunla imzalanır (README › Kişisel imza).
+        // Tanımlı değilse yukarıdaki sabit imza kullanılır; mevcut kurulum aynen güncellenir.
+        own {
+            def ks = System.getenv('WALLET_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('WALLET_KEYSTORE_PASS')
+                keyAlias System.getenv('WALLET_KEY_ALIAS') ?: 'wallet'
+                keyPassword System.getenv('WALLET_KEY_PASS') ?: System.getenv('WALLET_KEYSTORE_PASS')
+            }
+        }
     }
     buildTypes {
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig System.getenv('WALLET_KEYSTORE') ? signingConfigs.own : signingConfigs.debug
             // Yayınlanan APK hata ayıklamaya kapalı: USB ile uygulama verisi (run-as) ve WebView (chrome://inspect) okunamaz.
             // İmza aynı kaldığından eski sürümün üstüne kurulur. Emülatör testi -PwebDebug=true ile açık derler.
             debuggable((project.findProperty('webDebug') ?: 'false') == 'true')

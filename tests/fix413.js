@@ -39,5 +39,10 @@ const r=await p.evaluate(()=>{const T=window.__T,F=[];const $=s=>document.queryS
  // 7 kategori adı değişince bütçe devrinin başlangıcı da taşınır
  T.S.budSince={'Market':'2026-01'};act('cat-menu','Market','exp');setv('cr-name','Gıda');$('.sheet [data-act="cat-ren"]').click();
  chk(T.S.budSince['Gıda']==='2026-01'&&!T.S.budSince['Market'],'budSince '+JSON.stringify(T.S.budSince));
+ // 8 net servet geçmişi işlenmemiş kart taksitlerini alışveriş gününden itibaren sayar (bugünkü değerle tutarlı)
+ reset();const pd=T.addMonth(T.curP(),-3)+'-10',ir={id:'ir',name:'Tv taksiti',amt:1000,day:10,cat:'Diğer',acct:'Kredi kartı',every:1,n:6,start:T.pk(pd),auto:true,paid:{}};
+ T.S.tx.push({id:'f1',type:'exp',amt:1000,cat:'Diğer',acct:'Kredi kartı',date:pd,inst:'ir',rec:'ir'});ir.paid[T.pk(pd)]='f1';T.S.recurring.push(ir);T.autoPost();T.save();
+ const nw=T.wealth().net,dayB=T.addD(pd,-1);chk(near(T.nwAt(pd),nw)&&near(T.nwAtMany([pd])[pd],nw)&&near(T.nwAt(T.todayS()),nw),'taksitli geçmiş '+T.nwAt(pd)+' '+T.nwAtMany([pd])[pd]+' '+nw);
+ chk(near(T.nwAt(dayB),nw+6000),'alışverişten önce '+T.nwAt(dayB));
  return F;});
 console.log(r.length?r.map(x=>'FAIL '+x).join('\n'):'ALL PASS');if(errs.length)console.log('PAGEERR',errs);await b.close();})();

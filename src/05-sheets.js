@@ -70,7 +70,8 @@ function restoreUi(){
   if(h&&!ui.page){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
 }
 /* adres çubuğundaki #… ile sayfa eşleşmesi (tarayıcı/telefon geri tuşu için) */
-function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='ayarlar')return {k:'ayar'};if(h==='notlar')return {k:'notlar'};if(/^ayar-[a-z]+$/.test(h))return {k:'set',s:h.slice(5)};return null;}
+function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='ayarlar')return {k:'ayar'};if(h==='notlar')return {k:'notlar'};if(/^ayar-[a-z]+$/.test(h)&&SETS.some(function(x){return x.id===h.slice(5);}))return {k:'set',s:h.slice(5)};if(/^ayar-/.test(h))return {k:'ayar'};return null;}
+var TABH={islemler:'islem',hesaplar:'servet',analiz:'analiz',plan:'plan',anasayfa:'ev'};
 function openPage(p,hash){closeSheet();if(ui.page&&ui.page!==p&&ui.page.k!==p.k){finishPage();p.prev=ui.page;}ui.page=p;try{if(hash)location.hash=hash;}catch(e){}render();window.scrollTo(0,0);}
 function finishPage(){if(ui.page&&ui.page.k==='note')saveNote();}
 function closePage(){finishPage();var p=ui.page;ui.page=(p&&p.prev)||null;render();try{if(location.hash.length>1)history.back();}catch(e){}}
@@ -78,7 +79,7 @@ function goSec(s){closeSheet();
   if(s==='notlar'){openPage({k:'notlar'},'notlar');return;}
   if(s==='ayar'||s==='ayarlar'){openPage({k:'ayar'},'ayarlar');return;}
   /* sayfadan sekmeye geçerken adresi yerinde temizle (history.back gecikmeli çalışıp sonraki sayfayı kapatmasın) */
-  var from=ui.page?null:ui.sub,to=mapSec(s);
+  var from=ui.page?null:ui.sub,to=mapSec(s);if(ui.sub==='islem'&&to!=='islem')ui.tq='';
   if(ui.page){finishPage();ui.page=null;try{if(location.hash.length>1)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
   /* sekmeler arası geçişte her sekme kaldığı yerden açılır; aynı sekmeye yeniden dokununca başa döner */
   ui.scr=ui.scr||{};if(from)ui.scr[from]=window.scrollY||0;
@@ -89,7 +90,7 @@ function openSheet(inner){document.getElementById('sheet-root').innerHTML='<div 
 function closeSheet(){var r=document.getElementById('sheet-root');if(r)r.innerHTML='';}
 function sheetOpen(){return !!document.getElementById('sheet-root').innerHTML;}
 function opts(list,sel){return list.map(function(x){return '<option'+(x===sel?' selected':'')+'>'+esc(x)+'</option>';}).join('');}
-function acctOpts(sel,none){return (none?'<option value="">'+esc(none)+'</option>':'')+ACCS().map(function(a){return '<option value="'+esc(a)+'"'+(a===sel?' selected':'')+'>'+esc(a)+(ccyOf(a)!=='TRY'?' ('+CSYM[ccyOf(a)]+')':'')+'</option>';}).join('');}
+function acctOpts(sel,none,skip){return (none?'<option value="">'+esc(none)+'</option>':'')+ACCS().filter(function(a){return a===sel||(!ax(a).arch&&!(skip&&skip(a)));}).map(function(a){return '<option value="'+esc(a)+'"'+(a===sel?' selected':'')+'>'+esc(a)+(ccyOf(a)!=='TRY'?' ('+CSYM[ccyOf(a)]+')':'')+'</option>';}).join('');}
 function delBtn(act,id,label){return '<button class="btn danger" data-act="'+act+'" data-id="'+id+'">'+(label||'Sil')+'</button>';}
 function armed(btn){if(btn.dataset.armed){return true;}btn.dataset.armed='1';btn.textContent='Emin misin? Tekrar dokun';return false;}
 function ferr(m){var e=document.getElementById('f-err');if(e){e.textContent=m;e.style.color='var(--exp)';}}
@@ -111,14 +112,14 @@ function txSheet(id,force,pre){
   var to0=(t&&t.to)||(pre.to&&acc.indexOf(pre.to)>=0&&pre.to!==a0?pre.to:acc.filter(function(a){return a!==a0;})[0]);
   openSheet('<h2>'+esc(t?'İşlemi düzenle':(pre.title||'Yeni işlem'))+'</h2><div class="seg" id="f-type"><button data-act="tx-type" data-v="exp" aria-pressed="'+(txType==='exp')+'">Gider</button><button data-act="tx-type" data-v="inc" aria-pressed="'+(txType==='inc')+'">Gelir</button>'+(canTrf?'<button data-act="tx-type" data-v="trf" aria-pressed="'+trf+'">Transfer</button>':'')+'</div>'+(!t&&!(pre.amt>0)?favRow('sheet'):'')
    +'<div class="field"><label for="f-amt" id="lb-amt">Tutar (₺)</label><input id="f-amt" class="amtin" inputmode="decimal" placeholder="0,00" value="'+(t?nv(t.amt):(pre.amt>0?nv(pre.amt):''))+'"></div>'
-   +'<div class="field"><label for="f-note">Not</label><input id="f-note" list="note-dl" autocomplete="off" placeholder="İsteğe bağlı, örn. migros" value="'+esc(t?t.note:(pre.note||''))+'">'+noteDl(txType==='inc'?'inc':'exp')+'</div>'
+   +'<div class="field"><label for="f-note">Not</label><input id="f-note" list="note-dl" autocomplete="off" placeholder="İsteğe bağlı, örn. migros #tatil" value="'+esc(t?t.note:(pre.note||''))+'">'+noteDl(txType==='inc'?'inc':'exp')+'</div>'
    +'<div class="field" id="row-cat"'+(trf?' hidden':'')+'><span class="flbl">Kategori</span><select id="f-cat" hidden aria-hidden="true">'+(t&&!trf?optsKeep(cats,t.cat):opts(cats,pre.cat&&cats.indexOf(pre.cat)>=0?pre.cat:lastSel(txType,'cat',cats)))+'</select><div class="catchips" id="f-catchips" role="group" aria-label="Kategori"></div></div>'
    +'<div class="two"><div class="field"><label for="f-acct" id="lb-acct">'+(trf?'Çıkış hesabı':'Hesap')+'</label><select id="f-acct">'+acctOpts(a0)+'</select></div><div class="field" id="row-to"'+(trf?'':' hidden')+'><label for="f-to">Giriş hesabı</label><select id="f-to">'+acctOpts(to0)+'</select></div></div>'
    +(t?'':'<div class="field" id="row-inst" hidden><label for="f-inst">Taksit</label><select id="f-inst"><option value="1">Tek çekim</option>'+[2,3,4,5,6,7,8,9,10,11,12].map(function(n){return '<option value="'+n+'">'+n+' taksit</option>';}).join('')+'</select><div class="small muted" style="margin-top:4px">Her ay bir taksit karta ve bütçeye yansır; kalanlar kendiliğinden işlenir.</div></div>')
    +'<div class="field" id="row-amt2" hidden><label for="f-amt2" id="lb-amt2">Giriş tutarı</label><input id="f-amt2" inputmode="decimal" placeholder="0,00"'+(t&&t.amt2?' data-manual="1"':'')+' value="'+(t&&t.amt2?nv(t.amt2):'')+'"></div>'
    +'<div class="field"><label for="f-date">Tarih</label><div class="datew"><input id="f-date" type="date" value="'+(t?t.date:(pre.date||todayS()))+'"><button class="chip" data-act="date-pick" data-v="0">Bugün</button><button class="chip" data-act="date-pick" data-v="1">Dün</button></div></div>'
    +'<div class="balprev" id="f-bal" aria-live="polite"></div><div class="err" id="f-err"></div>'
-   +'<button class="btn" data-act="save-tx" data-id="'+(t?t.id:'')+'">Kaydet</button>'+(t?'<button class="btn ghost" data-act="dup-tx" data-id="'+t.id+'">Bugüne kopyala</button>'+delBtn('del-tx',t.id):''));
+   +'<button class="btn" data-act="save-tx" data-id="'+(t?t.id:'')+'">Kaydet</button>'+(t&&(t.type==='exp'||t.type==='inc')?'<button class="btn ghost" data-act="split-tx" data-id="'+t.id+'">Böl (birden çok kategori)</button>':'')+(t?'<button class="btn ghost" data-act="dup-tx" data-id="'+t.id+'">Bugüne kopyala</button>'+delBtn('del-tx',t.id):''));
   catChips();dateChips();syncCcy();
   if(!t)setTimeout(function(){var e=document.getElementById('f-amt');if(e)e.focus();},60);
 }
@@ -254,23 +255,24 @@ function tradeSheet(id,side){
   openSheet('<h2>'+esc(x.name)+' · '+(side==='buy'?'Al':'Sat')+'</h2><div class="small muted">Elindeki: '+(ast?'1 adet':qtyTxt(x))+' · ort. maliyet '+TRY2.format(x.cost)+' · güncel '+TRY2.format(p)+'</div>'
    +'<div class="two">'+(ast?'':'<div class="field"><label for="tr-qty">Miktar</label><input id="tr-qty" inputmode="decimal" value="'+(side==='sell'?nv(x.qty):'')+'"></div>')+'<div class="field"><label for="tr-price">'+(ast?'Satış tutarı (₺)':'Birim fiyat (₺)')+'</label><input id="tr-price" inputmode="decimal" value="'+nv(r2(p))+'"></div>'+(ast?'<div class="field"><label for="tr-date">Tarih</label><input id="tr-date" type="date" value="'+todayS()+'"></div>':'')+'</div>'
    +'<div class="two"><div class="field"><label for="tr-acct">'+(side==='buy'?'Ödeme hesabı':'Paranın gireceği hesap')+'</label><select id="tr-acct">'+acctOpts(defAcct('exp'),'Hesaba yansıtma')+'</select></div>'+(ast?'':'<div class="field"><label for="tr-date">Tarih</label><input id="tr-date" type="date" value="'+todayS()+'"></div>')+'</div>'
+   +(ast?'':'<div class="field"><label for="tr-fee">Komisyon ve masraf (₺)</label><input id="tr-fee" inputmode="decimal" placeholder="Varsa, örn. 12,50"></div>')
    +'<div class="balprev" id="tr-prev"></div><div class="err" id="f-err"></div><button class="btn" data-act="trade" data-id="'+x.id+'" data-v="'+side+'">'+(side==='buy'?'Alımı kaydet':'Satışı kaydet')+'</button>');
   tradePrev();
 }
 function tradePrev(){var box=document.getElementById('tr-prev');if(!box)return;var btn=document.querySelector('[data-act="trade"]'),x=btn&&byId(S.holdings,btn.dataset.id);if(!x)return;
-  var ast=hKind(x)==='asset',q=ast?1:num(val('tr-qty')),p=num(val('tr-price')),side=btn.dataset.v;if(!(q>0&&p>0)){box.textContent='';return;}
-  var m=maskOn;maskOn=false;try{box.innerHTML='Tutar: <b class="num">'+TRY2.format(q*p)+'</b>'+(side==='sell'?' · Kâr/zarar: <b class="num '+((p-x.cost)>=0?'inc':'exp')+'">'+sgn((p-x.cost)*q)+'</b>':' · Yeni ort. maliyet: <b class="num">'+TRY2.format((x.qty*x.cost+q*p)/(x.qty+q))+'</b>');}finally{maskOn=m;}}
+  var ast=hKind(x)==='asset',q=ast?1:num(val('tr-qty')),p=num(val('tr-price')),f=Math.max(num(val('tr-fee')),0),side=btn.dataset.v;if(!(q>0&&p>0)){box.textContent='';return;}
+  var m=maskOn;maskOn=false;try{var pl=(p-x.cost)*q-f;box.innerHTML=(side==='sell'?'Hesaba girecek':'Hesaptan çıkacak')+': <b class="num">'+TRY2.format(side==='sell'?q*p-f:q*p+f)+'</b>'+(side==='sell'?' · Kâr/zarar: <b class="num '+(pl>=0?'inc':'exp')+'">'+sgn(pl)+'</b>':' · Yeni ort. maliyet: <b class="num">'+TRY2.format((x.qty*x.cost+q*p+f)/(x.qty+q))+'</b>');}finally{maskOn=m;}}
 function gSheet(id,pre){
   var g=id?byId(S.goals,id):null,ae=avgMonthly('exp'),em=g?isEm(g):!!(pre&&pre.em),nm=g?g.name:(em?'Acil durum fonu':''),tg=g?nv(g.target):(em&&ae>0?nv(Math.ceil(ae*6/1000)*1000):'');
   openSheet('<h2>'+(g?'Hedefi düzenle':'Yeni hedef')+'</h2><div class="field"><label for="g-name">Ad</label><input id="g-name" placeholder="Örn. Yaz tatili" value="'+esc(nm)+'"></div><div class="two"><div class="field"><label for="g-target">Hedef tutar (₺)</label><input id="g-target" inputmode="decimal" value="'+tg+'"></div><div class="field" id="row-gsaved"><label for="g-saved">Biriken (₺)</label><input id="g-saved" inputmode="decimal" value="'+(g?nv(g.saved||0):'0')+'"></div></div>'
-   +'<div class="two"><div class="field"><label for="g-acct">Bağlı hesap</label><select id="g-acct">'+acctOpts(g?g.acct||'':'','Yok, elle takip et')+'</select></div><div class="field"><label for="g-date">Hedef tarih</label><input id="g-date" type="date" value="'+(g&&g.date?g.date:'')+'"></div></div><label class="chk"><input type="checkbox" id="g-em"'+(em?' checked':'')+'> Bu benim acil durum fonum</label>'+(ae>0?'<p class="small muted" style="margin:0">Acil durum fonu için önerilen: 6 aylık gider, yaklaşık '+TRY0.format(ae*6)+'. Finansal sağlıktaki gösterge bu hedefin birikimini kullanır.</p>':'')+'<p class="small muted" style="margin:0">Bir birikim hesabı bağlarsan biriken tutar o hesabın bakiyesinden gelir; para eklemek hesaplar arası transfer olur.</p><div class="err" id="f-err"></div><button class="btn" data-act="save-g" data-id="'+(g?g.id:'')+'">Kaydet</button>'+(g?delBtn('del-g',g.id):''));
+   +'<div class="two"><div class="field"><label for="g-acct">Bağlı hesap</label><select id="g-acct">'+acctOpts(g?g.acct||'':'','Yok, elle takip et',function(a){return acctType(a)==='kart';})+'</select></div><div class="field"><label for="g-date">Hedef tarih</label><input id="g-date" type="date" value="'+(g&&g.date?g.date:'')+'"></div></div><label class="chk"><input type="checkbox" id="g-em"'+(em?' checked':'')+'> Bu benim acil durum fonum</label>'+(ae>0?'<p class="small muted" style="margin:0">Acil durum fonu için önerilen: 6 aylık gider, yaklaşık '+TRY0.format(ae*6)+'. Finansal sağlıktaki gösterge bu hedefin birikimini kullanır.</p>':'')+'<p class="small muted" style="margin:0">Bir birikim hesabı bağlarsan biriken tutar o hesabın bakiyesinden gelir; para eklemek hesaplar arası transfer olur.</p><div class="err" id="f-err"></div><button class="btn" data-act="save-g" data-id="'+(g?g.id:'')+'">Kaydet</button>'+(g?delBtn('del-g',g.id):''));
   syncG();
 }
 function syncG(){var r=document.getElementById('row-gsaved');if(r)r.hidden=!!val('g-acct');}
 function gaddSheet(id){
   var g=byId(S.goals,id);if(!g)return;var linked=g.acct&&ACCS().indexOf(g.acct)>=0;
   openSheet('<h2>'+esc(g.name)+' · para ekle</h2><div class="small muted">Biriken '+TRY0.format(goalSaved(g))+' / '+TRY0.format(g.target)+'</div><div class="field"><label for="ga-amt">Tutar (₺)</label><input id="ga-amt" inputmode="decimal" placeholder="0,00"></div>'
-   +(linked?'<div class="field"><label for="ga-from">Hangi hesaptan</label><select id="ga-from">'+acctOpts(ACCS().filter(function(a){return a!==g.acct;})[0])+'</select></div><p class="small muted" style="margin:0">'+esc(g.acct)+' hesabına transfer yapılır.</p>':'<p class="small muted" style="margin:0">Bu hedef elle takip ediliyor; hesap bakiyeleri değişmez. Bir birikim hesabına bağlamak için hedefi düzenle.</p>')
+   +(linked?'<div class="field"><label for="ga-from">Hangi hesaptan</label><select id="ga-from">'+acctOpts(ACCS().filter(function(a){return a!==g.acct&&!ax(a).arch;})[0],null,function(a){return a===g.acct;})+'</select></div><p class="small muted" style="margin:0">'+esc(g.acct)+' hesabına transfer yapılır.</p>':'<p class="small muted" style="margin:0">Bu hedef elle takip ediliyor; hesap bakiyeleri değişmez. Bir birikim hesabına bağlamak için hedefi düzenle.</p>')
    +'<div class="err" id="f-err"></div><button class="btn" data-act="ga-save" data-id="'+g.id+'">Ekle</button>');
   setTimeout(function(){var e=document.getElementById('ga-amt');if(e)e.focus();},60);
 }
@@ -315,7 +317,8 @@ function aSheet(a,kind){
    +'<div class="two" id="row-limit"'+(t==='kart'?'':' hidden')+'><div class="field"><label for="a-limit">Kart limiti</label><input id="a-limit" inputmode="decimal" placeholder="İsteğe bağlı" value="'+(x.limit?nv(x.limit):'')+'"></div><div class="field"><label for="a-cut">Hesap kesim günü</label><input id="a-cut" inputmode="numeric" maxlength="2" placeholder="Örn. 5" value="'+(x.cut||'')+'"></div></div>'
    +'<p class="small muted" style="margin:0" id="a-hint"></p><div class="err" id="f-err"></div>'
    +'<button class="btn" data-act="save-a" data-id="'+esc(ex?a:'')+'">Kaydet</button>'
-   +(ex?(used||ACCS().length<2?'<p class="small muted" style="margin:0;text-align:center">'+(used?'Hareketi ya da bağlı kaydı olduğu için bu hesap silinemez.':'Son hesap silinemez.')+'</p>':delBtn('del-a',esc(a))):''));
+   +(ex?(used||ACCS().length<2?'<p class="small muted" style="margin:0;text-align:center">'+(used?'Hareketi ya da bağlı kaydı olduğu için bu hesap silinemez; kapandıysa arşivleyebilirsin.':'Son hesap silinemez.')+'</p>':delBtn('del-a',esc(a))):'')
+   +(ex&&ACCS().length>1?'<button class="btn ghost" data-act="a-arch" data-id="'+esc(a)+'">'+(x.arch?'Arşivden çıkar':'Hesabı arşivle')+'</button>'+(x.arch?'':'<p class="small muted" style="margin:0;text-align:center">Arşivlenen hesap listelerde ve seçimlerde görünmez; geçmiş işlemleri ve bakiyesi korunur.</p>'):''));
   syncA();
 }
 function syncA(conv){

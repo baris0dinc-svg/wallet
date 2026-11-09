@@ -43,6 +43,6 @@ chk(r.notesTitle==='Not ayarları'&&r.notesBody,'not ayarları');
 chk(r.nest1&&r.nest2&&r.nest3,'ayarlar geri akışı '+[r.nest1,r.nest2,r.nest3]);chk(r.b1&&r.b2&&r.b3&&r.b4,'geri tuşu '+[r.b1,r.b2,r.b3,r.b4]);
 chk(r.bank.r5.added===2&&r.bank.acct.join()==='Banka,Banka'&&r.bank.cat.join()==='Market,Diğer gelir'&&r.bank.type.join()==='exp,inc','banka ekstresi');
 chk(r.hasCcy&&r.newAcctCcy==='USD','para birimi sütunu');
-chk(r.neg0==='₺0,00 −₺12,50 −$3','eksi biçimi: '+r.neg0);
+chk(r.neg0==='₺0,00 −₺12,50 −$3,00','eksi biçimi (4.10: döviz iki ondalık): '+r.neg0);
 chk(r.fsLabels==='Küçük,Normal,Büyük,Çok büyük','yazı boyutu adları');chk(r.oldSet==='Genel','eski ayar adı birleşen sayfaya gider: '+r.oldSet);
 console.log(F.length?'FAIL\n'+F.join('\n'):'ALL PASS');console.log(errs.length?errs.join('\n'):'no page errors');await b.close();})();

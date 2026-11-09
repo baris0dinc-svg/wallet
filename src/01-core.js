@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.9';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.10';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -18,7 +18,7 @@ var FXK=['USD','EUR','GBP','CHF','XAU','XAG','CEY'];
 var FXL={USD:'USD/TL',EUR:'EUR/TL',GBP:'GBP/TL',CHF:'CHF/TL',XAU:'Gram altın',XAG:'Gram gümüş',CEY:'Çeyrek altın'};
 var R0=new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:0});
 var R2=new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',minimumFractionDigits:2,maximumFractionDigits:2});
-var NUM2=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:2});
+var NUM2=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:2}),FIX2=new Intl.NumberFormat('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2});
 var NUM1=new Intl.NumberFormat('tr-TR',{maximumFractionDigits:1});
 var maskOn=false,MASK='••••';
 function clean(n,d){n=+n||0;return Math.abs(n)<(d?0.005:0.5)?0:n;}
@@ -273,12 +273,14 @@ function r2(n){n=+n||0;return (n<0?-1:1)*Math.round(Math.abs(n)*100+1e-7)/100;}
 function ax(a){return (S.accx&&S.accx[a])||{};}
 function ccyOf(a){var c=ax(a).ccy;return CCYS.indexOf(c)>0?c:'TRY';}
 function rateOf(c){return (!c||c==='TRY')?1:(+(S.fx&&S.fx[c])||0);}
-function toTL(v,a){return v*rateOf(ccyOf(a));}
+/* değerleme alış kuruyla (elindeki dövizi/altını bugün bozdursan alacağın TL); TL'den dövize çevirme satış kuruyla */
+function vRate(c){if(!c||c==='TRY')return 1;var b=S.fxB&&+S.fxB[c];return b>0?b:rateOf(c);}
+function toTL(v,a){return v*vRate(ccyOf(a));}
 function fromTL(v,a){var r=rateOf(ccyOf(a));return r>0?v/r:0;}
 var ATYPES=[['nakit','Nakit (cüzdan)'],['banka','Banka hesabı'],['kart','Kredi kartı'],['birikim','Birikim hesabı'],['diger','Diğer']];
 function acctType(a){var t=ax(a).type;if(ATYPES.some(function(x){return x[0]===t;}))return t;var n=String(a).toLocaleLowerCase('tr-TR');return /kart/.test(n)?'kart':(/nakit|cüzdan/.test(n)?'nakit':(/birikim|tasarruf|vadeli/.test(n)?'birikim':'banka'));}
 function typeName(t){var x=ATYPES.filter(function(y){return y[0]===t;})[0];return x?x[1]:'Diğer';}
-function moneyIn(v,a,z){var c=ccyOf(a);if(c==='TRY')return (z?TRY0:TRY2).format(v);if(maskOn)return MASK+' '+CSYM[c];v=clean(v,1);return (v<0?'−':'')+(c==='XAU'?NUM2.format(Math.abs(v))+' gr':CSYM[c]+(c==='CHF'?' ':'')+NUM2.format(Math.abs(v)));}
+function moneyIn(v,a,z){var c=ccyOf(a);if(c==='TRY')return (z?TRY0:TRY2).format(v);if(maskOn)return MASK+' '+CSYM[c];v=clean(v,1);return (v<0?'−':'')+(c==='XAU'?NUM2.format(Math.abs(v))+' gr':CSYM[c]+(c==='CHF'?' ':'')+(z?NUM2:FIX2).format(Math.abs(v)));}
 /* görüntüleme para birimi: net servet, analiz ve FIRE güncel kurla bu birimde gösterilir */
 function dccy(){var c=S.dccy;return (c&&c!=='TRY'&&rateOf(c)>0)?c:'TRY';}
 var DC0={format:function(tl){var c=dccy();return fmtC(tl/rateOf(c),c,0);}};
@@ -318,7 +320,7 @@ function acctBal(a){var m=balAll();if(a in m)return r2(m[a]);var b=+S.opening[a]
 function accTotal(){return r2(ACCS().reduce(function(a,x){return a+toTL(acctBal(x),x);},0));}
 function acctUsed(a){return S.tx.some(function(t){return t.acct===a||t.to===a;})||S.recurring.some(function(r){return r.acct===a;})||S.goals.some(function(g){return g.acct===a;});}
 function hKind(h){return h.kind==='asset'?'asset':'inv';}
-function hPrice(h){if(h.mk){var p=mTL(h.mk);if(p>0)return p;}var r=h.ccy&&S.fx&&+S.fx[h.ccy];return r>0?r:(+h.price||0);}
+function hPrice(h){if(h.mk){var p=mTL(h.mk);if(p>0)return p;}var r=h.ccy&&vRate(h.ccy);return r>0&&h.ccy!=='TRY'?r:(+h.price||0);}
 function hVal(h){return r2(h.qty*hPrice(h));} function hCost(h){return r2(h.qty*h.cost);}
 function pfTotals(kind){var v=0,c=0;S.holdings.forEach(function(h){if(kind&&hKind(h)!==kind)return;v+=hVal(h);c+=hCost(h);});return {v:r2(v),c:r2(c)};}
 /* otomatik yedek: kendi verin varsa ve (PIN sıfırlamasından sonra) duraklatılmamışsa */
@@ -385,6 +387,8 @@ function cardStmt(a){var x=ax(a),cut=+x.cut;if(!(cut>=1&&cut<=31))return null;va
   var cr=0,sp=0;S.tx.forEach(function(t){if(t.date>c&&t.date<=todayS()){var v=txDelta(t,a);if(v>0)cr+=v;else sp-=v;}});
   var stmt=r2(Math.max(-b,0)),due=null;if(+x.due>0){var dd=new Date(cd);dd.setDate(dd.getDate()+1);due=cardDue(a,dd);}
   return {cut:c,stmt:stmt,left:r2(Math.max(stmt-cr,0)),since:r2(sp),due:due};}
+/* bütçe devri (isteğe bağlı): geçen dönemden artan limit eklenir, aşım düşülür (yalnız bir önceki dönem; birikmez) */
+function budLim(c,k){var b=+S.budgets[c]||0;if(!(b>0)||!S.budRoll)return b;var p=addMonth(k||curP(),-1),sp=spentByCat(p)[c]||0;if(!monthTx(p).length)return b;return r2(Math.max(b+(b-sp),0));}
 /* işlem sırası: tarih, sonra aynı gün içinde en son eklenen üstte */
 function txCmp(a,b){return b.date<a.date?-1:b.date>a.date?1:((b.ts||0)-(a.ts||0))||(b.id>a.id?1:-1);}
 function recIncDue(k){var tot=0;S.recurring.forEach(function(r){if(!r.inc||!recOn(r,k)||recPaid(r,k))return;tot+=toTL(+r.amt||0,r.acct);});return r2(tot);}

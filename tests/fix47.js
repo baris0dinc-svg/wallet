@@ -98,6 +98,36 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
  const it6=T.S.recurring.find(r=>r.auto&&r.n===6);chk(it6&&Math.abs(T.acctBal('Kart')+1000)<0.01,'ilk taksit karta yansımalı '+T.acctBal('Kart'));
  // son iş günü
  const lb=T.lastBiz(2026,5);chk(lb===29,'Mayıs 2026 son iş günü 29 '+lb);
+
+ // ---- 4. parti ----
+ T.S=T.norm({fx,accounts:['Nakit','Ziraat','Dolar'],accx:{Dolar:{ccy:'USD'}},opening:{Nakit:5000,Ziraat:50000},tx:[]});T.save();
+ // K7: not yazarken sözlük
+ T.ACT['new-tx']();const nt=$('#f-note');nt.value='shell benzin';nt.dispatchEvent(new Event('input',{bubbles:true}));chk($('#f-cat').value==='Ulaşım','not sözlüğü: shell → Ulaşım ('+$('#f-cat').value+')');T.ACT.close();
+ // K8: ses
+ const v1=T.voiceParse('dün akşam yemeğine 480 lira nakitten');const yd=new Date(T.today0());yd.setDate(yd.getDate()-1);chk(v1.date===T.isoDate(yd)&&v1.acct==='Nakit'&&v1.amt===480,'ses: dün ve hesap '+JSON.stringify(v1));
+ const v2=T.voiceParse('ziraatten nakite 2000 transfer');chk(v2.type==='trf'&&v2.acct==='Ziraat'&&v2.to==='Nakit'&&v2.amt===2000,'ses: transfer '+JSON.stringify(v2));
+ const v3=T.voiceParse('20 dolar netflix');chk(v3.acct==='Dolar'&&v3.amt===20,'ses: dolar hesabı '+JSON.stringify(v3));
+ // E6: kategori yeniden adlandırma
+ T.S.tx.push({id:'c1',type:'exp',amt:100,cat:'Market',acct:'Nakit',date:T.todayS()});T.S.budgets={Market:3000};T.save();
+ T.ACT['cat-menu'](null,'Market','exp');$('#cr-name').value='Süpermarket';T.ACT['cat-ren'](null,'Market','exp');chk(T.S.cats.exp.includes('Süpermarket')&&!T.S.cats.exp.includes('Market')&&T.S.tx.find(t=>t.id==='c1').cat==='Süpermarket'&&T.S.budgets['Süpermarket']===3000,'kategori yeniden adlandırma');
+ // E8: bütçe devri
+ const pk8=T.addMonth(T.curP(),-1);T.S.tx.push({id:'pv',type:'exp',amt:1000,cat:'Süpermarket',acct:'Nakit',date:T.pStart(pk8)});T.S.budRoll=true;T.save();chk(T.budLim('Süpermarket',T.curP())===5000,'devirle limit 3000+2000 '+T.budLim('Süpermarket',T.curP()));T.S.budRoll=false;
+ // E4: böl
+ T.S.tx.push({id:'sp',type:'exp',amt:500,cat:'Süpermarket',acct:'Nakit',date:T.todayS(),note:'fiş #ev'});T.save();T.ACT['split-tx'](null,'sp');$('#sp-amt').value='120';$('#sp-cat').value=T.S.cats.exp.find(c=>c!=='Süpermarket');T.ACT['split-go'](null,'sp');
+ chk(T.S.tx.find(t=>t.id==='sp').amt===380&&T.S.tx.some(t=>t.split==='sp'&&t.amt===120),'işlem bölündü');
+ chk(T.txTags().includes('#ev'),'etiket bulundu');
+ // E5: arşiv
+ T.ACT['a-arch'](null,'Dolar');chk(T.S.accx.Dolar.arch,'hesap arşivlendi');T.ACT['new-tx']();chk(![...$('#f-acct').options].some(o=>o.value==='Dolar'),'arşivli hesap seçimde yok');T.ACT.close();T.ACT['a-arch'](null,'Dolar');
+ // E9: komisyon
+ T.S.holdings=[{id:'h1',name:'THYAO',type:'Hisse',kind:'inv',qty:10,cost:300,price:350}];T.save();T.ACT['h-sell']?0:0;
+ // H11: döviz iki ondalık, geçersiz ayar adresi
+ chk(T.moneyIn(1741.5,'Dolar')==='$1.741,50','döviz iki ondalık '+T.moneyIn(1741.5,'Dolar'));
+ chk(T.pageFromHash('ayar-xyz').k==='ayar'&&T.pageFromHash('ayar-veri').s==='veri','geçersiz ayar adresi');
+ // alış kuru ile değerleme
+ T.S.fx.USD=41;T.S.fxB={USD:40.8};chk(Math.abs(T.toTL(100,'Dolar')-4080)<0.01,'değerleme alış kuru');delete T.S.fxB;
+ // K12: içe aktarımı geri al
+ const n12=T.S.tx.length;T.csvImport('Tarih;Açıklama;Tutar\n01.11.2026;GETIR YEMEK;-150,00\n02.11.2026;Kira;-1000,00\n','Ziraat');chk(T.S.tx.length===n12+2&&T.S.tx.some(t=>t.imp&&t.cat==='Yeme-İçme'),'aktarım ve getir yemek kategorisi');
+ T.impReview();const ub=$('[data-act="imp-undo"]');ub.click();ub.click();chk(T.S.tx.length===n12,'aktarım geri alındı '+T.S.tx.length);
  return F;});
 if(errs.length)r.push('JS hata: '+errs.join(' | '));
 console.log(r.length?'HATA:\n - '+r.join('\n - '):'ALL PASS');await b.close();process.exit(r.length?1:0);})();

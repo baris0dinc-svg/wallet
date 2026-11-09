@@ -1,8 +1,11 @@
 /* ---------- başlangıç ---------- */
 document.getElementById('fab').innerHTML=ic('plus');
+try{if('scrollRestoration' in history)history.scrollRestoration='manual';}catch(e){}
 purgeTrash();
 try{autoPost();}catch(e){}
 restoreUi();
+try{var h0=(location.hash||'').slice(1);if(TABH[h0]){ui.page=null;ui.sub=TABH[h0];}}catch(e){}
+try{var lu=+localStorage.getItem('wallet-lock')||0;if(lu>Date.now())ui.lockUntil=lu;}catch(e){}
 render();
 if(ui.locked)setTimeout(askBio,400);
 applySecure();

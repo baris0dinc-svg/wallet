@@ -35,17 +35,27 @@ function voiceAmt(text){
   return r2(runs.reduce(function(a,r){return Math.max(a,r.v);},0));
 }
 var VINC=/maas|gelir|kazand|yatti|(para|maas|ucret|odeme|kira|havale|eft|prim)[a-z]* geldi|ikramiye|prim\b|harclik|iade|burs|kira geliri|odeme aldim|alacak/;
+/* hesap adı geçiyorsa ("kredi kartından", "ziraatten", "nakite"): en uzun eşleşen ad; ekli hâller de yakalanır */
+function voiceAccts(n){var out=[];ACCS().forEach(function(a){var f=fold(a).trim();if(f.length<3)return;var stem=f.length>5?f.slice(0,f.length-1):f,i=n.indexOf(stem);if(i>-1)out.push({a:a,i:i,l:f.length});});
+  if(!out.length){var ty={nakit:/nakit|cuzdan|cebimden/,kart:/kredi karti|kartla|karttan|kartimdan/,banka:/bankadan|hesabimdan/};Object.keys(ty).forEach(function(t){var m=n.match(ty[t]);if(m){var a=ACCS().filter(function(x){return acctType(x)===t&&!ax(x).arch;})[0];if(a)out.push({a:a,i:m.index,l:3});}});}
+  return out.sort(function(x,y){return x.i-y.i||y.l-x.l;}).filter(function(x,i,arr){return arr.findIndex(function(z){return z.a===x.a;})===i;});}
 function voiceParse(text){
-  var n=fold(text||''),type=VINC.test(n)?'inc':'exp',amt=voiceAmt(text||'');
-  var l=type==='inc'?INCC():EXPC(),cat=l.filter(function(c){var f=fold(c);return f.length>2&&n.indexOf(f.slice(0,Math.max(4,f.length-2)))>-1;})[0]||smsCat(text||'',type);
+  var n=fold(text||''),trf=/\btransfer|aktar|gonder|yatir(dim|)\b.*\b(hesab|kart)|\b(e|a|ye|ya) (para )?(gecir|at)/.test(n)&&!/maas|gelir/.test(n),type=trf?'trf':(VINC.test(n)?'inc':'exp'),amt=voiceAmt(text||'');
+  var l=type==='inc'?INCC():EXPC(),cat=type==='trf'?'Transfer':(l.filter(function(c){var f=fold(c);return f.length>2&&n.indexOf(f.slice(0,Math.max(4,f.length-2)))>-1;})[0]||smsCat(text||'',type));
+  /* tarih: dün, evvelsi gün / önceki gün */
+  var dt=null,d0=today0();if(/\b(evvelsi gun|onceki gun|dunden once)\b/.test(n)){d0.setDate(d0.getDate()-2);dt=isoDate(d0);}else if(/\bdun\b/.test(n)){d0.setDate(d0.getDate()-1);dt=isoDate(d0);}
+  /* para birimi: "20 dolar netflix" → dolar hesabı varsa o, yoksa TL karşılığı */
+  var cc=/\b(dolar|usd)\b/.test(n)?'USD':(/\b(euro|avro|eur)\b/.test(n)?'EUR':(/\b(sterlin|gbp)\b/.test(n)?'GBP':'')),acs=voiceAccts(n),acct=acs.length?acs[0].a:null,to=null;
+  if(type==='trf'){acct=acs[0]?acs[0].a:null;to=acs[1]?acs[1].a:null;}
+  var fxNote='';if(cc&&amt>0){var fa=ACCS().filter(function(a){return ccyOf(a)===cc&&!ax(a).arch;})[0];if(!acct||ccyOf(acct)!==cc){if(fa&&type!=='trf')acct=fa;else if(rateOf(cc)>0){fxNote=' ('+NUM2.format(amt)+' '+CCYS_SHORT[cc]+')';amt=r2(amt*rateOf(cc));}}}
   var note=String(text||'').trim();note=note.charAt(0).toLocaleUpperCase('tr-TR')+note.slice(1);
-  return {type:type,amt:amt,cat:cat,note:note.slice(0,80)};
+  return {type:type,amt:amt,cat:cat,note:(note+fxNote).slice(0,80),date:dt,acct:acct,to:to};
 }
 function voiceOk(){if(nb('voiceOk')){try{return NB.voiceOk()==='ok';}catch(e){return false;}}return !!(window.SpeechRecognition||window.webkitSpeechRecognition)&&!nb('saveData');}
 function voiceDone(text){
   if(!text){toast('Ses anlaşılamadı. Tekrar dene ya da elle ekle.');return;}
   var p=voiceParse(text);
-  txSheet(null,p.type,{amt:p.amt,cat:p.cat,note:p.note,title:'Sesle eklenen işlem'});
+  txSheet(null,p.type,{amt:p.amt,cat:p.cat,note:p.note,date:p.date||undefined,acct:p.acct||undefined,to:p.to||undefined,title:'Sesle eklenen işlem'});
   var e=document.getElementById('f-amt');if(e&&!(p.amt>0))e.focus();
   msg('Duyulan: “'+text+'”. Kontrol edip kaydet.',true);
 }

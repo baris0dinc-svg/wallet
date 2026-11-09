@@ -109,7 +109,7 @@ function budgetPace(){
   if(el<3||el>=days)return out;
   /* ayda bir ödenen kategoriler (kira, fatura…) ve 3'ten az işlemli kategoriler için hız tahmini yapılmaz */
   var cnt={};monthTx(k).forEach(function(t){if(t.type==='exp')cnt[t.cat]=(cnt[t.cat]||0)+1;});
-  EXPC().forEach(function(c){var b=+S.budgets[c];if(!(b>0)||FIXC.test(fold(c))||(cnt[c]||0)<3)return;var v=sp[c]||0;if(v>=b||v<b*0.25)return;var rate=v/el,need=(b-v)/rate;if(el+need>=days)return;
+  EXPC().forEach(function(c){var b=budLim(c,k);if(!(b>0)||FIXC.test(fold(c))||(cnt[c]||0)<3)return;var v=sp[c]||0;if(v>=b||v<b*0.25)return;var rate=v/el,need=(b-v)/rate;if(el+need>=days)return;
     var d=pdate(t0);d.setDate(d.getDate()+Math.ceil(need));out.push({key:'pace:'+c+':'+k,c:c,date:isoDate(d),left:b-v});});
   return out;
 }
@@ -130,6 +130,8 @@ function brainItems(){
   top(recurCands()).forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'blue',ic:'repeat',t:esc(x.name)+' her ay yaklaşık '+esc(moneyIn(x.amt,x.acct,1))+' ('+x.n+' aydır, ayın '+x.day+'’i civarı). Düzenli ödemelere eklersen hatırlatılır ve tahminlere girer.',btn:'Düzenli ödemelere ekle',act:'br-rec',id:x.key});});
   budgetPace().forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'exp',ic:'scale',t:'Bu hızla '+esc(x.c)+' bütçesi '+esc(pdate(x.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long'}))+' civarında biter (kalan '+TRY0.format(x.left)+').',btn:'İşlemleri gör',act:'br-cat',id:x.c});});
   top(unusualTx()).forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'warn',ic:'bell',t:'Olağandışı harcama: '+esc(x.t.note||x.t.cat)+' '+TRY0.format(txTL(x.t))+'. '+esc(x.t.cat)+' harcamaların genelde '+TRY0.format(x.md)+' civarı.',btn:'İşlemi aç',act:'edit-tx',id:x.t.id});});
+  /* telefon kaybolursa veri de gider: 30 günde bir yedeği Drive'a ya da e-postaya paylaşmayı hatırlat */
+  var bo=S.bkOutTs||0,ownN=S.tx.filter(function(t){return !t.sample;}).length;if(ownN>=20&&Date.now()-bo>30*864e5){var bk='bkout:'+todayS().slice(0,7);if(!D[bk])out.push({key:bk,c:'blue',ic:'share',t:bo?'Yedeğini telefon dışına '+Math.floor((Date.now()-bo)/864e5)+' gündür kaydetmedin. Telefon kaybolursa veriler de gider.':'Yedeğin yalnızca bu telefonda. Bir kopyasını Google Drive’a ya da e-postana kaydet.',btn:'Yedeği paylaş',act:'bk-share',id:''});}
   var ph=paydayHint();if(ph&&!D[ph.key])out.push({key:ph.key,c:'inc',ic:'cal',t:'Maaşın genelde ayın '+ph.day+'’inde yatıyor. Dönemleri '+ph.day+'’inden başlatırsan bütçe ve analizler maaş döngüne göre hesaplanır.',btn:'Dönemi '+ph.day+'’inden başlat',act:'br-pay',id:String(ph.day)});
   return out;
 }

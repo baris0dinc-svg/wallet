@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.1';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.2';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -87,8 +87,10 @@ function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><p
 /* alt menü: Ana Sayfa, İşlemler, Plan (Koç, Bütçe, Düzenli, Hedefler), Analiz, Hesaplar. Ayarlar başlıktaki çark simgesiyle açılır. */
 var SECS=[['ev','Ana Sayfa','home'],['islem','İşlemler','list'],['plan','Plan','flag'],['analiz','Analiz','chart'],['servet','Hesaplar','wallet']];
 var WEALTH=[['hesap','Hesaplar'],['yatirim','Yatırımlar'],['varlik','Varlıklar'],['borc','Borçlar']];
-var ANS=[['ozet','Özet'],['harcama','Kategori'],['takvim','Takvim'],['servet','Servet']];
-var PLANS=[['koc','Koç'],['butce','Bütçe'],['duzenli','Düzenli'],['hedef','Hedefler']];
+/* 4.2: net servet gelişimi ve dağılımı Hesaplar sekmesinde (eski Analiz › Servet oraya gider) */
+var ANS=[['ozet','Özet'],['harcama','Kategori'],['takvim','Takvim']];
+/* 4.2: her gün kullanılan Bütçe ve Düzenli önde, Koç sonda */
+var PLANS=[['butce','Bütçe'],['duzenli','Düzenli'],['hedef','Hedefler'],['koc','Koç']];
 var SETS=[
  {g:'Genel',id:'genel',t:'Genel',d:'Adın, maaş günü, varsayılan hesap, tema ve yazı boyutu',i:'user',c:'var(--inc)'},
  {g:'Genel',id:'kurlar',t:'Para birimi ve kurlar',d:'Görüntüleme para birimi, kurların güncellenmesi',i:'trend',c:'var(--blue)'},
@@ -254,7 +256,7 @@ function dueDate(r,k){var st=pStart(k),e=pEnd(k),y=+st.slice(0,4),m=+st.slice(5,
 function daysLeft(k){return daysBetween(todayS(),pEnd(k))+1;}
 function pDays(k){return daysBetween(pStart(k),pEnd(k))+1;}
 
-var ui={tab:'cuzdan',sub:'ev',rng:'ay',plan:'koc',sv:'hesap',an:'ozet',nwr:6,trPick:null,wk:null,alAll:false,qaOrd:null,month:curP(),filter:'all',acctF:'',calc:'kredi',cv:{},nq:'',sq:'',tq:'',nv:'act',tr:6,page:null,locked:!!S.pin,pinBuf:'',fails:0,lockUntil:0,forgot:false,hiddenAt:0,mq:'',mlink:null};
+var ui={tab:'cuzdan',sub:'ev',rng:'ay',plan:'butce',sv:'hesap',an:'ozet',nwr:3,trPick:null,wk:null,alAll:false,qaOrd:null,month:curP(),filter:'all',acctF:'',calc:'kredi',cv:{},nq:'',sq:'',tq:'',nv:'act',tr:6,page:null,locked:!!S.pin,pinBuf:'',fails:0,lockUntil:0,forgot:false,hiddenAt:0,mq:'',mlink:null};
 
 /* ---------- hesap ---------- */
 var MC={v:-1};

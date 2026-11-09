@@ -32,7 +32,8 @@ for(const W of [320,360,412]){for(const scheme of ['light','dark']){
   act('edit-d','dd');check('borç');act('close');
   act('acct-rec','Nakit');check('eşitle');act('close');
   act('h-sell',T.S.holdings[0].id);check('sat');act('close');
-  act('new-a');check('hesap ekle');act('close');act('new-r');check('düzenli');act('close');act('new-g');check('hedef');act('close');
+  act('new-a');check('hesap ekle');act('close');act('open-bal');check('bakiyeler');act('close');
+  act('new-tx');document.querySelector('.catnew').click();check('yeni kategori kutusu');act('close');act('alerts');check('uyarılar');act('close');act('new-r');check('düzenli');act('close');act('new-g');check('hedef');act('close');
   act('open-fire');check('fire');act('back');act('qa-calc');check('araçlar');for(const c of Object.keys(T.CALCS)){act('calc',null,c);check('hesaplayıcı '+c);}act('back');
   for(const s of T.SETS){act('open-set',s.id);check('ayar '+s.id);act('back');}
   act('open-settings');check('ayarlar');act('back');

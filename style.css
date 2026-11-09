@@ -375,8 +375,6 @@ a.btn{display:block;text-align:center;text-decoration:none}
 body.has-tb .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 body.has-tb .fab{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 header h1.tt{font-size:1.625rem;font-weight:800;letter-spacing:-.01em}
-.bellb{position:relative}
-.bellb .badge{position:absolute;top:2px;right:2px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:var(--exp);color:#fff;font-size:.625rem;font-weight:700;font-style:normal;display:grid;place-items:center;line-height:1}
 .nwper{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:12px 0 0;border:0;border-top:1px solid var(--line);background:none;text-align:left;color:inherit;font:inherit;cursor:pointer}
 .nwper .pl{flex:1;display:grid;gap:1px;min-width:0}
 .nwper .lbl{font-size:.75rem}
@@ -391,9 +389,6 @@ header h1.tt{font-size:1.625rem;font-weight:800;letter-spacing:-.01em}
 .vic .ic{width:21px;height:21px}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin:6px 2px -4px}
 .hrow h2{margin:0}
-.chips.rng{flex-wrap:nowrap}
-.chips.rng .chip{flex:1;text-align:center}
-.chips.rng .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 /* takvim */
 .cal{padding:12px 8px}
 .cw,.cg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
@@ -566,3 +561,26 @@ html[data-nc] body,html[data-nc] header,html[data-nc] .kbar{background:var(--ncc
 .kocnow .kacts{margin-top:10px}
 .gundem .alertbar .ell{white-space:normal}
 .gundem .sic{width:36px;height:36px;border-radius:12px;flex:none}
+/* 4.2: Gündem'de uyarılar düğmeleriyle, Hesaplar özeti, net servet grafiği, bütçe katlanır listesi, işlem penceresinde yeni kategori */
+.gundem .al{gap:10px}
+.gundem .al .wrap-t{font-size:.9rem}
+.gundem .al .btn.small{flex:none;padding:8px 12px;min-height:36px}
+.al .btn.small{flex:none}
+.almore{color:var(--accent);font-weight:600;font:inherit;cursor:pointer}
+.almore .mid{color:var(--accent);font-weight:600}
+.almore .ic{width:18px;height:18px;color:var(--accent)}
+.sumline{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:0 4px;font-size:.875rem}
+.sumline .num{font-size:1rem;white-space:nowrap}
+.card.hint{display:flex;flex-direction:column;gap:10px;align-items:flex-start;background:var(--soft);border-color:transparent}
+.nwhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
+#nwpick{min-height:2.6em;line-height:1.4}
+.nw .nwchart{margin-top:2px}
+.limadd>summary{padding:0}
+.limadd[open]>summary{margin-bottom:2px}
+details.more>summary{padding:0}
+.catnew{display:inline-flex;align-items:center;gap:4px;color:var(--accent);border-style:dashed}
+.catnew .ic{width:14px;height:14px}
+.catin{display:inline-flex;gap:6px;align-items:center;flex:1 1 220px;min-width:0}
+.catin input{flex:1;min-width:0;padding:7px 10px}
+.catin .btn.small{flex:none}
+.bkpw>summary{font-size:.875rem;color:var(--accent)}

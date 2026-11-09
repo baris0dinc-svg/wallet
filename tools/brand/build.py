@@ -19,7 +19,8 @@ from wordmark import wordmark  # noqa: E402
 # açık temada zemin #F2F4F1 ve yeşil vurgu #0E6B58. Açılış ekranı telefonun temasını izler; simge koyu temadaki gibidir.
 DARK = dict(accent='#3FBF9F', ink='#E7EEEA', bg='#0E1512', hi='#1A2620', lo='#080C0A', logo=['#8FE6CD', '#3FBF9F', '#2C9E83', '#6DD8BB'])
 LIGHT = dict(accent='#0E6B58', ink='#13201B', bg='#F2F4F1', hi='#FFFFFF', lo='#E1E7E2', logo=['#1C8C73', '#0E6B58', '#0A5546', '#15806A'])
-ICON = dict(DARK, hi='#1D2B24', lo='#0A100D')
+# 4.20: simge de uygulama içindeki logo gibi: koyu arayüz zemini üzerinde düz açık renk logo (geçiş yok)
+ICON = dict(DARK, hi='#0E1512', lo='#0E1512', logo=['#E7EEEA'] * 4)
 BG, BG_HI, BG_LO, GOLD = DARK['bg'], DARK['hi'], DARK['lo'], DARK['logo']
 
 
@@ -137,7 +138,8 @@ def main():
     for t, q, light in ((LIGHT, '', True), (DARK, '-night', False)):
         use(t)
         # 4.19: üst çubuktaki logo gibi, yazı rengiyle aynı (uygulama içindeki logo değişmez)
-        w(os.path.join(res, 'drawable%s/splash_icon.xml' % q), vec(288, 288, logo_vec(288, sp_w, '#FF' + t['ink'][1:])))
+        # 4.20: tek açılış ekranı: Android'in kendi açılışında logo gösterilmez (yalnız zemin rengi); logo ve "Wallet" web açılışında
+        w(os.path.join(res, 'drawable%s/splash_icon.xml' % q), vec(288, 288, '<path android:fillColor="#00000000" android:pathData="M0,0h1v1h-1z"/>'))
         lt = 'true' if light else 'false'
         w(os.path.join(res, 'values%s/splash.xml' % q),
           '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="splash">%s</color>\n'

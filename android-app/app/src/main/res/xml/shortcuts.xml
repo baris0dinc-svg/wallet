@@ -7,9 +7,6 @@
     <shortcut android:shortcutId="inc" android:enabled="true" android:icon="@drawable/sc_inc" android:shortcutShortLabel="@string/sc_inc_s" android:shortcutLongLabel="@string/sc_inc_l">
         <intent android:action="android.intent.action.VIEW" android:targetPackage="app.wallet.personal" android:targetClass="app.wallet.MainActivity" android:data="wallet:inc" />
     </shortcut>
-    <shortcut android:shortcutId="voice" android:enabled="true" android:icon="@drawable/sc_voice" android:shortcutShortLabel="@string/sc_voice_s" android:shortcutLongLabel="@string/sc_voice_l">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="app.wallet.personal" android:targetClass="app.wallet.MainActivity" android:data="wallet:voice" />
-    </shortcut>
     <shortcut android:shortcutId="trf" android:enabled="true" android:icon="@drawable/sc_trf" android:shortcutShortLabel="@string/sc_trf_s" android:shortcutLongLabel="@string/sc_trf_l">
         <intent android:action="android.intent.action.VIEW" android:targetPackage="app.wallet.personal" android:targetClass="app.wallet.MainActivity" android:data="wallet:trf" />
     </shortcut>

@@ -3,7 +3,7 @@
    Sık eklenenler: son 120 günde aynı not, kategori, hesap ve tutarla en az iki kez girilen işlemler.
    Ana sayfada tek dokunuşla bugüne eklenir (Geri al ile), işlem penceresinde formu doldurur.
    Not yazarken önceki notlar önerilir; aynı not daha önce hangi kategoriyle girildiyse o seçilir.
-   Kısayollar: Android'de simgeye uzun basınca, PWA'da ana ekran menüsünde Gider / Gelir / Sesle ekle. */
+   Kısayollar: Android'de simgeye uzun basınca, PWA'da ana ekran menüsünde Gider / Gelir / Transfer. */
 function favKey(t){return [t.type,t.cat,t.acct,fold(t.note||'').trim(),r2(t.amt)].join('|');}
 var FQC={v:-1};
 function freqTx(n){var k=(S.savedAt||0)+'|'+S.tx.length+'|'+todayS()+'|'+ACCS().join('\u0001');if(FQC.k===k&&FQC.s===S.tx)return FQC.r.slice(0,n||6);var r=freqTx0();FQC={k:k,s:S.tx,r:r};return r.slice(0,n||6);}
@@ -41,8 +41,8 @@ function noteDl(type){return '<datalist id="note-dl">'+noteList(type).map(functi
 function noteCat(type,txt){if(!txt||txt.length<3)return null;var best=null;
   S.tx.forEach(function(t){if(t.type!==type||!t.note)return;var f=fold(t.note).trim();if(f===txt||(txt.length>=4&&f.indexOf(txt)===0)){if(!best||t.date>best.date)best=t;}});
   return best&&best.cat;}
-/* uygulama kısayolları ve adres kısayolları: gider, gelir, transfer, sesle */
-var INTENTS={exp:function(){txSheet(null,'exp');},inc:function(){txSheet(null,'inc');},trf:function(){ACT['qa-trf']();},voice:function(){if(voiceOk())ACT.voice();else txSheet(null,'exp');}};
+/* uygulama kısayolları ve adres kısayolları: gider, gelir, transfer (eski "sesle" kısayolu gider penceresini açar) */
+var INTENTS={exp:function(){txSheet(null,'exp');},inc:function(){txSheet(null,'inc');},trf:function(){ACT['qa-trf']();},voice:function(){txSheet(null,'exp');}};
 function runIntent(){var a=ui.intent;if(!a||ui.locked)return;ui.intent=null;if(!INTENTS[a])return;
   if(ui.page){finishPage();ui.page=null;}if(location.hash){try{history.replaceState(history.state,'',location.pathname+location.search);}catch(e){}}ui.sub='ev';render();INTENTS[a]();}
 window.walletIntent=function(a){ui.intent=String(a||'').replace(/^wallet:\/*/,'').replace(/^yeni-/,'');setTimeout(runIntent,50);};

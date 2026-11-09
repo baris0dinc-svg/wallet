@@ -31,8 +31,6 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const $=s=>document.q
  const rc=T.recurCands();chk(rc.length===3,'3 düzenli aday '+rc.length);
  T.S.brainDis={};T.S.brainDis[rc[0].key]=1;T.S.brainDis[rc[1].key]=1;const bi=T.brainItems().filter(x=>/^rec:/.test(x.key));chk(bi.length===1&&bi[0].key===rc[2].key,'kapatılınca sıradaki görünür');
  // 8. ses
- chk(T.voiceAmt('ona 250 lira verdim')===250,'ona sayı değil '+T.voiceAmt('ona 250 lira verdim'));chk(T.voiceAmt('elliye aldım')===50,'elliye');chk(T.voiceAmt('on lira')===10,'on lira');
- chk(T.voiceParse('kargo geldi 120 lira').type==='exp','kargo geldi gider');chk(T.voiceParse('maaş geldi 45 bin').type==='inc','maaş geldi gelir');chk(T.voiceParse('para geldi 500').type==='inc','para geldi gelir');
  // minor: num
  chk(T.num('0.500')===0.5,'0.500 → '+T.num('0.500'));chk(T.num('1.500')===1500,'1.500');chk(T.num('12,50')===12.5,'12,50');
  // 11. hesap adı değişince SMS eşleşmeleri

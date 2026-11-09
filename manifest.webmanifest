@@ -53,9 +53,9 @@
       ]
     },
     {
-      "name": "Sesle ekle",
-      "short_name": "Sesle",
-      "url": "./#yeni-ses",
+      "name": "Transfer",
+      "short_name": "Transfer",
+      "url": "./#yeni-transfer",
       "icons": [
         {
           "src": "icons/icon-192.png",

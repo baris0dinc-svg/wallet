@@ -44,12 +44,12 @@ function render0(){
   var fb=document.getElementById('fab');fb.hidden=!!ui.page||ui.sub==='ev';document.body.classList.toggle('has-fab',!fb.hidden);
 }
 function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({nv:ui.nv,plan:ui.plan,sv:ui.sv,an:ui.an}));}catch(e){}}
-/* sekme başlığı: Ana Sayfa'da logo, sesle ekle (4.12: eski İşlem ekle kartının yerine), ara ve Notlar; Hesaplar'da kur yenileme; ayarlar her sekmede sağdaki çark simgesinde.
+/* sekme başlığı: Ana Sayfa'da logo, ara ve uyarılar (4.15: sesle ekleme kaldırıldı, Notlar ana sayfadaki kısayolda); Hesaplar'da kur yenileme; ayarlar her sekmede sağdaki çark simgesinde.
    Uyarılar ana sayfadaki Gündem kartında (ayrı zil yok); tutarları gizleme ana sayfa ve Hesaplar kartındaki gözde. */
 function tabHead(){
   var gear='<button class="icon-btn" data-act="open-settings" aria-label="Ayarlar" title="Ayarlar">'+ic('cog')+'</button>';
   var rf='<button class="icon-btn" id="rfb" data-act="refresh" aria-label="Yenile: güncel kurlar ve piyasalar" title="Yenile">'+ic('refresh')+'</button>';
-  if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns">'+(voiceOk()?'<button class="icon-btn" data-act="voice" aria-label="Sesle işlem ekle" title="Sesle ekle">'+ic('mic')+'</button>':'')+'<button class="icon-btn" data-act="srch" aria-label="İşlemlerde ara" title="Ara">'+ic('search')+'</button><button class="icon-btn" data-act="sub" data-v="notlar" aria-label="Notlar" title="Notlar">'+ic('note')+'</button>'+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+gear+'</span>';
+  if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns"><button class="icon-btn" data-act="srch" aria-label="İşlemlerde ara" title="Ara">'+ic('search')+'</button>'+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+gear+'</span>';
   var t=(SECS.filter(function(x){return x[0]===ui.sub;})[0]||SECS[0])[1],cal=ui.txv==='cal';
   /* İşlemler: liste ↔ takvim (4.4'e kadar Analiz › Takvim) */
   var tv='<button class="icon-btn" id="txv" data-act="tx-view" aria-pressed="'+cal+'" aria-label="'+(cal?'Liste görünümü':'Takvim görünümü')+'" title="'+(cal?'Liste':'Takvim')+'">'+ic(cal?'list':'cal')+'</button>';
@@ -65,7 +65,7 @@ function restoreUi(){
     if(PLANS.some(function(x){return x[0]===u.plan;}))ui.plan=u.plan;if(WEALTH.some(function(x){return x[0]===u.sv;}))ui.sv=u.sv;else if(u.sv==='varlik')ui.sv='yatirim';if(ANS.some(function(x){return x[0]===u.an;}))ui.an=u.an;
     if(u.nv==='arch'||u.nv==='trash')ui.nv=u.nv;}catch(e){}
   var h=(location.hash||'').slice(1);
-  var IH={'yeni-gider':'exp','yeni-gelir':'inc','yeni-transfer':'trf','yeni-ses':'voice'};if(IH[h])ui.intent=IH[h];
+  var IH={'yeni-gider':'exp','yeni-gelir':'inc','yeni-transfer':'trf','yeni-ses':'exp'};if(IH[h])ui.intent=IH[h];
   ui.page=pageFromHash(h);if(h==='planlama'||h==='koc')ui.sub='plan';if(h==='koc')ui.plan='koc';
   if(h&&!ui.page){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
 }

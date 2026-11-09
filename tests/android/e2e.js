@@ -67,7 +67,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
    ok('açılıştan sonra bağlanıldı',await connect());}
   // yeni yapı: alt menü, ana sayfa kartları, sesle ekleme düğmesi (telefonda ses tanıma varsa)
   {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,left:!!document.querySelector("#left-now"),gear:!!document.querySelector("header [data-act=open-settings]"),add:!!document.querySelector("#qa [data-act=qa-exp]"),voice:!!document.querySelector("header [data-act=voice]"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
-   console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===5&&j.left&&j.gear&&j.add,h);ok('sesle ekle düğmesi ses tanıma durumuna uyuyor',j.voice===(j.vok==='ok'),h);
+   console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===5&&j.left&&j.gear&&j.add,h);ok('başlıkta sesle ekle yok (4.15)',!j.voice,h);
    sh('adb shell screencap -p /sdcard/home.png');sh('adb pull /sdcard/home.png /tmp/home.png');try{console.log('ℹ ANASAYFAPNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/home.png')).toString('base64'));}catch(e){}}
   // 3 WebView deposu silinirse yerel kopyadan döner
   await ev('localStorage.removeItem("kumbara-v1");return 1');ok('yeniden başlatıldı (depo silindi)',await restart());d=await data();ok('depo silinse de veri geri geldi',has(d));
@@ -155,7 +155,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   // uygulama kısayolları (simgeye uzun basınca): açıkken ve soğuk açılışta işlem penceresi açılır
   {const sheet=async()=>{for(let i=0;i<20;i++){const v=await ev('const t=document.querySelector("#f-type [aria-pressed=\\"true\\"]");return t?t.dataset.v:""').catch(()=>'');if(v)return v;await sleep(500);}return '';};
    const sc=sh('adb shell dumpsys shortcut').split(/\n(?=\s*Package: )/).filter(x=>x.indexOf('Package: '+PKG)>=0).join('\n');console.log('ℹ kısayollar: '+String(sc).replace(/\s+/g,' ').slice(0,300));
-   ok('kısayollar tanımlı',/id=exp/.test(sc)&&/id=voice/.test(sc),String(sc).replace(/\s+/g,' ').slice(0,300));
+   ok('kısayollar tanımlı',/id=exp/.test(sc)&&/id=trf/.test(sc)&&!/id=voice/.test(sc),String(sc).replace(/\s+/g,' ').slice(0,300));
    await ev(ACTJS+'act("close");return 1');
    sh('adb shell am start -f 0x20000000 -a android.intent.action.VIEW -d wallet:exp -n '+ACT);ok('açıkken Gider kısayolu',await sheet()==='exp');
    await ev(ACTJS+'act("close");return 1');

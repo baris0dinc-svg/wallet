@@ -15,7 +15,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  // ana sayfa: kalan kartı, işlem ekle, Koç, piyasa şeridi, notlar ve hesaplayıcılar, ayarlar
  chk(!!$('#left-now'),'bu dönem kalan');
  // 4.12: İşlem ekle kartı kaldırıldı (Gelir/Gider/Transfer düğmeleri yeter); sesle ekleme başlıkta
- chk(!$('.addmain')&&!$('.addcard'),'işlem ekle kartı yok');chk(!!$('header [data-act="voice"]'),'başlıkta sesle ekle');
+ chk(!$('.addmain')&&!$('.addcard'),'işlem ekle kartı yok');chk(!$('header [data-act="voice"]')&&!$('header [data-v="notlar"]')&&$$q('header .icon-btn').length===3,'başlıkta yalnız ara, uyarılar, ayarlar');
  click('#qa [data-act="qa-exp"]');chk(/Gider ekle/.test(sheetT()),'Gider düğmesi işlem penceresi');back();
  click('.nwbig');chk(T.ui.sub==='servet'&&!!$('.nw .big'),'net servet Hesaplar’a');click('#tabbar [data-v="ev"]');
  {const gi=$$q('.gundem .list > .item'),k=c=>gi.map((e,i)=>e.classList.contains(c)?i:-1).filter(i=>i>=0),al=k('al'),bi=k('bi');
@@ -27,7 +27,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('.mstrip');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa şeridi Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','piyasadan geri');
  // 4.2: Notlar ana sayfa başlığındaki simgede (tek dokunuş); Hesaplayıcılar Plan › Koç'ta (ana sayfadaki kutucuklar kaldırıldı)
  chk(!!$('header .bellb')&&!!$('#qa')&&document.querySelectorAll('.scg .sc').length===6,'4.5: ana sayfada zil, hızlı işlemler ve kısayol kutucukları');
- click('header [data-act="sub"][data-v="notlar"]');chk(page()==='notlar'&&location.hash==='#notlar','başlıktan Notlar');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan geri');
+ click('.scg [data-act="sub"][data-v="notlar"]');chk(page()==='notlar'&&location.hash==='#notlar','kısayoldan Notlar');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan geri');
  click('#tabbar [data-v="plan"]');click('[data-act="plan"][data-v="koc"]');click('#view .homelinks [data-act="qa-calc"]');chk(page()==='araclar','Koç › Hesaplayıcılar');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='plan','hesaplayıcılardan geri Plan’a');
  // işlem ekle her sekmeden tek dokunuş: ana sayfada kart, diğerlerinde + düğmesi
  for(const k of ['islem','plan','analiz','servet']){click('#tabbar [data-v="'+k+'"]');chk(!$('#fab').hidden,'+ düğmesi '+k);}

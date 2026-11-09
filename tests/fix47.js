@@ -104,9 +104,6 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
  // K7: not yazarken sözlük
  T.ACT['new-tx']();const nt=$('#f-note');nt.value='shell benzin';nt.dispatchEvent(new Event('input',{bubbles:true}));chk($('#f-cat').value==='Ulaşım','not sözlüğü: shell → Ulaşım ('+$('#f-cat').value+')');T.ACT.close();
  // K8: ses
- const v1=T.voiceParse('dün akşam yemeğine 480 lira nakitten');const yd=new Date(T.today0());yd.setDate(yd.getDate()-1);chk(v1.date===T.isoDate(yd)&&v1.acct==='Nakit'&&v1.amt===480,'ses: dün ve hesap '+JSON.stringify(v1));
- const v2=T.voiceParse('ziraatten nakite 2000 transfer');chk(v2.type==='trf'&&v2.acct==='Ziraat'&&v2.to==='Nakit'&&v2.amt===2000,'ses: transfer '+JSON.stringify(v2));
- const v3=T.voiceParse('20 dolar netflix');chk(v3.acct==='Dolar'&&v3.amt===20,'ses: dolar hesabı '+JSON.stringify(v3));
  // E6: kategori yeniden adlandırma
  T.S.tx.push({id:'c1',type:'exp',amt:100,cat:'Market',acct:'Nakit',date:T.todayS()});T.S.budgets={Market:3000};T.save();
  T.ACT['cat-menu'](null,'Market','exp');$('#cr-name').value='Süpermarket';T.ACT['cat-ren'](null,'Market','exp');chk(T.S.cats.exp.includes('Süpermarket')&&!T.S.cats.exp.includes('Market')&&T.S.tx.find(t=>t.id==='c1').cat==='Süpermarket'&&T.S.budgets['Süpermarket']===3000,'kategori yeniden adlandırma');
@@ -165,9 +162,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
  // Y15: Türkçe ekler
  chk([1,2,3,6,9,10,29,40,100].map(n=>n+T.sfx(n)).join(' ')==='1’i 2’si 3’ü 6’sı 9’u 10’u 29’u 40’ı 100’ü','sayı ekleri');
  // K8: ses
- const v4=T.voiceParse('kredi kartından akşam yemeğine 480 lira');chk(v4.cat==='Yeme-İçme','ses kategori '+v4.cat);
- T.S=T.norm({fx,accounts:['Nakit','Banka'],accx:{Banka:{type:'banka'}},tx:[]});T.save();const v5=T.voiceParse('bankadan iki bin lira çektim');chk(v5.type==='trf'&&v5.acct==='Banka'&&v5.to==='Nakit'&&v5.amt===2000,'para çekme transfer '+JSON.stringify(v5));
- chk(T.voiceParse('benzine 900 lira').cat==='Ulaşım','benzin Ulaşım');
+ T.S=T.norm({fx,accounts:['Nakit','Banka'],accx:{Banka:{type:'banka'}},tx:[]});T.save();
  return F;});
 if(errs.length)r.push('JS hata: '+errs.join(' | '));
 console.log(r.length?'HATA:\n - '+r.join('\n - '):'ALL PASS');await b.close();process.exit(r.length?1:0);})();

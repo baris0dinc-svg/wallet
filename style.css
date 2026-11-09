@@ -649,3 +649,41 @@ ol.steps{margin:0;padding-left:20px;display:grid;gap:6px}
 .ytl{display:flex;gap:6px;align-items:flex-start;margin:6px 0 0}
 .ytl .ic{width:15px;height:15px;flex:none;margin-top:2px}
 .chip[aria-pressed="true"] .cic{background:rgba(255,255,255,.22)!important;color:inherit!important}
+/* 4.15: Piyasalar */
+.mbadge{width:38px;height:38px;border-radius:12px;flex:none;display:grid;place-items:center;font-weight:700;font-size:.9375rem;letter-spacing:-.01em;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent);font-variant-numeric:tabular-nums}
+.mbadge.sm{font-size:.6875rem;letter-spacing:0}
+.mrow{gap:12px}
+.mrow .mid{min-width:0}
+.mrow .msp{margin-left:auto;flex:none;opacity:.9}
+.mrow .msp:empty{display:none}
+.mheld{color:var(--ink);font-weight:600}
+.mtg{display:inline-grid;vertical-align:-2px;color:var(--warn)}
+.mtg .ic{width:14px;height:14px}
+.chg{font-size:.75rem;font-weight:600;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--ink2) 12%,transparent);color:var(--ink2);white-space:nowrap}
+.chg.up{color:var(--inc);background:color-mix(in srgb,var(--inc) 14%,transparent)}
+.chg.dn{color:var(--exp);background:color-mix(in srgb,var(--exp) 14%,transparent)}
+.mcats{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -2px;padding:0 2px}
+.mcats::-webkit-scrollbar{display:none}
+.mcats .chip{flex:none}
+.mmovers{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.mmv{display:grid;gap:4px;justify-items:start;text-align:left;font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;cursor:pointer;min-width:0}
+.mmv .t{font-weight:600;max-width:100%}
+.mconv{display:grid;gap:10px}
+.mconv .mh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.cvrow,.cvmid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:8px;align-items:center}
+.cvmid{grid-template-columns:auto minmax(0,1fr)}
+.cvrow input{font-size:1.125rem;font-weight:600;font-variant-numeric:tabular-nums}
+.cvrow select,.cvmid select{min-width:0}
+.cvres{display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--accent) 9%,transparent)}
+.cvres b{font-size:1.375rem;letter-spacing:-.01em}
+.msrc summary{cursor:pointer;color:var(--ink2);padding:4px 0}
+.mheldbox{display:grid;gap:4px;padding:12px 14px;border-radius:14px;border:1px solid var(--line)}
+.mheldbox .row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.mscr{min-height:1.4em;color:var(--ink2)}
+.mcw{touch-action:pan-y;cursor:crosshair}
+/* 4.15: ana sayfa kısayolları 3 sütun, kısa kutucuklar */
+.scg{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sc{flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px 6px;text-align:center;font-weight:600;font-size:.8125rem;min-height:84px}
+.sc .sic{width:34px;height:34px;border-radius:11px}
+.sc .sic .ic{width:18px;height:18px}
+.sc .t{text-align:center}

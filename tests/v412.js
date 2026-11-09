@@ -20,7 +20,7 @@ const ev=f=>p.evaluate(f);
 const fx=await ev(()=>JSON.parse(JSON.stringify(window.__T.S.fx)));
 // ---------- ana sayfa ----------
 let r=await ev(()=>{const T=window.__T;T.ui.sub='ev';T.ui.page=null;T.render();return {card:!!document.querySelector('.addcard,.addmain'),mic:!!document.querySelector('header [data-act="voice"]'),qa:!!document.querySelector('#qa [data-act="qa-inc"]')};});
-chk(!r.card,'İşlem ekle kartı kalkmalı');chk(r.mic,'başlıkta mikrofon');chk(r.qa,'Gelir düğmesi duruyor');
+chk(!r.card,'İşlem ekle kartı kalkmalı');chk(!r.mic,'başlıkta mikrofon yok (4.15)');chk(r.qa,'Gelir düğmesi duruyor');
 // ---------- haftalık düzenli ödeme ----------
 r=await ev(fx=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x)o.push(m);};
   T.S=T.norm({fx,accounts:['Banka'],opening:{Banka:20000},openD:{Banka:T.addD(T.todayS(),-60)},tx:[],recurring:[]});T.save();

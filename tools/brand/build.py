@@ -136,8 +136,8 @@ def main():
     sp_w = 72.0  # 4.18: üst çubuktaki logoya yakın boyut (web açılışında 66 px)
     for t, q, light in ((LIGHT, '', True), (DARK, '-night', False)):
         use(t)
-        # 4.18: üst çubuktaki logo gibi düz arayüz vurgu rengi (geçiş ve parlama yok)
-        w(os.path.join(res, 'drawable%s/splash_icon.xml' % q), vec(288, 288, logo_vec(288, sp_w, '#FF' + t['accent'][1:])))
+        # 4.19: üst çubuktaki logo gibi, yazı rengiyle aynı (uygulama içindeki logo değişmez)
+        w(os.path.join(res, 'drawable%s/splash_icon.xml' % q), vec(288, 288, logo_vec(288, sp_w, '#FF' + t['ink'][1:])))
         lt = 'true' if light else 'false'
         w(os.path.join(res, 'values%s/splash.xml' % q),
           '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="splash">%s</color>\n'
@@ -177,9 +177,9 @@ def main():
         '#splash{position:fixed;inset:0;z-index:9999;background:%(dbg)s;display:flex;align-items:center;justify-content:center;transition:opacity .45s ease}'
         '#splash .sp-r{display:flex;align-items:center;gap:17px;animation:spIn .5s cubic-bezier(.2,.7,.2,1) both}'
         '/* yalnızca -webkit-mask: eski Android WebView içinde öneksiz mask öğeyi tümüyle gizler */'
-        '#splash .sp-l{display:block;flex:none;width:66px;height:42px;background:%(dac)s;-webkit-mask:%(m1)s center/100%% 100%% no-repeat}'
+        '#splash .sp-l{display:block;flex:none;width:66px;height:42px;background:%(dink)s;-webkit-mask:%(m1)s center/100%% 100%% no-repeat}'
         "#splash .sp-w{font:700 44px/1 'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-.01em;color:%(dink)s}"
-        '@media (prefers-color-scheme:light){#splash{background:%(lbg)s}#splash .sp-l{background:%(lac)s}#splash .sp-w{color:%(link)s}}'
+        '@media (prefers-color-scheme:light){#splash{background:%(lbg)s}#splash .sp-l{background:%(link)s}#splash .sp-w{color:%(link)s}}'
         '#splash.out{opacity:0}'
         '@keyframes spIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}'
         '@media (prefers-reduced-motion:reduce){#splash .sp-r{animation:none}}'

@@ -57,7 +57,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   {ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1500);
    sh('adb shell "rm -f /sdcard/sp*.png; am start -n '+ACT+'; sleep 0.5; screencap -p /sdcard/sp1.png; sleep 0.3; screencap -p /sdcard/sp2.png; sleep 0.3; screencap -p /sdcard/sp3.png; sleep 4; screencap -p /sdcard/sp4.png"');
    const shots=[1,2,3,4].map(i=>{sh('adb pull /sdcard/sp'+i+'.png /tmp/sp'+i+'.png');try{return png(require('fs').readFileSync('/tmp/sp'+i+'.png'));}catch(e){return null;}});
-   const navy=c=>c&&Math.abs(c[0]-242)<10&&Math.abs(c[1]-244)<10&&Math.abs(c[2]-241)<10,light=c=>c&&c[0]>200&&c[1]>200&&c[2]>200,gold=c=>c&&c[1]-c[0]>40&&c[1]<180&&c[2]<160;
+   const navy=c=>c&&Math.abs(c[0]-242)<10&&Math.abs(c[1]-244)<10&&Math.abs(c[2]-241)<10,light=c=>c&&c[0]>200&&c[1]>200&&c[2]>200,gold=c=>c&&c[0]<90&&c[1]<90&&c[2]<90;
    const desc=im=>im?JSON.stringify({ust:im.at(im.w/2,8),orta:im.at(20,im.h/2),alt:im.at(im.w/2,im.h-8)}):'yok';
    shots.forEach((im,i)=>console.log('ℹ açılış '+(i+1)+': '+desc(im)));
    // emülatörde ekran görüntüsü bazen saniyeler sürer; ilk kare açılışı yakalar, sonrakiler uygulamayı gösterebilir

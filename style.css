@@ -552,3 +552,17 @@ html[data-nc] body,html[data-nc] header,html[data-nc] .kbar{background:var(--ncc
 .kstep.st-done .t{color:var(--ink2)}
 .facts summary{padding:0}
 .facts .res .r>span:first-child{min-width:0}
+/* Gündem: uyarı, koç ve tespitler tek kartta */
+.gundem{padding-top:12px}
+.gundem h2{margin:0 0 2px}
+.gundem .alertbar,.gundem .cochome{border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:11px 0;box-shadow:none;font-size:inherit}
+.gundem .item:last-child{border-bottom:0}
+.gundem .cochome .t{font-weight:600}
+.gundem .bi .wrap-t{font-size:.9rem}
+.gundem .bacts{margin-top:2px;gap:4px}
+.gundem .bacts .linkbtn{padding:6px 8px 6px 0}
+.linkbtn.mute{color:var(--ink2);font-weight:500}
+.kstep.cur .t{font-weight:700}
+.kocnow .kacts{margin-top:10px}
+.gundem .alertbar .ell{white-space:normal}
+.gundem .sic{width:36px;height:36px;border-radius:12px;flex:none}

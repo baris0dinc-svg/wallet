@@ -10,7 +10,7 @@ window.addEventListener('unhandledrejection',function(e){var r=e.reason;errLog('
 document.addEventListener('securitypolicyviolation',function(e){errLog('politika',e.violatedDirective,e.blockedURI);});
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.0';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.1';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -474,7 +474,7 @@ function alertItems0(){
 }
 function alertsHtml(){
   var items=alertItems();if(!items.length)return '';var x=items[0];
-  return '<button class="alertbar" data-act="alerts" aria-label="Uyarılar: '+items.length+'"><span class="dot" style="background:var(--'+x[0]+')"></span><span class="mid ell">'+esc(x[1])+'</span>'+(items.length>1?'<span class="pill">+'+(items.length-1)+'</span>':'')+ic('r')+'</button>';
+  return '<button class="alertbar item" data-act="alerts" aria-label="Uyarılar: '+items.length+'"><span class="sic sm" style="--c:var(--'+x[0]+')">'+ic('bell')+'</span><span class="mid ell">'+esc(x[1])+'</span>'+(items.length>1?'<span class="pill">+'+(items.length-1)+'</span>':'')+ic('r')+'</button>';
 }
 function alertSheet(){
   var items=alertItems();if(!items.length){closeSheet();return;}
@@ -541,7 +541,6 @@ function heroCard(W){
   }else{
     h+='<p class="big" id="left-now">'+TRY0.format(L.spent)+'</p><div class="small muted">Bu dönem harcanan. Gelirini eklersen ne kadar kaldığını gösteririm.</div>';
   }
-  var F=forecast();if(F.hist&&F.rem>0&&F.spent>0)h+='<div class="fcst small muted">Dönem sonu tahmini: gider ≈ '+compactT(F.exp)+(F.expInc>0?' · '+(F.net>=0?'artan':'eksik')+' ≈ '+compactT(Math.abs(F.net)):'')+'</div>';
   h+='<button class="nwline" data-act="sub" data-v="servet" aria-label="Net servet: hesaplar ve yatırımlar"><span class="lbl">Net servet</span><b class="num">'+compactD(W.net)+'</b>'+(ch&&!maskOn&&ch.p!=null?'<span class="small num '+(ch.d>=0?'inc':'exp')+'">'+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+' · 30 gün</span>':'')+ic('r')+'</button>';
   return h+'</div>';
 }
@@ -562,8 +561,17 @@ function vMain(){
 function vHome(){
   var h=bannerHtml(),W=wealth();
   if(S.name)h+='<p class="small muted" style="margin:0 2px">'+esc(hello())+', <b>'+esc(S.name)+'</b></p>';
-  h+=heroCard(W)+alertsHtml()+smsBanner()+addCard()+favRow('home')+coachHome()+brainCard(2)+mStrip();
-  return h+recentCard()+'<div class="two homelinks"><button class="setcard" data-act="sub" data-v="notlar"><span class="sic" style="--c:var(--warn)">'+ic('note')+'</span><span class="mid"><div class="t">Notlar</div></span></button><button class="setcard" data-act="qa-calc"><span class="sic" style="--c:var(--blue)">'+ic('calc')+'</span><span class="mid"><div class="t">Hesaplayıcılar</div></span></button></div>';
+  /* sıra: ne kaldı → ekle → yapılacaklar (tek kart) → son işlemler → piyasalar → kısayollar */
+  h+=heroCard(W)+smsBanner()+addCard()+favRow('home')+gundem();
+  return h+recentCard()+mStrip()+'<div class="two homelinks"><button class="setcard" data-act="sub" data-v="notlar"><span class="sic" style="--c:var(--warn)">'+ic('note')+'</span><span class="mid"><div class="t">Notlar</div></span></button><button class="setcard" data-act="qa-calc"><span class="sic" style="--c:var(--blue)">'+ic('calc')+'</span><span class="mid"><div class="t">Hesaplayıcılar</div></span></button></div>';
+}
+/* Gündem: uyarılar, koçun şu anki adımı ve akıllı tespitler tek kartta, kısa satırlar halinde */
+function gundem(){
+  var rows=alertsHtml()+coachHome(true);
+  brainItems().slice(0,2).forEach(function(x){
+    rows+='<div class="item bi"><span class="sic sm" style="--c:var(--'+x.c+')">'+ic(x.ic)+'</span><span class="mid"><div class="wrap-t">'+x.t+'</div><div class="bacts"><button class="linkbtn" data-act="'+x.act+'" data-id="'+esc(x.id)+'">'+x.btn+' ›</button><button class="linkbtn mute" data-act="br-dis" data-id="'+esc(x.key)+'">Gizle</button></div></span></div>';});
+  if(!rows)return '';
+  return '<div class="card gundem brain"><h2>Gündem</h2><div class="list">'+rows+'</div></div>';
 }
 function hello(){var hr=new Date().getHours();return hr<5?'İyi geceler':hr<12?'Günaydın':hr<18?'İyi günler':'İyi akşamlar';}
 function addCard(){
@@ -3310,10 +3318,11 @@ function vKoc(){
    +tile('Borç',D.cardDebt+D.debts.reduce(function(a,x){return a+x.left;},0)>0?compactT(D.cardDebt+D.debts.reduce(function(a,x){return a+x.left;},0)):'Yok','sv-go','borc')
    +tile('Özgürlük',D.fire.ok?'%'+NUM1.format(D.fire.prog):'—','open-fire')+'</div></div>';
   if(ci>=0){var c=l[ci];
-    h+='<div class="card kocnow"><div class="lbl">Adım '+(ci+1)+'/'+l.length+' · '+CSI[c.st][2]+'</div><h2 style="margin:4px 0 6px">'+esc(c.t)+'</h2><div class="kb">'+c.body+'</div><div class="kacts">'+stepAct(c)+'</div><details class="why"><summary>Neden? Kısa ders</summary>'+c.why+'</details></div>';}
+    h+='<div class="card kocnow"><div class="lbl">Adım '+(ci+1)+'/'+l.length+' · '+CSI[c.st][2]+'</div><h2 style="margin:4px 0 4px">'+esc(c.t)+'</h2><p class="small muted" style="margin:0">'+c.sum+'</p>'+(c.act?'<div class="kacts">'+stepAct(c)+'</div>':'')+'<details class="why"><summary>Ayrıntı</summary><div class="kb">'+c.body+'</div></details><details class="why"><summary>Neden? Kısa ders</summary>'+c.why+'</details></div>';}
   else h+='<div class="card kocnow"><div class="lbl">Yol haritası</div><h2 style="margin:4px 0 6px">Tüm adımlar tamam</h2><p class="small muted" style="margin:0">Finansal özgürlük hesabını düzenli kontrol et.</p></div>';
   h+='<div class="card"><h2>Yol haritan</h2><div class="list">'+l.map(function(s,i){var x=CSI[s.st];
-    return '<details class="kstep st-'+s.st+'"'+(i===ci?' open':'')+'><summary class="item"><span class="sic sm" style="--c:var(--'+x[1]+')">'+ic(x[0])+'</span><span class="mid"><div class="t">'+(i+1)+'. '+esc(s.t)+'</div><div class="small muted">'+s.sum+'</div></span></summary><div class="kb">'+(i===ci?'<p class="small muted" style="margin:0">Yukarıda ayrıntılı.</p>':s.body+(s.act?'<div class="kacts">'+stepAct(s)+'</div>':'')+'<details class="why"><summary>Neden?</summary>'+s.why+'</details>')+'</div></details>';}).join('')+'</div></div>';
+    if(i===ci)return '<div class="kstep st-'+s.st+' cur"><div class="item"><span class="sic sm" style="--c:var(--'+x[1]+')">'+ic(x[0])+'</span><span class="mid"><div class="t">'+(i+1)+'. '+esc(s.t)+'</div><div class="small muted">Şu anki adım</div></span></div></div>';
+    return '<details class="kstep st-'+s.st+'"><summary class="item"><span class="sic sm" style="--c:var(--'+x[1]+')">'+ic(x[0])+'</span><span class="mid"><div class="t">'+(i+1)+'. '+esc(s.t)+'</div><div class="small muted">'+s.sum+'</div></span></summary><div class="kb">'+s.body+(s.act?'<div class="kacts">'+stepAct(s)+'</div>':'')+'<details class="why"><summary>Neden?</summary>'+s.why+'</details></div></details>';}).join('')+'</div></div>';
   h+=factsCard();
   h+='<div class="two homelinks"><button class="setcard" data-act="qa-calc"><span class="sic" style="--c:var(--blue)">'+ic('calc')+'</span><span class="mid"><div class="t">Hesaplayıcılar</div></span></button><button class="setcard" data-act="ai-open"><span class="sic" style="--c:var(--accent)">'+ic('sparkles')+'</span><span class="mid"><div class="t">Claude’a sor</div></span></button></div>';
   h+='<p class="small muted" style="margin:0 2px">Koç senin kayıtlarından hesaplar; eğitim amaçlıdır, yatırım tavsiyesi değildir.</p>';
@@ -3334,10 +3343,10 @@ function factsCard(){
    +'</div><p class="small muted" style="margin:8px 0 0">Oranlar Cumhurbaşkanı kararı, TCMB ve BDDK düzenlemeleriyle değişebilir; işlem yapmadan önce bankandan ya da resmî kaynaktan teyit et.</p></details>';
 }
 /* Ana sayfadaki kısa kart: şu anki adım */
-function coachHome(){
+function coachHome(inner){
   var D=coachData();if(!S.tx.length)return '';var l=coachSteps(),ci=coachCur(l);
   if(ci<0)return '';var c=l[ci];
-  return '<button class="card cochome" data-act="plan-go" data-v="koc"><span class="sic" style="--c:var(--'+CSI[c.st][1]+')">'+ic(CSI[c.st][0])+'</span><span class="mid"><div class="lbl">Koç · adım '+(ci+1)+'/'+l.length+'</div><div class="t">'+esc(c.t)+'</div><div class="small muted">'+c.sum+'</div></span>'+ic('r')+'</button>';
+  return '<button class="'+(inner?'item':'card')+' cochome" data-act="plan-go" data-v="koc"><span class="sic" style="--c:var(--'+CSI[c.st][1]+')">'+ic(CSI[c.st][0])+'</span><span class="mid"><div class="lbl">Koç · adım '+(ci+1)+'/'+l.length+'</div><div class="t">'+esc(c.t)+'</div><div class="small muted">'+c.sum+'</div></span>'+ic('r')+'</button>';
 }
 ACT['calc-go']=function(el,id,v){if(CALCS[v])ui.calc=v;openPage({k:'araclar'},'araclar');};
 /* ---------- başlangıç ---------- */

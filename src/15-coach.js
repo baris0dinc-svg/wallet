@@ -177,10 +177,11 @@ function vKoc(){
    +tile('Borç',D.cardDebt+D.debts.reduce(function(a,x){return a+x.left;},0)>0?compactT(D.cardDebt+D.debts.reduce(function(a,x){return a+x.left;},0)):'Yok','sv-go','borc')
    +tile('Özgürlük',D.fire.ok?'%'+NUM1.format(D.fire.prog):'—','open-fire')+'</div></div>';
   if(ci>=0){var c=l[ci];
-    h+='<div class="card kocnow"><div class="lbl">Adım '+(ci+1)+'/'+l.length+' · '+CSI[c.st][2]+'</div><h2 style="margin:4px 0 6px">'+esc(c.t)+'</h2><div class="kb">'+c.body+'</div><div class="kacts">'+stepAct(c)+'</div><details class="why"><summary>Neden? Kısa ders</summary>'+c.why+'</details></div>';}
+    h+='<div class="card kocnow"><div class="lbl">Adım '+(ci+1)+'/'+l.length+' · '+CSI[c.st][2]+'</div><h2 style="margin:4px 0 4px">'+esc(c.t)+'</h2><p class="small muted" style="margin:0">'+c.sum+'</p>'+(c.act?'<div class="kacts">'+stepAct(c)+'</div>':'')+'<details class="why"><summary>Ayrıntı</summary><div class="kb">'+c.body+'</div></details><details class="why"><summary>Neden? Kısa ders</summary>'+c.why+'</details></div>';}
   else h+='<div class="card kocnow"><div class="lbl">Yol haritası</div><h2 style="margin:4px 0 6px">Tüm adımlar tamam</h2><p class="small muted" style="margin:0">Finansal özgürlük hesabını düzenli kontrol et.</p></div>';
   h+='<div class="card"><h2>Yol haritan</h2><div class="list">'+l.map(function(s,i){var x=CSI[s.st];
-    return '<details class="kstep st-'+s.st+'"'+(i===ci?' open':'')+'><summary class="item"><span class="sic sm" style="--c:var(--'+x[1]+')">'+ic(x[0])+'</span><span class="mid"><div class="t">'+(i+1)+'. '+esc(s.t)+'</div><div class="small muted">'+s.sum+'</div></span></summary><div class="kb">'+(i===ci?'<p class="small muted" style="margin:0">Yukarıda ayrıntılı.</p>':s.body+(s.act?'<div class="kacts">'+stepAct(s)+'</div>':'')+'<details class="why"><summary>Neden?</summary>'+s.why+'</details>')+'</div></details>';}).join('')+'</div></div>';
+    if(i===ci)return '<div class="kstep st-'+s.st+' cur"><div class="item"><span class="sic sm" style="--c:var(--'+x[1]+')">'+ic(x[0])+'</span><span class="mid"><div class="t">'+(i+1)+'. '+esc(s.t)+'</div><div class="small muted">Şu anki adım</div></span></div></div>';
+    return '<details class="kstep st-'+s.st+'"><summary class="item"><span class="sic sm" style="--c:var(--'+x[1]+')">'+ic(x[0])+'</span><span class="mid"><div class="t">'+(i+1)+'. '+esc(s.t)+'</div><div class="small muted">'+s.sum+'</div></span></summary><div class="kb">'+s.body+(s.act?'<div class="kacts">'+stepAct(s)+'</div>':'')+'<details class="why"><summary>Neden?</summary>'+s.why+'</details></div></details>';}).join('')+'</div></div>';
   h+=factsCard();
   h+='<div class="two homelinks"><button class="setcard" data-act="qa-calc"><span class="sic" style="--c:var(--blue)">'+ic('calc')+'</span><span class="mid"><div class="t">Hesaplayıcılar</div></span></button><button class="setcard" data-act="ai-open"><span class="sic" style="--c:var(--accent)">'+ic('sparkles')+'</span><span class="mid"><div class="t">Claude’a sor</div></span></button></div>';
   h+='<p class="small muted" style="margin:0 2px">Koç senin kayıtlarından hesaplar; eğitim amaçlıdır, yatırım tavsiyesi değildir.</p>';
@@ -201,9 +202,9 @@ function factsCard(){
    +'</div><p class="small muted" style="margin:8px 0 0">Oranlar Cumhurbaşkanı kararı, TCMB ve BDDK düzenlemeleriyle değişebilir; işlem yapmadan önce bankandan ya da resmî kaynaktan teyit et.</p></details>';
 }
 /* Ana sayfadaki kısa kart: şu anki adım */
-function coachHome(){
+function coachHome(inner){
   var D=coachData();if(!S.tx.length)return '';var l=coachSteps(),ci=coachCur(l);
   if(ci<0)return '';var c=l[ci];
-  return '<button class="card cochome" data-act="plan-go" data-v="koc"><span class="sic" style="--c:var(--'+CSI[c.st][1]+')">'+ic(CSI[c.st][0])+'</span><span class="mid"><div class="lbl">Koç · adım '+(ci+1)+'/'+l.length+'</div><div class="t">'+esc(c.t)+'</div><div class="small muted">'+c.sum+'</div></span>'+ic('r')+'</button>';
+  return '<button class="'+(inner?'item':'card')+' cochome" data-act="plan-go" data-v="koc"><span class="sic" style="--c:var(--'+CSI[c.st][1]+')">'+ic(CSI[c.st][0])+'</span><span class="mid"><div class="lbl">Koç · adım '+(ci+1)+'/'+l.length+'</div><div class="t">'+esc(c.t)+'</div><div class="small muted">'+c.sum+'</div></span>'+ic('r')+'</button>';
 }
 ACT['calc-go']=function(el,id,v){if(CALCS[v])ui.calc=v;openPage({k:'araclar'},'araclar');};

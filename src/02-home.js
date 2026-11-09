@@ -32,7 +32,7 @@ function alertItems0(){
 }
 function alertsHtml(){
   var items=alertItems();if(!items.length)return '';var x=items[0];
-  return '<button class="alertbar" data-act="alerts" aria-label="Uyarılar: '+items.length+'"><span class="dot" style="background:var(--'+x[0]+')"></span><span class="mid ell">'+esc(x[1])+'</span>'+(items.length>1?'<span class="pill">+'+(items.length-1)+'</span>':'')+ic('r')+'</button>';
+  return '<button class="alertbar item" data-act="alerts" aria-label="Uyarılar: '+items.length+'"><span class="sic sm" style="--c:var(--'+x[0]+')">'+ic('bell')+'</span><span class="mid ell">'+esc(x[1])+'</span>'+(items.length>1?'<span class="pill">+'+(items.length-1)+'</span>':'')+ic('r')+'</button>';
 }
 function alertSheet(){
   var items=alertItems();if(!items.length){closeSheet();return;}
@@ -99,7 +99,6 @@ function heroCard(W){
   }else{
     h+='<p class="big" id="left-now">'+TRY0.format(L.spent)+'</p><div class="small muted">Bu dönem harcanan. Gelirini eklersen ne kadar kaldığını gösteririm.</div>';
   }
-  var F=forecast();if(F.hist&&F.rem>0&&F.spent>0)h+='<div class="fcst small muted">Dönem sonu tahmini: gider ≈ '+compactT(F.exp)+(F.expInc>0?' · '+(F.net>=0?'artan':'eksik')+' ≈ '+compactT(Math.abs(F.net)):'')+'</div>';
   h+='<button class="nwline" data-act="sub" data-v="servet" aria-label="Net servet: hesaplar ve yatırımlar"><span class="lbl">Net servet</span><b class="num">'+compactD(W.net)+'</b>'+(ch&&!maskOn&&ch.p!=null?'<span class="small num '+(ch.d>=0?'inc':'exp')+'">'+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+' · 30 gün</span>':'')+ic('r')+'</button>';
   return h+'</div>';
 }
@@ -120,8 +119,17 @@ function vMain(){
 function vHome(){
   var h=bannerHtml(),W=wealth();
   if(S.name)h+='<p class="small muted" style="margin:0 2px">'+esc(hello())+', <b>'+esc(S.name)+'</b></p>';
-  h+=heroCard(W)+alertsHtml()+smsBanner()+addCard()+favRow('home')+coachHome()+brainCard(2)+mStrip();
-  return h+recentCard()+'<div class="two homelinks"><button class="setcard" data-act="sub" data-v="notlar"><span class="sic" style="--c:var(--warn)">'+ic('note')+'</span><span class="mid"><div class="t">Notlar</div></span></button><button class="setcard" data-act="qa-calc"><span class="sic" style="--c:var(--blue)">'+ic('calc')+'</span><span class="mid"><div class="t">Hesaplayıcılar</div></span></button></div>';
+  /* sıra: ne kaldı → ekle → yapılacaklar (tek kart) → son işlemler → piyasalar → kısayollar */
+  h+=heroCard(W)+smsBanner()+addCard()+favRow('home')+gundem();
+  return h+recentCard()+mStrip()+'<div class="two homelinks"><button class="setcard" data-act="sub" data-v="notlar"><span class="sic" style="--c:var(--warn)">'+ic('note')+'</span><span class="mid"><div class="t">Notlar</div></span></button><button class="setcard" data-act="qa-calc"><span class="sic" style="--c:var(--blue)">'+ic('calc')+'</span><span class="mid"><div class="t">Hesaplayıcılar</div></span></button></div>';
+}
+/* Gündem: uyarılar, koçun şu anki adımı ve akıllı tespitler tek kartta, kısa satırlar halinde */
+function gundem(){
+  var rows=alertsHtml()+coachHome(true);
+  brainItems().slice(0,2).forEach(function(x){
+    rows+='<div class="item bi"><span class="sic sm" style="--c:var(--'+x.c+')">'+ic(x.ic)+'</span><span class="mid"><div class="wrap-t">'+x.t+'</div><div class="bacts"><button class="linkbtn" data-act="'+x.act+'" data-id="'+esc(x.id)+'">'+x.btn+' ›</button><button class="linkbtn mute" data-act="br-dis" data-id="'+esc(x.key)+'">Gizle</button></div></span></div>';});
+  if(!rows)return '';
+  return '<div class="card gundem brain"><h2>Gündem</h2><div class="list">'+rows+'</div></div>';
 }
 function hello(){var hr=new Date().getHours();return hr<5?'İyi geceler':hr<12?'Günaydın':hr<18?'İyi günler':'İyi akşamlar';}
 function addCard(){

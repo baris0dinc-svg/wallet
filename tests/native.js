@@ -35,7 +35,7 @@ chk(r.l1&&!r.l2,'parmak izi kilidi açtı '+JSON.stringify(r));
 // bildirim ayarları yerel modda
 r=await p.evaluate(()=>{const e=document.createElement('button');e.dataset.act='open-set';e.dataset.id='bild';document.body.appendChild(e);e.click();e.remove();return document.getElementById('view').innerText;});
 // 4.2: yaklaşan ödemeler listesi burada tekrarlanmıyor (Gündem ve Plan › Düzenli'de); hatırlatıcı planı yukarıda denendi
-chk(/Telefon bildirimi gönder/.test(r)&&/Deneme bildirimi/.test(r)&&!/Su faturası/.test(r),'bildirim ayarları yerel');
+chk(/Telefon bildirimi gönder/.test(r)&&/Deneme bildirimi/.test(r)&&/Yaklaşan ödemeler/.test(r),'bildirim ayarları yerel (yaklaşan ödemeler listesiyle)');
 // tam silme
 r=await p.evaluate(()=>{const T=window.__T;T.wipeAll();return {nat:JSON.parse(localStorage.getItem('__nat')).tx.length,bk:localStorage.getItem('__bk'),plan:localStorage.getItem('__plan'),wiped:localStorage.getItem('__wiped'),pin:T.S.pin};});
 chk(r.nat===0&&r.bk===null&&r.plan==='[]'&&r.wiped==='1'&&!r.pin,'tam silme '+JSON.stringify(r));

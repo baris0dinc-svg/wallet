@@ -584,3 +584,10 @@ details.more>summary{padding:0}
 .catin input{flex:1;min-width:0;padding:7px 10px}
 .catin .btn.small{flex:none}
 .bkpw>summary{font-size:.875rem;color:var(--accent)}
+
+/* ana kart: net servet üstte, bu dönem kalan altta */
+.nwbig{display:flex;align-items:center;gap:6px;width:100%;padding:0;margin:6px 0 2px;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-width:0}
+.nwbig .big{margin:0;min-width:0;overflow-wrap:anywhere}
+.nwbig .ic{width:20px;height:20px;color:var(--ink2);flex:none}
+.leftblk{margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.leftblk .mid{margin:2px 0 4px;font-family:var(--f-num);font-size:1.5rem;font-weight:700;line-height:1.2;font-variant-numeric:tabular-nums}

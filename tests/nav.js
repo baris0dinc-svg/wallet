@@ -15,7 +15,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  // ana sayfa: kalan kartı, işlem ekle, Koç, piyasa şeridi, notlar ve hesaplayıcılar, ayarlar
  chk(!!$('#left-now'),'bu dönem kalan');
  click('.addmain');chk(/Yeni işlem|Gider/.test(sheetT()),'işlem ekle kartı');back();
- click('.nwline');chk(T.ui.sub==='servet'&&!!$('.nw .big'),'net servet satırı Hesaplar’a');click('#tabbar [data-v="ev"]');
+ click('.nwbig');chk(T.ui.sub==='servet'&&!!$('.nw .big'),'net servet Hesaplar’a');click('#tabbar [data-v="ev"]');
  click('.cochome');chk(T.ui.sub==='plan'&&T.ui.plan==='koc'&&!!$('#view .kocnow'),'Koç kartı Plan › Koç');click('#tabbar [data-v="ev"]');
  click('.mstrip');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa şeridi Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','piyasadan geri');
  // 4.2: Notlar ana sayfa başlığındaki simgede (tek dokunuş); Hesaplayıcılar Plan › Koç'ta (ana sayfadaki kutucuklar kaldırıldı)

@@ -19,7 +19,10 @@ async function connect(){
           ws.on('message',m=>{const o=JSON.parse(m);if(o.id&&pend[o.id]){pend[o.id](o);delete pend[o.id];}});
           /* eski bağlantının gecikmeli kapanışı yeni bağlantıyı silmesin */
           const me=ws;me.on('close',()=>{if(ws!==me)return;Object.keys(pend).forEach(k=>{pend[k]({result:{exceptionDetails:'bağlantı kapandı'}});delete pend[k];});ws=null;});
-          for(let k=0;k<40;k++){if(await ev('return !!(document.getElementById("hdr")&&document.getElementById("hdr").innerHTML)')===true)return true;await sleep(500);}ws&&ws.close();}}catch(e){}}
+          for(let k=0;k<40;k++){if(await ev('return !!(document.getElementById("hdr")&&document.getElementById("hdr").innerHTML)')===true)return true;await sleep(500);}
+          /* tanı: sayfa yüklendi ama uygulama çizilmediyse nedenini yaz (bir kez) */
+          if(!connect.diag){connect.diag=1;const dg=await ev('return JSON.stringify({rs:document.readyState,url:location.href,app:typeof window.walletBack,nb:!!window.AndroidBridge,hdr:!!document.getElementById("hdr"),body:(document.body&&document.body.innerText||"").slice(0,160),err:localStorage.getItem("wallet-err"),scripts:[...document.scripts].map(x=>x.src||"inline").join(",")})');console.log('ℹ tanı: '+JSON.stringify(dg));}
+          ws&&ws.close();}}catch(e){}}
     await sleep(1500);}
   return false;
 }

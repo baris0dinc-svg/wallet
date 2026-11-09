@@ -83,8 +83,9 @@ function unusualTx(){
 /* ---- 2c. olası çift kayıt (aynı gün, aynı hesap, tutar ve not) ---- */
 function dupTx(){
   var d30=new Date(today0());d30.setDate(d30.getDate()-30);var s30=isoDate(d30),m={},out=[];
-  S.tx.forEach(function(t){if((t.type!=='exp'&&t.type!=='inc')||t.date<s30||t.sample||!(t.amt>=100))return;var k=[t.type,t.date,t.acct,r2(t.amt),fold(t.note||'').trim(),t.cat].join('|');
-    if(m[k])out.push({key:'dup:'+m[k].id+':'+t.id,a:m[k],b:t});else m[k]=t;});
+  var L=recLinked(),m2={};
+  S.tx.forEach(function(t){if((t.type!=='exp'&&t.type!=='inc')||t.date<s30||t.sample||!(t.amt>=100))return;var k=[t.type,t.date,t.acct,r2(t.amt),fold(t.note||'').trim(),t.cat].join('|'),k2=[t.type,t.date,t.acct,r2(t.amt),t.cat].join('|');
+    if(m[k])out.push({key:'dup:'+m[k].id+':'+t.id,a:m[k],b:t});else if(m2[k2]&&(L[m2[k2].id]||L[t.id]))out.push({key:'dup:'+m2[k2].id+':'+t.id,a:m2[k2],b:t});else{m[k]=t;m2[k2]=t;}});
   return out;
 }
 /* ---- 3. dönem sonu tahmini ---- */
@@ -99,7 +100,7 @@ function forecast(){
   var hist=monthBase().ks.slice(0,3).map(function(p){var v=0;monthTx(p).forEach(function(t){if(t.type==='exp'&&!pid[t.id]&&!lumpy(t,big))v+=txTL(t);});return v>0?v/pDays(p):null;}).filter(function(x){return x!=null;});
   var hRate=hist.length?median(hist):null,cRate=varNow/el,w=Math.min(1,el/days*1.5),rate=hRate==null?cRate:(cRate*w+hRate*(1-w));
   var recLeft=recDue(k).tot;
-  var exp=r2(spent+rate*rem+recLeft),ai=avgMonthly('inc'),expInc=Math.max(inc,ai||0);
+  var exp=r2(spent+rate*rem+recLeft),ai=avgMonthly('inc'),expInc=Math.max(inc+recIncDue(k),ai||0);
   return {spent:spent,exp:exp,recLeft:r2(recLeft),rate:rate,rem:rem,inc:inc,expInc:r2(expInc),incAssumed:expInc>inc+1,net:r2(expInc-exp),hist:hist.length};
 }
 /* ---- 2d. bütçenin dolacağı gün ---- */

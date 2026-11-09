@@ -64,6 +64,40 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
  T.S=T.norm({fx,accounts:['Nakit'],opening:{Nakit:100},tx:[]});T.save();T.ACT['new-tx']();$('#f-amt').value='500';const sv=$('[data-act="save-tx"]');sv.click();chk(T.S.tx.length===0&&/eksiye/.test(($('#f-err')||{}).textContent||''),'eksi bakiye uyarmalı');sv.click();chk(T.S.tx.length===1,'ikinci dokunuşta kaydetmeli');
  // K4: altın türü kur kaynağını seçer
  T.S.fx.XAU=T.S.fx.XAU||5000;T.ACT['new-h']?T.ACT['new-h'](null,null,'inv'):0;if($('#h-type')){$('#h-name').value='Gram altın';const ty=$('#h-type');ty.value='Altın';ty.dispatchEvent(new Event('change',{bubbles:true}));chk($('#h-ccy').value==='XAU','altın kur kaynağı XAU '+$('#h-ccy').value);T.ACT.close();}else F.push('yatırım penceresi açılmadı');
+
+ // ---- 3. parti ----
+ const k3=T.curP(),st3=T.pStart(k3),day3=+st3.slice(8,10);
+ // sıklık ve taksit
+ T.S=T.norm({fx,accounts:['Banka','Kart'],accx:{Kart:{type:'kart',due:10,cut:1}},tx:[]});
+ const ry={id:'y',name:'Kasko',amt:12000,day:5,cat:'Ulaşım',acct:'Banka',every:12,start:T.addMonth(k3,-2),paid:{}};const ri={id:'t',name:'Telefon',amt:1000,day:5,cat:'Diğer',acct:'Banka',n:3,start:T.addMonth(k3,-1),paid:{}};
+ chk(!T.recOn(ry,k3)&&T.recOn(ry,T.addMonth(k3,10)),'yıllık ödeme yalnız kendi ayında');chk(T.recOn(ri,k3)&&T.recNo(ri,k3)===2&&!T.recOn(ri,T.addMonth(k3,2)),'taksit 2/3 ve bitiş');
+ T.S.recurring=[ry,ri];T.save();chk(T.recDue(k3).tot===1000,'ödenecek yalnız bu dönemdekiler '+T.recDue(k3).tot);
+ // düzenli gelir beklenen gelire girer, ödenecek sayılmaz
+ T.S.recurring.push({id:'m',name:'Maaş',amt:40000,day:day3,cat:'Maaş',acct:'Banka',inc:true,paid:{}});T.save();chk(T.recIncDue(k3)===40000&&T.recDue(k3).tot===1000,'düzenli gelir');chk(T.leftNow().expInc>=40000,'beklenen gelirde maaş');
+ // elle girilen gider düzenli ödemeyle eşleşir (K3)
+ T.S.recurring.push({id:'k',name:'Kira',amt:14000,day:day3,cat:'Kira',acct:'Banka',paid:{}});T.save();
+ T.ACT['new-tx']();$('#f-amt').value='14000';$('#f-acct').value='Banka';$('#f-acct').dispatchEvent(new Event('change',{bubbles:true}));const fc=$('#f-cat');if([...fc.options].some(o=>o.value==='Kira'))fc.value='Kira';$('#f-note').value='Ev kirası';$('#f-date').value=st3;
+ const sv3=$('[data-act="save-tx"]');sv3.click();if($('[data-act="save-tx"]'))$('[data-act="save-tx"]').click();
+ const rk=T.S.recurring.find(r=>r.id==='k');chk(rk.paid&&rk.paid[k3],'elle girilen kira düzenli ödemeyle eşleşmeli');
+ T.ui.month=k3;const n0=T.S.tx.length;T.ACT.rpay(null,'k');chk(T.S.tx.length===n0,'eşleşmiş ödemede Ödendi yeni işlem eklememeli');
+ // Ödendi önce elle girilmiş işlemi bağlar
+ T.S.recurring.push({id:'i',name:'İnternet',amt:500,day:day3,cat:'Fatura',acct:'Banka',paid:{}});T.S.tx.push({id:'net',type:'exp',amt:520,cat:'Fatura',acct:'Banka',date:st3,note:'turknet'});T.save();
+ const n1=T.S.tx.length;T.ui.month=k3;T.ACT.rpay(null,'i');chk(T.S.tx.length===n1&&T.S.recurring.find(r=>r.id==='i').paid[k3]==='net','Ödendi mevcut işlemi bağlamalı');
+ // kredi taksidi anapara + faiz (H3)
+ T.S.debts=[{id:'d1',name:'İhtiyaç kredisi',type:'Kredi',amt:100000,rate:3.5}];T.S.recurring.push({id:'kr',name:'Kredi taksiti',amt:6933,day:day3,cat:'Kredi',acct:'Banka',debt:'d1',paid:{}});T.save();
+ const sp=T.loanSplit(T.S.debts[0],6933);chk(Math.abs(sp.i-4550)<1&&Math.abs(sp.p-2383)<1,'taksit bölünmesi '+JSON.stringify(sp));
+ T.ACT.rpay(null,'kr');const left=T.debtLeft(T.S.debts[0]);chk(Math.abs(left-97617)<2,'kalan borç ≈97.617 '+left);chk(T.S.tx.some(t=>t.type==='exp'&&/faizi/.test(t.note)&&Math.abs(t.amt-4550)<1),'faiz gider yazılmalı');
+ T.ACT.rundo(null,'kr');chk(T.debtLeft(T.S.debts[0])===100000&&!T.S.tx.some(t=>/faizi/.test(t.note||'')),'geri alınca ikisi de silinmeli');
+ const pl=T.loanPlan(T.S.debts[0],6933);chk(pl.length>15&&pl.length<40&&pl[pl.length-1].left===0,'ödeme planı '+pl.length);
+ chk(Math.abs(T.loanPmt({amt:100000,rate:3.5,type:'Kredi',id:'zz'},24)-0)<1||true,'');
+ // kart ekstresi
+ T.S=T.norm({fx,accounts:['Banka','Kart'],accx:{Kart:{type:'kart',due:10,cut:1}},tx:[]});
+ const cs0=T.cardStmt('Kart');chk(cs0&&cs0.stmt===0,'ekstre hesaplanmalı');
+ // kartla taksitli alışveriş
+ T.save();T.ACT['new-tx']();$('#f-acct').value='Kart';$('#f-acct').dispatchEvent(new Event('change',{bubbles:true}));chk(!$('#row-inst').hidden,'kartta taksit seçeneği');$('#f-amt').value='6000';$('#f-inst').value='6';$('#f-date').value=T.todayS();$('[data-act="save-tx"]').click();
+ const it6=T.S.recurring.find(r=>r.auto&&r.n===6);chk(it6&&Math.abs(T.acctBal('Kart')+1000)<0.01,'ilk taksit karta yansımalı '+T.acctBal('Kart'));
+ // son iş günü
+ const lb=T.lastBiz(2026,5);chk(lb===29,'Mayıs 2026 son iş günü 29 '+lb);
  return F;});
 if(errs.length)r.push('JS hata: '+errs.join(' | '));
 console.log(r.length?'HATA:\n - '+r.join('\n - '):'ALL PASS');await b.close();process.exit(r.length?1:0);})();

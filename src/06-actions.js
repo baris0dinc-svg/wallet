@@ -82,13 +82,18 @@ ACT['save-tx']=function(el,id){
   /* nakit ve vadesiz hesap eksiye düşecekse bir kez uyar */
   if(o.type!=='inc'&&acctType(o.acct)!=='kart'&&el&&!el.dataset.negok){var t0=id&&byId(S.tx,id),nb0=acctBal(o.acct)+(t0&&t0.acct===o.acct&&t0.type!=='inc'?t0.amt:0)-(t0&&t0.acct===o.acct&&t0.type==='inc'?t0.amt:0)-o.amt;
     if(nb0<-0.005&&acctBal(o.acct)>=-0.005){el.dataset.negok='1';ferr('Bu işlemle '+o.acct+' bakiyesi eksiye düşecek ('+moneyIn(nb0,o.acct)+'). Doğruysa Kaydet’e tekrar dokun.');return;}}
-  if(id){var t=byId(S.tx,id);if(!t){closeSheet();return;}if(t.acct!==o.acct)delete t.fx;if(txType!=='trf')delete t.to;delete t.amt2;Object.assign(t,o);delete t.sample;}else{o.id=uid();S.tx.push(o);}
+  var tk=!id&&txType==='exp'&&acctType(o.acct)==='kart'?parseInt(val('f-inst'),10)||1:1,rlink=null,instR=null;
+  if(id){var t=byId(S.tx,id);if(!t){closeSheet();return;}if(t.acct!==o.acct)delete t.fx;if(txType!=='trf')delete t.to;delete t.amt2;Object.assign(t,o);delete t.sample;}
+  else if(tk>1){/* kartla taksitli alışveriş: ilk taksit bugün, kalanlar her ay kendiliğinden işlenir */
+    var per=r2(o.amt/tk),first=r2(o.amt-per*(tk-1));o.id=uid();o.amt=first;o.note=(o.note||o.cat)+' (1/'+tk+')';S.tx.push(o);
+    instR={id:uid(),name:(val('f-note').trim()||o.cat)+' taksiti',amt:per,day:+d.slice(8,10),cat:o.cat,acct:o.acct,every:1,n:tk,start:pk(d),auto:true,paid:{}};instR.paid[pk(d)]=o.id;S.recurring.push(instR);}
+  else{o.id=uid();S.tx.push(o);rlink=recMatch(o);if(rlink){rlink.paid=rlink.paid||{};rlink.paid[pk(d)]=o.id;}}
   if(!id){S.last=S.last||{};S.last[txType]={cat:o.cat,acct:o.acct};}
   /* seçili ay kullanıcının seçimi olarak kalır; başka döneme kaydedilince yalnızca bildirilir */
   var other=pk(d)!==ui.month?' · '+plabel(pk(d))+' dönemine':'';
   save();closeSheet();render();
   if(id&&other)toast('İşlem'+other+' taşındı');
-  if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi'+other+' · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct),function(){S.tx=S.tx.filter(function(z){return z.id!==o.id;});save();render();toast('Geri alındı');});
+  if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi'+other+(rlink?' · '+rlink.name+(rlink.inc?' geldi':' ödendi')+' olarak işaretlendi':'')+(instR?' · '+tk+' taksit, her ay '+moneyIn(instR.amt,o.acct,1):'')+' · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct),function(){S.tx=S.tx.filter(function(z){return z.id!==o.id;});if(instR)S.recurring=S.recurring.filter(function(z){return z!==instR;});save();render();toast('Geri alındı');});
 };
 ACT['save-mv']=function(el,id){var t=byId(S.tx,id);if(!t)return;var amt=r2(num(val('m-amt')));
   if(tooBig(amt)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
@@ -133,6 +138,7 @@ ACT['save-a']=function(el,id){
   if(cs&&!acctUsed(nm))x.ccy=cs.value;
   if(type==='kart'&&due>=1&&due<=31)x.due=due;else delete x.due;
   if(type==='kart'&&lim>0)x.limit=lim;else delete x.limit;
+  var cut=parseInt(val('a-cut'),10);if(type==='kart'&&cut>=1&&cut<=31)x.cut=cut;else delete x.cut;
   if(!ex||op!==(+S.opening[nm]||0))S.sampleExtras=false;
   S.opening[nm]=op;S.openD=S.openD||{};if(!ex&&op!==0)S.openD[nm]=todayS();
   save();closeSheet();render();toast(ex?'Hesap güncellendi':nm+' eklendi');
@@ -177,11 +183,14 @@ ACT['new-d']=function(){dSheet();};ACT['edit-d']=function(el,id){dSheet(id);};
 ACT['save-d']=function(el,id){
   var n=val('d-name').trim(),a=r2(num(val('d-amt')));if(!n){ferr('Bir ad yaz.');return;}if(a<=0){ferr('Tutarı gir.');return;}if(tooBig(a)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   var rt=num(val('d-rate'));if(rt<0||rt>30){ferr('Aylık faiz 0 ile 30 arasında olmalı.');return;}
-  var o={name:n,type:val('d-type'),amt:a};if(rt>0)o.rate=r2(rt);
-  if(id){var d0=byId(S.debts,id);Object.assign(d0,o);if(!(rt>0))delete d0.rate;delete d0.sample;}
+  var dn=Math.round(num(val('d-n'))),tx0=val('d-tax').trim(),tx1=num(tx0);if(dn<0||dn>600){ferr('Vade 0 ile 600 ay arasında olmalı.');return;}if(tx0&&(tx1<0||tx1>100)){ferr('Vergi oranı 0 ile 100 arasında olmalı.');return;}
+  var o={name:n,type:val('d-type'),amt:a};if(rt>0)o.rate=r2(rt);if(dn>0)o.n=dn;if(tx0)o.tax=r2(tx1);
+  if(id){var d0=byId(S.debts,id);Object.assign(d0,o);if(!(rt>0))delete d0.rate;if(!(dn>0))delete d0.n;if(!tx0)delete d0.tax;delete d0.sample;}
   else{o.id=uid();S.debts.push(o);var acct=val('d-acct');if(acct&&ACCS().indexOf(acct)>=0&&r2(fromTL(a,acct))>0)S.tx.push({id:uid(),type:'dbt',side:'in',debt:o.id,dname:n,amt:r2(fromTL(a,acct)),acct:acct,date:todayS(),note:''});}
   save();closeSheet();render();toast(id?'Borç güncellendi':n+' eklendi');
 };
+ACT['loan-rec']=function(el,id){var d=byId(S.debts,id);if(!d)return;var P=loanPmt(d,+d.n);if(!(P>0)){toast('Önce kalan vadeyi yaz.');return;}var a=grpAccts('banka')[0]||defAcct('exp');
+  var r={id:uid(),name:d.name+' taksiti',amt:r2(fromTL(P,a)),day:new Date().getDate(),cat:ensureCat('exp','Kredi'),acct:a,debt:d.id,every:1,n:+d.n,start:curP(),paid:{}};S.recurring.push(r);save();closeSheet();render();toast(r.name+' eklendi · ayın '+r.day+'’i, '+TRY0.format(P));};
 ACT['pay-d']=function(el,id){
   var d=byId(S.debts,id);if(!d)return;var p=r2(num(val('dp-amt'))),it=r2(num(val('dp-int'))),acct=val('dp-acct'),dt=val('dp-date')||todayS();
   if(p<=0&&it<=0){msg('Ödeme tutarını gir.',false,'f-err2');return;}if(tooBig(p)||tooBig(it)){msg('Tutar çok büyük.',false,'f-err2');return;}
@@ -219,20 +228,40 @@ ACT['new-r']=function(){rSheet();};ACT['edit-r']=function(el,id){rSheet(id);};
 ACT['save-r']=function(el,id){
   var rn=val('r-name').trim(),ra=r2(num(val('r-amt'))),rd=Math.round(num(val('r-day')));
   if(!rn){ferr('Bir ad yaz.');return;}if(ra<=0){ferr('Tutarı gir.');return;}if(tooBig(ra)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}if(rd<1||rd>31){ferr('Gün 1 ile 31 arasında olmalı.');return;}
-  var ro={name:rn,amt:ra,day:rd,cat:val('r-cat'),acct:val('r-acct')},db=val('r-debt');
-  if(id){var r0=byId(S.recurring,id);Object.assign(r0,ro);if(db)r0.debt=db;else delete r0.debt;delete r0.sample;}else{ro.id=uid();ro.paid={};if(db)ro.debt=db;S.recurring.push(ro);}
+  var inc=val('r-kind')==='inc',ev=parseInt(val('r-every'),10)||1,nn=Math.round(num(val('r-n'))),st=val('r-start');
+  if(nn<0||nn>600){ferr('Taksit sayısı 0 ile 600 arasında olmalı.');return;}if(st&&!/^\d{4}-\d{2}$/.test(st))st='';
+  var ro={name:rn,amt:ra,day:rd,cat:val('r-cat'),acct:val('r-acct'),every:ev,n:nn>0?nn:0,start:st||((ev>1||nn>0)?curP():'')},db=inc?'':val('r-debt');
+  if(inc)ro.inc=true;
+  var r0;if(id){r0=byId(S.recurring,id);Object.assign(r0,ro);if(!inc)delete r0.inc;if(db)r0.debt=db;else delete r0.debt;if(!ro.start)delete r0.start;delete r0.sample;}
+  else{ro.id=uid();ro.paid={};if(db)ro.debt=db;if(!ro.start)delete ro.start;S.recurring.push(ro);r0=ro;}
   save();closeSheet();render();
+  /* yeni kalemin bu dönemki günü geçtiyse: girilmiş işlem varsa bağlanır, yoksa sorulur */
+  if(!id){var k=curP();if(recOn(r0,k)&&!recPaid(r0,k)&&dueDate(r0,k)<=todayS()){var ft=recFind(r0,k);
+    if(ft){r0.paid[k]=ft.id;save();render();toast('Bu ayki '+(inc?'gelir':'ödeme')+' bulundu ve bağlandı: '+(ft.note||ft.cat)+' '+moneyIn(ft.amt,ft.acct,1),function(){delete r0.paid[k];save();render();});}
+    else toast(r0.name+': bu dönem '+(inc?'geldi mi?':'ödendi mi?'),function(){payRec(r0,k);},inc?'Geldi':'Ödendi');}}
 };
 ACT['del-r']=function(el,id){if(!armed(el))return;S.recurring=S.recurring.filter(function(x){return x.id!==id;});save();closeSheet();render();};
 /* düzenli ödemeyi bir dönem için öde: işlem eklenir, bakiye düşer (borca bağlıysa borçtan düşer) */
-function payRec(r,k){var d=r.debt&&byId(S.debts,r.debt),tx,dd=dueDate(r,k),pd=dd>todayS()&&todayS()>=pStart(k)?todayS():dd;
-  if(d&&debtLeft(d)>0)tx={id:uid(),type:'dbt',side:'out',debt:d.id,dname:d.name,amt:r.amt,acct:r.acct,note:r.name,date:pd};
-  else tx={id:uid(),type:'exp',amt:r.amt,cat:r.cat,acct:r.acct,note:r.name,date:pd};
-  S.tx.push(tx);r.paid=r.paid||{};r.paid[k]=tx.id;save();render();
+/* düzenli kalemin bir dönemlik işlemi: borca bağlıysa taksit anapara ve faiz+vergi olarak bölünür */
+function recTx(r,k,date){var d=r.debt&&byId(S.debts,r.debt),tx,no=+r.n>0?' ('+recNo(r,k)+'/'+r.n+')':'';
+  if(d&&debtLeft(d)>0){var amtTL=toTL(+r.amt||0,r.acct),sp=loanSplit(d,amtTL);
+    tx={id:uid(),type:'dbt',side:'out',debt:d.id,dname:d.name,amt:r2(fromTL(sp.p,r.acct)),acct:r.acct,note:r.name+no,date:date};
+    if(sp.i>0.005){var it={id:uid(),type:'exp',amt:r2(fromTL(sp.i,r.acct)),cat:ensureCat('exp','Faiz ve masraf'),acct:r.acct,note:d.name+' faizi'+no,date:date};S.tx.push(it);tx.intId=it.id;}
+    if(!(tx.amt>0)){if(tx.intId){var ii=byId(S.tx,tx.intId);r.paid=r.paid||{};r.paid[k]=ii.id;return ii;}}}
+  else tx={id:uid(),type:r.inc?'inc':'exp',amt:r.amt,cat:r.cat,acct:r.acct,note:r.name+no,date:date};
+  S.tx.push(tx);r.paid=r.paid||{};r.paid[k]=tx.id;return tx;}
+function payRec(r,k){var dd=dueDate(r,k),pd=dd>todayS()&&todayS()>=pStart(k)?todayS():dd;
+  if(recPaid(r,k)){toast(r.name+' bu dönem zaten '+(r.inc?'geldi':'ödendi')+' olarak işaretli');return;}
+  /* bu dönem elle girilmiş eşleşen işlem varsa yenisi eklenmez, o bağlanır (çift kayıt olmasın) */
+  var ft=recFind(r,k);if(ft){r.paid=r.paid||{};r.paid[k]=ft.id;save();render();toast(r.name+': '+pdate(ft.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long'})+' tarihli '+moneyIn(ft.amt,ft.acct,1)+' işlemiyle eşleştirildi',function(){delete r.paid[k];save();render();});return;}
+  var tx=recTx(r,k,pd);save();render();
+  var it=tx.intId&&byId(S.tx,tx.intId);
   /* fatura tutarı her ay değişebilir (elektrik, doğalgaz): tek dokunuşla gerçek tutar girilir */
-  toast(r.name+' ödendi · '+r.acct+': '+moneyIn(acctBal(r.acct),r.acct),function(){if(byId(S.tx,tx.id))txSheet(tx.id);},'Tutarı düzenle');}
+  toast(r.name+(r.inc?' geldi':' ödendi')+(it?' · anapara '+moneyIn(tx.amt,tx.acct,1)+', faiz+vergi '+moneyIn(it.amt,it.acct,1):'')+' · '+r.acct+': '+moneyIn(acctBal(r.acct),r.acct),function(){if(byId(S.tx,tx.id))txSheet(tx.id);},'Tutarı düzenle');}
+/* kendiliğinden işlenen kalemler (kartla taksitli alışveriş): günü gelen taksitler eklenir */
+function autoPost(){var t0=todayS(),n=0,c=curP();S.recurring.forEach(function(r){if(!r.auto)return;[addMonth(c,-2),addMonth(c,-1),c].forEach(function(k){if(!recOn(r,k)||recPaid(r,k))return;var d=dueDate(r,k);if(d>t0)return;recTx(r,k,d);n++;});});if(n)save();return n;}
 ACT.rpay=function(el,id){var r=byId(S.recurring,id);if(r)payRec(r,ui.month);};
-ACT.rundo=function(el,id){var r=byId(S.recurring,id);if(r&&r.paid){var pid=r.paid[ui.month];S.tx=S.tx.filter(function(x){return x.id!==pid;});delete r.paid[ui.month];save();render();}};
+ACT.rundo=function(el,id){var r=byId(S.recurring,id);if(r&&r.paid){var pid=r.paid[ui.month],t=byId(S.tx,pid),iid=t&&t.intId;S.tx=S.tx.filter(function(x){return x.id!==pid&&x.id!==iid;});delete r.paid[ui.month];save();render();}};
 
 /* notlar */
 function noteSet(id,fn,text,undo){var n=byId(S.notes,id);if(!n)return;var before={arch:n.arch,trash:n.trash,pin:n.pin};fn(n);delete n.sample;save();render();if(text)toast(text,undo===false?null:function(){n.arch=before.arch;n.trash=before.trash;n.pin=before.pin;save();render();});}
@@ -547,7 +576,7 @@ document.addEventListener('change',function(e){
   if(t.id==='f-acct'||t.id==='f-to'){syncCcy();}
   if(t.id==='f-date')dateChips();
   if(t.id==='r-acct'){var lr=document.getElementById('lb-ramt');if(lr)lr.textContent='Tutar ('+CSYM[ccyOf(t.value)]+')';}
-  if(t.id==='h-ccy'){delete t.dataset.auto;syncH();}if(t.id==='h-acct')syncH();if(t.id==='h-type')autoSrc();
+  if(t.id==='h-ccy'){delete t.dataset.auto;syncH();}if(t.id==='h-acct')syncH();if(t.id==='h-type')autoSrc();if(t.id==='r-kind')syncRKind();
   if(t.id==='g-acct')syncG();
   if(t.id==='a-type')syncA();
   if(t.id==='a-ccy')syncA(true);
@@ -603,6 +632,7 @@ document.addEventListener('visibilitychange',function(){
     if(S.pin&&!ui.locked&&ui.hiddenAt&&(Date.now()-ui.hiddenAt)>=(S.pin.auto||0)*60000)lockNow();
     if(!S.fxTs||Date.now()-S.fxTs>300000)bgRates();
     if(ui.month!==curP()&&ui.hiddenAt&&Date.now()-ui.hiddenAt>36e5)ui.month=curP();
+    try{if(autoPost())render();}catch(e){}
     notifyDue();pushPlan();pullSms();
   }
 });

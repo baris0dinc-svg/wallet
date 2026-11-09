@@ -1,6 +1,7 @@
 /* ---------- başlangıç ---------- */
 document.getElementById('fab').innerHTML=ic('plus');
 purgeTrash();
+try{autoPost();}catch(e){}
 restoreUi();
 render();
 if(ui.locked)setTimeout(askBio,400);

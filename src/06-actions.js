@@ -13,11 +13,15 @@ ACT.mnext=function(){ui.month=addMonth(ui.month,1);render();};
 ACT.filter=function(el,id,v){ui.filter=v;render();};
 ACT['acct-clear']=function(){ui.acctF='';render();};
 ACT.plan=function(el,id,v){ui.plan=v;persistUi();render();};
-ACT.sv=function(el,id,v){ui.sv=v;persistUi();render();};
-/* eski Analiz › Servet: net servet gelişimi artık Hesaplar sekmesinin üstünde */
-ACT.an=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}ui.an=v;persistUi();render();};
-ACT['sv-go']=function(el,id,v){goSec(v);};
-ACT['an-go']=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}ui.an=v;goSec('analiz');};
+/* 4.4: eski Hesaplar › Varlıklar, Yatırımlar'ın altındaki "Ev, araba ve diğer varlıklar" bölümü */
+function toVarlik(){setTimeout(function(){var a=document.getElementById('varliklar');if(a)window.scrollTo(0,Math.max(a.getBoundingClientRect().top+window.scrollY-document.getElementById('hdr').offsetHeight-12,0));},0);}
+ACT.sv=function(el,id,v){var va=v==='varlik';ui.sv=va?'yatirim':v;persistUi();render();if(va)toVarlik();};
+/* eski Analiz › Servet: net servet gelişimi artık Hesaplar sekmesinin üstünde; eski Analiz › Takvim İşlemler'in takvim görünümü */
+ACT.an=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}if(v==='takvim'){goSec('takvim');return;}ui.an=v;persistUi();render();};
+ACT['sv-go']=function(el,id,v){goSec(v);if(v==='varlik')toVarlik();};
+ACT['an-go']=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}if(v==='takvim'){goSec('takvim');return;}ui.an=v;goSec('analiz');};
+/* İşlemler: liste ↔ takvim; dönem kartı ve ay aynı kalır */
+ACT['tx-view']=function(){ui.txv=ui.txv==='cal'?'list':'cal';render();};
 ACT.alerts=function(){if(!alertItems().length){toast('Şu an uyarı yok');return;}alertSheet();};
 /* Gündem satırından ya da uyarı penceresinden "Ödendi": pencere açıksa güncellenir */
 ACT['al-pay']=function(el,id,v){var r=byId(S.recurring,id);if(!r)return;var inSheet=!!(el&&el.closest&&el.closest('.sheet'));payRec(r,v||curP());if(inSheet){if(alertItems().length)alertSheet();else closeSheet();}};
@@ -37,7 +41,7 @@ ACT['open-fire']=function(){openPage({k:'fire'},'fire');};
 ACT['open-set']=function(el,id,v){openPage({k:'set',s:id,from:v==='ayarlar'?'ayarlar':null},'ayar-'+id);};
 ACT['open-settings']=function(){goSec('ayar');};
 ACT['plan-go']=function(el,id,v){ui.plan=v;goSec('plan');};
-ACT.srch=function(){goSec('islem');setTimeout(function(){var e=document.getElementById('tq');if(e)e.focus();},60);};
+ACT.srch=function(){ui.txv='list';goSec('islem');setTimeout(function(){var e=document.getElementById('tq');if(e)e.focus();},60);};
 ACT.tgl=function(el,id,v){setP(v,!getP(v));if(v==='secure')applySecure();if(v==='sms.on'){if(nb('smsSet')){try{NB.smsSet(!!S.sms.on);}catch(e){}}if(S.sms.on&&smsState()!=='granted'&&nb('askSms')){try{NB.askSms();}catch(e){}}}if(v==='sms.ntf'){ntfSync();if(S.sms.ntf&&ntfState()!=='granted'&&nb('ntfAsk')){try{NB.ntfAsk();}catch(e){}}}if(v==='alerts.push'&&S.alerts.push&&notifState()!=='granted'&&nb('askNotif')){try{NB.askNotif();}catch(e){}}save();render();};
 ACT.setv=function(el,id,v){var x=el.dataset.x;if(/^-?\d+(\.\d+)?$/.test(x))x=Number(x);setP(v,x);save();render();};
 
@@ -101,7 +105,7 @@ ACT['acct-exp']=function(el,id){txSheet(null,'exp',{acct:id});};
 ACT['acct-inc']=function(el,id){txSheet(null,'inc',{acct:id});};
 ACT['acct-trf']=function(el,id){if(acctType(id)==='kart'){var src=ACCS().filter(function(a){return a!==id&&acctType(a)==='banka';})[0];txSheet(null,'trf',{acct:src,to:id,title:'Kart borcu öde'});var b=acctBal(id),e=document.getElementById('f-amt');if(e&&b<0){e.value=nv(-b);syncCcy();}}else txSheet(null,'trf',{acct:id});};
 ACT['acct-rec']=function(el,id){recSheet(id);};
-ACT['acct-all']=function(el,id){ui.acctF=id;ui.filter='all';ui.tq='';goSec('islem');};
+ACT['acct-all']=function(el,id){ui.acctF=id;ui.filter='all';ui.tq='';ui.txv='list';goSec('islem');};
 ACT['rc-mode']=function(el){el.setAttribute('aria-checked',String(el.getAttribute('aria-checked')!=='true'));};
 ACT['rc-save']=function(el,a){
   if(ACCS().indexOf(a)<0)return;var real=r2(num(val('rc-amt'))),cur=acctBal(a),diff=r2(real-cur);if(tooBig(real)||tooBig(diff)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}

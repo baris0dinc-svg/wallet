@@ -16,7 +16,12 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  chk(!!$('#left-now'),'bu dönem kalan');
  click('.addmain');chk(/Yeni işlem|Gider/.test(sheetT()),'işlem ekle kartı');back();
  click('.nwbig');chk(T.ui.sub==='servet'&&!!$('.nw .big'),'net servet Hesaplar’a');click('#tabbar [data-v="ev"]');
- click('.cochome');chk(T.ui.sub==='plan'&&T.ui.plan==='koc'&&!!$('#view .kocnow'),'Koç kartı Plan › Koç');click('#tabbar [data-v="ev"]');
+ {const gi=$$q('.gundem .list > .item'),k=c=>gi.map((e,i)=>e.classList.contains(c)?i:-1).filter(i=>i>=0),al=k('al'),bi=k('bi');
+  chk(gi.length>1&&gi[gi.length-1].classList.contains('cochome')&&(!al.length||!bi.length||Math.max(...al)<Math.min(...bi)),'Gündem: önce ödeme/bütçe uyarıları, sonra akıllı tespitler, Koç adımı en sonda');}
+ click('.cochome');chk(T.ui.sub==='plan'&&T.ui.plan==='koc'&&!!$('#view .kocnow'),'Koç kartı Plan › Koç');
+ {const tl=$('#view .homelinks'),rm=[...document.querySelectorAll('#view .card h2')].find(e=>/Yol haritan/.test(e.innerText));chk(tl&&rm&&(tl.compareDocumentPosition(rm)&4)&&($('#view .kocnow').compareDocumentPosition(tl)&4),'Koç: Hesaplayıcılar ve Claude’a sor şu anki adımın hemen altında');}
+ click('#view .kt[data-act="an-go"][data-v="ozet"]');chk(T.ui.sub==='analiz'&&T.ui.an==='ozet','Koç › Tasarruf oranı Analiz › Özet’e');
+ click('#tabbar [data-v="ev"]');
  click('.mstrip');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa şeridi Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','piyasadan geri');
  // 4.2: Notlar ana sayfa başlığındaki simgede (tek dokunuş); Hesaplayıcılar Plan › Koç'ta (ana sayfadaki kutucuklar kaldırıldı)
  chk(!$('.homelinks')&&!$('header .bellb'),'ana sayfada kutucuk ve zil yok');
@@ -37,17 +42,36 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  chk(!$('[data-act="rng"]')&&!!$('.period .mnav')&&!$('header [data-act="eye"]'),'dönem görünümü, zaman çipleri ve başlıkta göz yok');
  const td=T.todayS();T.S.tx.push({id:'tdy',type:'exp',amt:12,cat:'Market',acct:'Nakit',date:td});T.ui.month=T.curP();T.render();
  chk(!!$('#txlist [data-act="edit-tx"][data-id="tdy"]')&&$('#txlist .day').innerText.includes(new Date().getDate()),'bugünün işlemi en üstteki gün başlığında');T.S.tx=T.S.tx.filter(t=>t.id!=='tdy');T.render();
- // analiz: takvim
- click('#tabbar [data-v="analiz"]');click('[data-act="an"][data-v="takvim"]');const days=$$q('.cd:not(.out)');chk(days.length>=28&&days.length<=31,'takvim günleri '+days.length);
+ // 4.4: takvim İşlemler'in ikinci görünümü (başlıktaki düğme); dönem kartı iki görünümde ortak
+ chk(!!$('header [data-act="tx-view"][aria-pressed="false"]')&&!$('.cd'),'İşlemler liste görünümünde açılır, başlıkta takvim düğmesi');
+ click('header [data-act="tx-view"]');const days=$$q('.cd:not(.out)');chk(T.ui.sub==='islem'&&T.ui.txv==='cal'&&days.length>=28&&days.length<=31,'takvim günleri '+days.length);
+ chk(!!$('#secbody .period .mnav')&&$$q('#secbody .mnav').length===1&&!$('#txlist'),'takvimde dönem kartı (tek ay oku), liste yok');
  const hd=$('.cd.has');chk(!!hd,'işlem olan gün işaretli');if(hd){hd.click();chk($$q('.sheet [data-act="edit-tx"]').length>0,'güne dokununca işlemler');click('.sheet [data-act="cal-add"]');chk($('#f-date').value===hd.dataset.v,'o güne işlem ekle tarihli');back();}
- click('[data-act="an"][data-v="harcama"]');chk(!$('#secbody [data-act="plan-go"]')&&!$('#secbody .donut'),'Kategori’de tekrar eden pasta ve bütçe kartı yok');
+ {const m0=T.ui.month;click('#secbody [data-act="mprev"]');chk(T.ui.txv==='cal'&&T.ui.month===T.addMonth(m0,-1)&&!!$('.cd'),'takvimde önceki aya geçilir');T.ui.month=T.curP();T.render();}
+ click('header [data-act="tx-view"]');chk(T.ui.txv==='list'&&!!$('#txlist')&&!$('.cd'),'takvimden listeye');
+ click('header [data-act="tx-view"]');click('#tabbar [data-v="ev"]');click('.linkbtn[data-act="tx-all"]');chk(T.ui.sub==='islem'&&T.ui.txv==='list'&&!!$('#txlist'),'Son işlemler › Tümü her zaman listeyi açar');
+ click('header [data-act="tx-view"]');click('#tabbar [data-v="ev"]');click('header [data-act="srch"]');chk(T.ui.txv==='list'&&!!$('#tq'),'ana sayfadaki ara listeyi açar');
+ act('an-go',null,'takvim');chk(T.ui.sub==='islem'&&T.ui.txv==='cal'&&!!$('.cd'),'eski Analiz › Takvim bağlantısı İşlemler takvimine gider');T.ui.txv='list';
+ click('#tabbar [data-v="analiz"]');click('[data-act="an"][data-v="harcama"]');chk(!$('#secbody [data-act="plan-go"]')&&!$('#secbody .donut'),'Kategori’de tekrar eden pasta ve bütçe kartı yok');
  click('#tabbar [data-v="plan"]');click('[data-act="plan"][data-v="butce"]');chk(!page()&&T.ui.sub==='plan'&&T.ui.plan==='butce','Plan › Bütçe');
  click('#view .linkbtn[data-act="an-go"]');chk(!page()&&T.ui.sub==='analiz'&&T.ui.an==='harcama','bütçeden analize');
- click('#tabbar [data-v="analiz"]');chk($$q('[data-act="an"]').length===3,'Analiz: Özet, Kategori, Takvim');
+ click('#tabbar [data-v="analiz"]');chk($$q('[data-act="an"]').length===2&&!$('[data-act="an"][data-v="takvim"]')&&/Kategoriler/.test($('[data-act="an"][data-v="harcama"]').innerText),'Analiz: Özet, Kategoriler (Takvim İşlemler’de)');
  act('an',null,'servet');chk(T.ui.sub==='servet'&&!!$('#secbody .nwchart'),'eski Analiz › Servet Hesaplar’daki net servet grafiğine gider');
  click('#secbody [data-act="nwr"][data-v="12"]');chk(T.ui.nwr===12&&!!$('#secbody [data-act="nwr"][data-v="12"][aria-pressed="true"]'),'grafik süresi 1 yıl');
  // hesaplar: piyasa kartı → Piyasalar → geri
  click('#tabbar [data-v="servet"]');click('[data-act="sv"][data-v="yatirim"]');click('#secbody .setcard[data-act="open-mkt"]');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa kartı Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='servet'&&T.ui.sv==='yatirim','Piyasalar’dan geri yatırımlara');
+ // 4.4: Hesaplar alt sekmeleri Hesaplar, Yatırımlar, Borçlar; ev/araba gibi varlıklar Yatırımlar'ın altında ayrı bölüm
+ chk($$q('[data-act="sv"]').length===3&&!$('[data-act="sv"][data-v="varlik"]'),'Hesaplar: 3 alt sekme');
+ {const hc=$$q('#secbody .hcard'),ab=$('#secbody [data-act="new-h"][data-v="inv"]'),vs=$('#secbody #varliklar'),mk=$('#secbody [data-act="open-mkt"]');
+  chk(hc.length>0&&ab&&vs&&mk&&(hc[hc.length-1].compareDocumentPosition(ab)&4)&&(ab.compareDocumentPosition(vs)&4)&&(vs.compareDocumentPosition(mk)&4),'Yatırımlar: elindekiler → Yatırım ekle → varlıklar → Piyasalar');
+  chk(!!$('#secbody [data-act="new-h"][data-v="asset"]'),'Yatırımlar’da Varlık ekle');}
+ T.S.holdings.push({id:'evx',name:'Ev',type:'Gayrimenkul',kind:'asset',qty:1,cost:3000000,price:3500000});T.ui.sv='hesap';T.render();
+ act('sv-go',null,'varlik');await new Promise(r=>setTimeout(r,30));chk(T.ui.sub==='servet'&&T.ui.sv==='yatirim'&&!!$('#varliklar ~ .hcard [data-act="edit-h"][data-id="evx"]'),'eski Varlıklar bağlantısı Yatırımlar’daki varlık bölümüne gider');
+ act('sv',null,'varlik');chk(T.ui.sv==='yatirim','eski varlik alt sekme adı');T.S.holdings=T.S.holdings.filter(h=>h.id!=='evx');T.render();
+ // liste ekranlarında "… ekle" listenin altında
+ for(const [pl,a] of [['hedef','new-g'],['duzenli','new-r']]){T.ui.sub='plan';T.ui.plan=pl;T.render();const items=$$q('#secbody .card'),b=$('#secbody [data-act="'+a+'"]');chk(b&&items.length&&(items[items.length-1].compareDocumentPosition(b)&4),pl+': ekle düğmesi listenin altında');}
+ T.ui.sub='servet';T.ui.sv='borc';T.render();{const b=$('#secbody [data-act="new-d"]'),l=$('#secbody [data-act="edit-d"]');chk(b&&l&&(l.compareDocumentPosition(b)&4),'Borçlar: Borç ekle listenin altında');}
+ T.ui.sv='yatirim';T.render();
  // hesap → tüm hareketler
  click('[data-act="sv"][data-v="hesap"]');click('#secbody [data-act="acct-open"]');const an=($('.sheet h2')||{}).innerText;chk(!!an,'hesap detayı');click('.sheet [data-act="acct-all"]');
  chk(T.ui.sub==='islem'&&T.ui.acctF===an&&!$('#sheet-root').innerHTML,'tüm hareketler İşlemler’e filtreli: '+T.ui.acctF);

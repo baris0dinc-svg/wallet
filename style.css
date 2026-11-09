@@ -373,6 +373,8 @@ a.btn{display:block;text-align:center;text-decoration:none}
 .tbin button[aria-current="page"]{color:var(--accent)}
 .tbin button[aria-current="page"] .ic{stroke-width:2.3}
 body.has-tb .wrap{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+/* + düğmesi olan sekmelerde listenin son satırı (sağdaki Ödendi / tutar) düğmenin altında kalmasın */
+body.has-tb.has-fab .wrap{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 body.has-tb .fab{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
 header h1.tt{font-size:1.625rem;font-weight:800;letter-spacing:-.01em}
 .nwper{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:12px 0 0;border:0;border-top:1px solid var(--line);background:none;text-align:left;color:inherit;font:inherit;cursor:pointer}

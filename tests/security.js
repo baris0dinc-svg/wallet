@@ -10,11 +10,12 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
  T.S=T.norm({fx,name:X,accounts:['Nakit',X],opening:{Nakit:100},cats:{exp:['Market',Y],inc:['Maaş']},tx:[
   {id:'a',type:'exp',amt:10,cat:Y,acct:X,date:T.todayS(),note:X},{id:'b',type:'exp',amt:10,cat:Y,acct:X,date:T.todayS(),note:X},{id:'c',type:'inc',amt:99,cat:'Maaş',acct:'Nakit',date:T.todayS(),note:Y}],
   goals:[{id:'g',name:X,target:100,saved:5}],recurring:[{id:'r',name:X,amt:5,day:new Date().getDate(),cat:Y,acct:X,paid:{}}],debts:[{id:'d',type:X,amt:50,note:Y}],
-  holdings:[{id:'h',name:X,type:Y,qty:1,cost:1,price:2}],notes:[{id:'n',title:X,body:Y,ts:Date.now()}],watch:[{k:'bist:THYAO',n:X}]});T.save();
+  holdings:[{id:'h',name:X,type:Y,qty:1,cost:1,price:2},{id:'h2',name:Y,type:'Gayrimenkul',kind:'asset',qty:1,cost:1,price:2}],notes:[{id:'n',title:X,body:Y,ts:Date.now()}],watch:[{k:'bist:THYAO',n:X}]});T.save();
  const visit=async()=>{for(const s of ['ev','islem','plan','analiz','servet']){T.ui.page=null;T.ui.sub=s;T.render();await wait(20);
    if(s==='plan')for(const a of ['butce','duzenli','hedef','koc']){T.ui.plan=a;T.render();await wait(20);}
-   if(s==='analiz')for(const a of ['ozet','harcama','takvim']){T.ui.an=a;T.render();await wait(20);}
-   if(s==='servet')for(const v of ['hesap','yatirim','varlik','borc']){T.ui.sv=v;T.render();await wait(20);}}
+   if(s==='islem'){T.ui.txv='cal';T.render();await wait(20);T.ui.txv='list';}
+   if(s==='analiz')for(const a of ['ozet','harcama']){T.ui.an=a;T.render();await wait(20);}
+   if(s==='servet')for(const v of ['hesap','yatirim','borc']){T.ui.sv=v;T.render();await wait(20);}}
   for(const pg of [{k:'ayar'},{k:'notlar'},{k:'piyasa'},{k:'fire'},{k:'araclar'}]){T.ui.page=pg;T.render();await wait(20);}
   T.ui.page={k:'piyasa'};T.ui.medit=true;T.render();await wait(20);T.ui.medit=false;
   T.ui.page=null;T.ui.sub='ev';T.render();

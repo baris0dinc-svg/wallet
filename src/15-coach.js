@@ -172,18 +172,19 @@ function vKoc(){
   var ring=sc==null?'':'<svg class="ring" viewBox="0 0 42 42" role="img" aria-label="Finansal sağlık puanı '+sc+'"><circle cx="21" cy="21" r="17" fill="none" stroke="var(--soft)" stroke-width="5"/><circle cx="21" cy="21" r="17" fill="none" stroke="'+(sc>=60?'var(--inc)':(sc>=40?'var(--warn)':'var(--exp)'))+'" stroke-width="5" stroke-linecap="round" stroke-dasharray="'+(sc/100*106.8).toFixed(1)+' 106.8" transform="rotate(-90 21 21)"/><text x="21" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">'+sc+'</text></svg>';
   var tile=function(k,v,act,vv){return '<button class="kt" data-act="'+act+'"'+(vv?' data-v="'+vv+'"':'')+'><span class="lbl">'+k+'</span><b class="num">'+v+'</b></button>';};
   h+='<div class="card kochead"><div class="ghead">'+ring+'<span class="mid"><h2 style="margin:0">Finansal durumun</h2><div class="small muted">'+(sc==null?'Puan için gelir-gider kaydı gerekli.':scoreWord(sc)+' · 100 üzerinden '+sc)+'</div></span></div><div class="ktg">'
-   +tile('Tasarruf oranı',D.sr==null?'—':(D.sr<0?'−':'')+'%'+Math.round(Math.abs(D.sr)),'plan-go','butce')
+   +tile('Tasarruf oranı',D.sr==null?'—':(D.sr<0?'−':'')+'%'+Math.round(Math.abs(D.sr)),'an-go','ozet')
    +tile('Acil durum fonu',D.emM==null?'—':NUM1.format(D.emM)+' ay','em-open')
    +tile('Borç',D.cardDebt+D.debts.reduce(function(a,x){return a+x.left;},0)>0?compactT(D.cardDebt+D.debts.reduce(function(a,x){return a+x.left;},0)):'Yok','sv-go','borc')
    +tile('Özgürlük',D.fire.ok?'%'+NUM1.format(D.fire.prog):'—','open-fire')+'</div></div>';
   if(ci>=0){var c=l[ci];
     h+='<div class="card kocnow"><div class="lbl">Adım '+(ci+1)+'/'+l.length+' · '+CSI[c.st][2]+'</div><h2 style="margin:4px 0 4px">'+esc(c.t)+'</h2><p class="small muted" style="margin:0">'+c.sum+'</p>'+(c.act?'<div class="kacts">'+stepAct(c)+'</div>':'')+'<details class="why"><summary>Ayrıntı</summary><div class="kb">'+c.body+'</div></details><details class="why"><summary>Neden? Kısa ders</summary>'+c.why+'</details></div>';}
   else h+='<div class="card kocnow"><div class="lbl">Yol haritası</div><h2 style="margin:4px 0 6px">Tüm adımlar tamam</h2><p class="small muted" style="margin:0">Finansal özgürlük hesabını düzenli kontrol et.</p></div>';
+  /* 4.4: araçlar uzun yol haritası ve oranlar kartının altında kalıyordu; şu anki adımın hemen altında */
+  h+='<div class="two homelinks"><button class="setcard" data-act="qa-calc"><span class="sic" style="--c:var(--blue)">'+ic('calc')+'</span><span class="mid"><div class="t">Hesaplayıcılar</div></span></button><button class="setcard" data-act="ai-open"><span class="sic" style="--c:var(--accent)">'+ic('sparkles')+'</span><span class="mid"><div class="t">Claude’a sor</div></span></button></div>';
   h+='<div class="card"><h2>Yol haritan</h2><div class="list">'+l.map(function(s,i){var x=CSI[s.st];
     if(i===ci)return '<div class="kstep st-'+s.st+' cur"><div class="item"><span class="sic sm" style="--c:var(--'+x[1]+')">'+ic(x[0])+'</span><span class="mid"><div class="t">'+(i+1)+'. '+esc(s.t)+'</div><div class="small muted">Şu anki adım</div></span></div></div>';
     return '<details class="kstep st-'+s.st+'"><summary class="item"><span class="sic sm" style="--c:var(--'+x[1]+')">'+ic(x[0])+'</span><span class="mid"><div class="t">'+(i+1)+'. '+esc(s.t)+'</div><div class="small muted">'+s.sum+'</div></span></summary><div class="kb">'+s.body+(s.act?'<div class="kacts">'+stepAct(s)+'</div>':'')+'<details class="why"><summary>Neden?</summary>'+s.why+'</details></div></details>';}).join('')+'</div></div>';
   h+=factsCard();
-  h+='<div class="two homelinks"><button class="setcard" data-act="qa-calc"><span class="sic" style="--c:var(--blue)">'+ic('calc')+'</span><span class="mid"><div class="t">Hesaplayıcılar</div></span></button><button class="setcard" data-act="ai-open"><span class="sic" style="--c:var(--accent)">'+ic('sparkles')+'</span><span class="mid"><div class="t">Claude’a sor</div></span></button></div>';
   h+='<p class="small muted" style="margin:0 2px">Koç senin kayıtlarından hesaplar; eğitim amaçlıdır, yatırım tavsiyesi değildir.</p>';
   return h;
 }

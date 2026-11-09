@@ -204,15 +204,24 @@ function hesapBody(){
   return h+'<button class="btn ghost" data-act="new-a">'+ic('plus')+' Hesap ekle</button>';
 }
 /* başlangıç bakiyeleri tek pencerede (ilk kurulum) */
+/* kurulum: hesaplar, bakiyelerin tarihi ve maaş günü tek pencerede.
+   Bakiye tarihinden önceki işlemler bakiyeyi değiştirmez (raporlarda yine görünür): geçmiş işlem girmek bakiyeyi şişirmez */
 function balSheet(){
-  openSheet('<h2>Hesaplarındaki para</h2><p class="small muted" style="margin:0">Her hesapta şu an ne kadar olduğunu yaz. Kredi kartında borç varsa eksi yaz (örn. -2500).</p>'
+  var od=S.openD||{},d0=ACCS().map(function(a){return od[a];}).filter(Boolean).sort().pop()||todayS(),pd=S.payday||1,o='';for(var i=1;i<=31;i++)o+='<option value="'+i+'"'+(i===pd?' selected':'')+'>Ayın '+i+'’i</option>';
+  openSheet('<h2>Hesaplarındaki para</h2><p class="small muted" style="margin:0">Her hesapta o gün ne kadar olduğunu yaz. Kredi kartında borç varsa eksi yaz (örn. -2500).</p>'
    +ACCS().map(function(a,i){return '<div class="field"><label for="ob-'+i+'">'+esc(a)+' ('+CSYM[ccyOf(a)]+')</label><input id="ob-'+i+'" data-ob="'+esc(a)+'" inputmode="decimal" placeholder="0" value="'+nv(+S.opening[a]||'')+'"></div>';}).join('')
-   +'<div class="err" id="f-err"></div><button class="btn" data-act="save-bal">Kaydet</button><button class="linkbtn" data-act="new-a">+ Başka hesap ekle</button>');
+   +'<button class="linkbtn" data-act="bal-newa">+ Başka hesap ekle</button>'
+   +'<div class="two"><div class="field"><label for="ob-date">Bakiyeler hangi güne ait?</label><input id="ob-date" type="date" value="'+d0+'" max="'+todayS()+'"></div><div class="field"><label for="ob-pd">Maaş günü</label><select id="ob-pd">'+o+'</select></div></div>'
+   +'<div class="small muted">Bu tarihten önceki işlemleri sonradan girersen bakiyeyi değiştirmez; gelir-gider raporlarında görünür. Maaş günü dönemlerin başlangıcıdır.</div>'
+   +'<div class="err" id="f-err"></div><button class="btn" data-act="save-bal">Kaydet</button>');
 }
+ACT['bal-newa']=function(){ui.balBack=true;aSheet(null);};
 ACT['open-bal']=function(){balSheet();};
 ACT['save-bal']=function(){var o={},bad=false;document.querySelectorAll('[data-ob]').forEach(function(e){var v=r2(num(e.value));if(tooBig(v))bad=true;o[e.dataset.ob]=v;});
   if(bad){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
-  Object.keys(o).forEach(function(a){if(ACCS().indexOf(a)>=0)S.opening[a]=o[a];});S.sampleExtras=false;S.setupHide=true;save();closeSheet();render();toast('Bakiyeler kaydedildi · net servet '+TRY0.format(wealth().net));};
+  var dt=val('ob-date'),pd=parseInt(val('ob-pd'),10);if(!/^\d{4}-\d{2}-\d{2}$/.test(dt)||dt>todayS())dt=todayS();S.openD=S.openD||{};
+  if(pd>=1&&pd<=31&&pd!==S.payday){S.payday=pd;try{remapPaid();}catch(e){}ui.month=curP();}
+  Object.keys(o).forEach(function(a){if(ACCS().indexOf(a)>=0){S.opening[a]=o[a];S.openD[a]=dt;}});S.sampleExtras=false;S.setupHide=true;save();closeSheet();render();toast('Bakiyeler kaydedildi · net servet '+TRY0.format(wealth().net));};
 /* Hesaplar sekmesinin üstü: net servet (görüntüleme para birimiyle), dokunulabilir gelişim grafiği, varlık/borç ve dağılım.
    4.2: eski Analiz › Servet buraya taşındı; net servet tek yerde */
 function nwTop(){

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.7';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.8';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -190,7 +190,7 @@ function norm(d){
   d.accounts=(Array.isArray(d.accounts)&&d.accounts.length)?d.accounts:D_ACC.slice();
   d.cats=d.cats||{};d.cats.exp=(d.cats.exp&&d.cats.exp.length)?d.cats.exp:D_EXP.slice();d.cats.inc=(d.cats.inc&&d.cats.inc.length)?d.cats.inc:D_INC.slice();
   d.rules=d.rules||[];d.payday=d.payday||1;d.name=d.name||'';d.fs=d.fs||1;d.hide=!!d.hide;d.theme=d.theme||'auto';
-  d.dccy=CCYS.indexOf(d.dccy)>=0?d.dccy:'TRY';d.defAcct=d.defAcct||'';
+  d.dccy=CCYS.indexOf(d.dccy)>=0?d.dccy:'TRY';d.openD=d.openD&&typeof d.openD==='object'?d.openD:{};d.defAcct=d.defAcct||'';
   d.sms=Object.assign({on:false,ntf:false,auto:false,pend:[],seen:[],map:{},recent:[]},d.sms||{});if(!Array.isArray(d.sms.recent))d.sms.recent=[];
   d.watch=Array.isArray(d.watch)?d.watch.filter(function(w){return w&&typeof w.k==='string'&&w.k.indexOf(':')>0;}):WDEF.map(function(w){return Object.assign({},w);});d.quotes=d.quotes&&typeof d.quotes==='object'?d.quotes:{};if(!Array.isArray(d.sms.pend))d.sms.pend=[];if(!Array.isArray(d.sms.seen))d.sms.seen=[];if(!d.sms.map||typeof d.sms.map!=='object')d.sms.map={};d.qaUse=d.qaUse||{};
   /* kimlikler HTML özniteliklerine yazılır: dışarıdan gelen (yedek) bozuk ya da tehlikeli kimlikler yenilenir */
@@ -303,15 +303,16 @@ function txDelta(t,a){
 /* tüm hesap bakiyeleri tek geçişte; işlem listesi, açılış bakiyeleri ya da çizim sürümü değişince yeniden hesaplanır */
 var BALC={v:-1};
 function balAll(){
-  var A=ACCS(),os=JSON.stringify(S.opening);
+  var A=ACCS(),os=JSON.stringify(S.opening)+JSON.stringify(S.openD||{});
   if(BALC.v===TXV&&BALC.s===S.tx&&BALC.n===S.tx.length&&BALC.a===A.join('\u0001')&&BALC.o===os)return BALC.m;
   var m={};A.forEach(function(a){m[a]=+S.opening[a]||0;});
+  var od=S.openD||{};
   for(var i=0;i<S.tx.length;i++){var t=S.tx[i];
-    if(t.type==='trf'){if(t.acct in m)m[t.acct]-=t.amt;if(t.to in m)m[t.to]+=(t.amt2>0?t.amt2:t.amt);}
-    else if(t.acct in m)m[t.acct]+=txDelta(t,t.acct);}
+    if(t.type==='trf'){if(t.acct in m&&!(od[t.acct]&&t.date<od[t.acct]))m[t.acct]-=t.amt;if(t.to in m&&!(od[t.to]&&t.date<od[t.to]))m[t.to]+=(t.amt2>0?t.amt2:t.amt);}
+    else if(t.acct in m&&!(od[t.acct]&&t.date<od[t.acct]))m[t.acct]+=txDelta(t,t.acct);}
   BALC={v:TXV,s:S.tx,n:S.tx.length,a:A.join('\u0001'),o:os,m:m};return m;
 }
-function acctBal(a){var m=balAll();if(a in m)return r2(m[a]);var b=+S.opening[a]||0;for(var i=0;i<S.tx.length;i++)b+=txDelta(S.tx[i],a);return r2(b);}
+function acctBal(a){var m=balAll();if(a in m)return r2(m[a]);var b=+S.opening[a]||0,o=(S.openD||{})[a];for(var i=0;i<S.tx.length;i++)if(!(o&&S.tx[i].date<o))b+=txDelta(S.tx[i],a);return r2(b);}
 function accTotal(){return r2(ACCS().reduce(function(a,x){return a+toTL(acctBal(x),x);},0));}
 function acctUsed(a){return S.tx.some(function(t){return t.acct===a||t.to===a;})||S.recurring.some(function(r){return r.acct===a;})||S.goals.some(function(g){return g.acct===a;});}
 function hKind(h){return h.kind==='asset'?'asset':'inv';}
@@ -357,7 +358,7 @@ function recPaid(r,k){var id=r.paid&&r.paid[k];return !!id&&S.tx.some(function(t
 /* bir tarihteki net servet: hesaplar o güne kadarki hareketlerden, yatırımlar bugünkü değerinden, borçlar o güne kadarki ödemelerden */
 function nwAt(D){
   var tot=0,firstBuy={},inD={};
-  ACCS().forEach(function(a){var b=+S.opening[a]||0;S.tx.forEach(function(t){if(t.date<=D)b+=txDelta(t,a);});tot+=toTL(b,a);});
+  var od=S.openD||{};ACCS().forEach(function(a){var b=+S.opening[a]||0;S.tx.forEach(function(t){if(t.date<=D&&!(od[a]&&t.date<od[a]))b+=txDelta(t,a);});tot+=toTL(b,a);});
   S.tx.forEach(function(t){if(t.type==='inv'&&t.side==='buy'&&t.hold&&(!firstBuy[t.hold]||t.date<firstBuy[t.hold]))firstBuy[t.hold]=t.date;if(t.type==='dbt'&&t.side==='in'&&t.debt&&(!inD[t.debt]||t.date<inD[t.debt]))inD[t.debt]=t.date;});
   S.holdings.forEach(function(h){if(!(firstBuy[h.id]&&firstBuy[h.id]>D))tot+=hVal(h);});
   S.debts.forEach(function(d){if(inD[d.id]&&inD[d.id]>D)return;var paid=0;S.tx.forEach(function(t){if(t.type==='dbt'&&t.side==='out'&&t.debt===d.id&&t.date<=D)paid+=txTL(t);});tot-=Math.max((+d.amt||0)-paid,0);});
@@ -371,8 +372,9 @@ function nwAtMany(ends){
   var srt=S.tx.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:0;}),i=0;
   ends.forEach(function(D){
     while(i<srt.length&&srt[i].date<=D){var t=srt[i++];
-      if(t.type==='trf'){if(t.acct in bal)bal[t.acct]-=t.amt;if(t.to in bal)bal[t.to]+=(t.amt2>0?t.amt2:t.amt);}
-      else if(t.acct in bal)bal[t.acct]+=txDelta(t,t.acct);
+      var od=S.openD||{};
+      if(t.type==='trf'){if(t.acct in bal&&!(od[t.acct]&&t.date<od[t.acct]))bal[t.acct]-=t.amt;if(t.to in bal&&!(od[t.to]&&t.date<od[t.to]))bal[t.to]+=(t.amt2>0?t.amt2:t.amt);}
+      else if(t.acct in bal&&!(od[t.acct]&&t.date<od[t.acct]))bal[t.acct]+=txDelta(t,t.acct);
       if(t.type==='dbt'&&t.side==='out'&&t.debt)paid[t.debt]=(paid[t.debt]||0)+txTL(t);}
     var tot=0;A.forEach(function(a){tot+=toTL(bal[a],a);});
     S.holdings.forEach(function(h){if(!(firstBuy[h.id]&&firstBuy[h.id]>D))tot+=hVal(h);});

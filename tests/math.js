@@ -66,9 +66,9 @@ const r=await p.evaluate(async()=>{const T=window.__T,o={},F=[];const $=s=>docum
  const G=T.S.goals.find(g=>g.name==='Tatil');act('goal-add',G.id);setv('ga-amt','500');setv('ga-from','Banka');click('.sheet [data-act="ga-save"]');
  chk(near(T.goalSaved(G),500)&&near(bal('Birikim'),500)&&near(bal('Banka'),1116719),'hedefe transfer '+T.goalSaved(G));
  // 13 bakiye eşitleme
- act('acct-rec','Nakit');setv('rc-amt','2000');o.diff=$('#rc-diff').innerText;click('.sheet [data-act="rc-save"]');
+ act('acct-rec','Nakit');setv('rc-amt','2000');o.diff=$('#rc-diff').innerText;chk($('#rc-mode').getAttribute('aria-checked')==='false','4.8: gelir/gider olarak kaydet varsayılan kapalı');click('#rc-mode');click('.sheet [data-act="rc-save"]');
  chk(near(bal('Nakit'),2000)&&T.S.tx.some(t=>t.type==='exp'&&t.amt===700&&t.note==='Bakiye eşitleme'),'eşitleme gider '+bal('Nakit'));chk(/700/.test(o.diff),'fark gösterimi '+o.diff);
- act('acct-rec','Nakit');setv('rc-amt','2100');click('#rc-mode');click('.sheet [data-act="rc-save"]');chk(near(bal('Nakit'),2100)&&T.S.tx.some(t=>t.type==='adj'&&t.amt===100),'eşitleme düzeltme');
+ act('acct-rec','Nakit');setv('rc-amt','2100');click('.sheet [data-act="rc-save"]');chk(near(bal('Nakit'),2100)&&T.S.tx.some(t=>t.type==='adj'&&t.amt===100),'eşitleme düzeltme');
  const expBefore=T.sum(T.monthTx(T.curP()),'exp');chk(!T.S.tx.filter(t=>t.type==='adj').some(()=>false),'');
  // 14 kredi kartı
  act('acct-exp','Kredi kartı');setv('f-amt','500');click('.sheet [data-act="save-tx"]');chk(near(bal('Kredi kartı'),-500)&&T.wealth().g.cardDebt===500,'kart borcu');

@@ -605,3 +605,7 @@ details.more>summary{padding:0}
 .chips.rng{flex-wrap:nowrap}
 .chips.rng .chip{flex:1;text-align:center}
 .chips.rng .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+/* 4.8: dövizli hesap tutarı belirgin */
+.ccyb{display:inline-block;margin-left:2px;padding:1px 8px;border-radius:99px;background:color-mix(in srgb,var(--warn) 18%,var(--surface));color:var(--warn);font-size:.75rem;font-weight:700;vertical-align:1px}
+.amtin.fxamt{border-color:var(--warn);box-shadow:0 0 0 1px var(--warn) inset}

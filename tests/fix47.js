@@ -41,6 +41,29 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
  const bb=T.budgetBody();chk(/Aşılmayan kategorilerde kalan/.test(bb)&&/Aşıldı: Market/.test(bb),'bütçe aşımı ayrı gösterilmeli');
  // H7: yarım dönem aynı güne kadar
  chk(/aynı gününe/.test(T.flowCard())||T.pDays(cur)===0,'akış kıyası aynı güne kadar');
+
+ // ---- 2. parti ----
+ const wait=ms=>new Promise(r=>setTimeout(r,ms));
+ // K2: dövizli hesap kendiliğinden seçilmez
+ T.S=T.norm({fx,accounts:['Nakit','Dolar'],accx:{Dolar:{ccy:'USD',type:'banka'}},tx:[]});T.S.last={exp:{cat:'Market',acct:'Dolar'}};T.save();
+ chk(T.defAcct('exp')==='Nakit','yeni gider TL hesabıyla açılmalı '+T.defAcct('exp'));
+ T.ACT['new-tx']();const ac=$('#f-acct');ac.value='Dolar';ac.dispatchEvent(new Event('change',{bubbles:true}));chk(!!$('#lb-amt .ccyb')&&$('#f-amt').classList.contains('fxamt'),'dövizli hesap belirgin');T.ACT.close();
+ // K1: bakiye eşitle varsayılan kapalı
+ T.ACT['rc-open']?0:0;
+ // K6: tüm verileri sil yazılı onay
+ T.S=T.norm({fx,accounts:['Nakit'],tx:[{id:'k1',type:'exp',amt:5,cat:'Market',acct:'Nakit',date:T.todayS()}]});T.save();
+ T.ACT['reset-all']();T.ACT['reset-go']();chk(T.S.tx.length===1,'SİL yazmadan silinmemeli');$('#wipe-c').value='sil';T.ACT['reset-go']();chk(T.S.tx.length===0,'SİL yazınca silinmeli');
+ // K5: açılış tarihinden önceki işlem bakiyeyi değiştirmez
+ T.S=T.norm({fx,accounts:['Banka'],tx:[]});T.save();T.balSheet();document.querySelector('[data-ob="Banka"]').value='50000';$('#ob-date').value=T.todayS();T.ACT['save-bal']();
+ const pd=new Date(T.today0());pd.setDate(pd.getDate()-20);T.S.tx.push({id:'old',type:'inc',amt:45000,cat:'Maaş',acct:'Banka',date:T.isoDate(pd)});T.save();
+ chk(T.acctBal('Banka')===50000,'eski maaş bakiyeyi şişirmemeli '+T.acctBal('Banka'));
+ T.S.tx.push({id:'new',type:'exp',amt:1000,cat:'Market',acct:'Banka',date:T.todayS()});T.save();chk(T.acctBal('Banka')===49000,'bugünkü gider düşmeli');
+ // K10: hesap ekleyince bakiye penceresine dönülür
+ T.balSheet();T.ACT['bal-newa']();$('#a-name').value='Ziraat';T.ACT['save-a'](null,'');await wait(150);chk(!!document.querySelector('[data-ob="Ziraat"]'),'hesap eklenince bakiye penceresine dönmeli');T.ACT.close();
+ // K11: eksi bakiye uyarısı
+ T.S=T.norm({fx,accounts:['Nakit'],opening:{Nakit:100},tx:[]});T.save();T.ACT['new-tx']();$('#f-amt').value='500';const sv=$('[data-act="save-tx"]');sv.click();chk(T.S.tx.length===0&&/eksiye/.test(($('#f-err')||{}).textContent||''),'eksi bakiye uyarmalı');sv.click();chk(T.S.tx.length===1,'ikinci dokunuşta kaydetmeli');
+ // K4: altın türü kur kaynağını seçer
+ T.S.fx.XAU=T.S.fx.XAU||5000;T.ACT['new-h']?T.ACT['new-h'](null,null,'inv'):0;if($('#h-type')){$('#h-name').value='Gram altın';const ty=$('#h-type');ty.value='Altın';ty.dispatchEvent(new Event('change',{bubbles:true}));chk($('#h-ccy').value==='XAU','altın kur kaynağı XAU '+$('#h-ccy').value);T.ACT.close();}else F.push('yatırım penceresi açılmadı');
  return F;});
 if(errs.length)r.push('JS hata: '+errs.join(' | '));
 console.log(r.length?'HATA:\n - '+r.join('\n - '):'ALL PASS');await b.close();process.exit(r.length?1:0);})();

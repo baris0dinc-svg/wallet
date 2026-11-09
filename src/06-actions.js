@@ -79,16 +79,21 @@ ACT['save-tx']=function(el,id){
   if(txType==='trf'){var to=val('f-to');if(to===o.acct){ferr('Çıkış ve giriş hesabı farklı olmalı.');return;}o.to=to;o.cat='Transfer';
     if(ccyOf(to)!==ccyOf(o.acct)){var a2=r2(num(val('f-amt2')));if(a2<=0){ferr('Giriş tutarını yaz.');return;}o.amt2=a2;}}
   else o.cat=val('f-cat');
+  /* nakit ve vadesiz hesap eksiye düşecekse bir kez uyar */
+  if(o.type!=='inc'&&acctType(o.acct)!=='kart'&&el&&!el.dataset.negok){var t0=id&&byId(S.tx,id),nb0=acctBal(o.acct)+(t0&&t0.acct===o.acct&&t0.type!=='inc'?t0.amt:0)-(t0&&t0.acct===o.acct&&t0.type==='inc'?t0.amt:0)-o.amt;
+    if(nb0<-0.005&&acctBal(o.acct)>=-0.005){el.dataset.negok='1';ferr('Bu işlemle '+o.acct+' bakiyesi eksiye düşecek ('+moneyIn(nb0,o.acct)+'). Doğruysa Kaydet’e tekrar dokun.');return;}}
   if(id){var t=byId(S.tx,id);if(!t){closeSheet();return;}if(t.acct!==o.acct)delete t.fx;if(txType!=='trf')delete t.to;delete t.amt2;Object.assign(t,o);delete t.sample;}else{o.id=uid();S.tx.push(o);}
   if(!id){S.last=S.last||{};S.last[txType]={cat:o.cat,acct:o.acct};}
-  if(pk(d)!==ui.month)ui.month=pk(d);
+  /* seçili ay kullanıcının seçimi olarak kalır; başka döneme kaydedilince yalnızca bildirilir */
+  var other=pk(d)!==ui.month?' · '+plabel(pk(d))+' dönemine':'';
   save();closeSheet();render();
-  if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct),function(){S.tx=S.tx.filter(function(z){return z.id!==o.id;});save();render();toast('Geri alındı');});
+  if(id&&other)toast('İşlem'+other+' taşındı');
+  if(!id)toast((txType==='inc'?'Gelir':(txType==='exp'?'Gider':'Transfer'))+' kaydedildi'+other+' · '+o.acct+': '+moneyIn(acctBal(o.acct),o.acct),function(){S.tx=S.tx.filter(function(z){return z.id!==o.id;});save();render();toast('Geri alındı');});
 };
 ACT['save-mv']=function(el,id){var t=byId(S.tx,id);if(!t)return;var amt=r2(num(val('m-amt')));
   if(tooBig(amt)){ferr('Tutar çok büyük (en fazla 100 milyar).');return;}
   if(t.type==='adj'?amt===0:amt<=0){ferr(t.type==='adj'?'Tutar sıfır olamaz.':'Tutarı sıfırdan büyük gir.');return;}var d=val('m-date');if(!/^\d{4}-\d{2}-\d{2}$/.test(d)){ferr('Tarih seç.');return;}
-  if(t.acct!==val('m-acct'))delete t.fx;t.amt=amt;t.acct=val('m-acct');t.date=d;t.note=val('m-note').trim();delete t.sample;if(pk(d)!==ui.month)ui.month=pk(d);save();closeSheet();render();};
+  if(t.acct!==val('m-acct'))delete t.fx;t.amt=amt;t.acct=val('m-acct');t.date=d;t.note=val('m-note').trim();delete t.sample;save();closeSheet();render();};
 var toastT=null;
 function toast(text,undo,label){
   var e=document.getElementById('toast');if(!e){e=document.createElement('div');e.id='toast';e.setAttribute('role','status');document.body.appendChild(e);}
@@ -115,7 +120,7 @@ ACT['rc-save']=function(el,a){
   else{t.type='adj';t.amt=diff;}
   S.tx.push(t);save();closeSheet();render();toast(a+' bakiyesi '+moneyIn(real,a)+' olarak eşitlendi',function(){S.tx=S.tx.filter(function(x){return x.id!==t.id;});save();render();});
 };
-ACT['new-a']=function(el,id,v){aSheet(null,v);};ACT['edit-a']=function(el,id){aSheet(id);};
+ACT['new-a']=function(el,id,v){ui.balBack=false;aSheet(null,v);};ACT['edit-a']=function(el,id){ui.balBack=false;aSheet(id);};
 ACT['save-a']=function(el,id){
   var nm=val('a-name').trim(),ex=!!id&&ACCS().indexOf(id)>=0;
   if(!nm){ferr('Hesaba bir ad yaz.');return;}
@@ -129,10 +134,11 @@ ACT['save-a']=function(el,id){
   if(type==='kart'&&due>=1&&due<=31)x.due=due;else delete x.due;
   if(type==='kart'&&lim>0)x.limit=lim;else delete x.limit;
   if(!ex||op!==(+S.opening[nm]||0))S.sampleExtras=false;
-  S.opening[nm]=op;
+  S.opening[nm]=op;S.openD=S.openD||{};if(!ex&&op!==0)S.openD[nm]=todayS();
   save();closeSheet();render();toast(ex?'Hesap güncellendi':nm+' eklendi');
+  if(ui.balBack){ui.balBack=false;setTimeout(balSheet,50);}
 };
-ACT['del-a']=function(el,id){if(acctUsed(id)||ACCS().length<2)return;if(!armed(el))return;S.accounts=S.accounts.filter(function(x){return x!==id;});delete S.opening[id];delete S.accx[id];if(S.defAcct===id)S.defAcct='';save();closeSheet();render();};
+ACT['del-a']=function(el,id){if(acctUsed(id)||ACCS().length<2)return;if(!armed(el))return;S.accounts=S.accounts.filter(function(x){return x!==id;});delete S.opening[id];delete S.accx[id];if(S.openD)delete S.openD[id];if(S.defAcct===id)S.defAcct='';save();closeSheet();render();};
 
 /* yatırım ve varlık */
 ACT['new-h']=function(el,id,v){hSheet(null,v);};ACT['edit-h']=function(el,id){hSheet(id);};
@@ -425,7 +431,8 @@ function wipeAll(keepBk){
   closeSheet();render();window.scrollTo(0,0);toast('Tüm veriler silindi');
   refreshRates({}).then(function(){if(!ui.page&&!sheetOpen())render();});
 }
-ACT['reset-all']=function(el){if(!armed(el))return;wipeAll();};
+ACT['reset-all']=function(){openSheet('<h2>Tüm verileri sil</h2><p class="small" style="margin:0">Bu cihazdaki bütün işlemler, hesaplar, notlar, hedefler ve ayarlar kalıcı olarak silinir. <b>Geri alınamaz.</b> Önce yedek almak istersen Veri ve yedek › Yedek bölümünü kullan.</p><div class="field"><label for="wipe-c">Onaylamak için <b>SİL</b> yaz</label><input id="wipe-c" autocomplete="off" autocapitalize="characters"></div><div class="err" id="f-err"></div><button class="btn danger" data-act="reset-go">Kalıcı olarak sil</button>');};
+ACT['reset-go']=function(){if(val('wipe-c').trim().toLocaleUpperCase('tr-TR')!=='SİL'){ferr('Onaylamak için SİL yaz.');return;}closeSheet();wipeAll();};
 
 /* ---------- canlı kur ---------- */
 var RK={USD:['USD'],EUR:['EUR'],GBP:['GBP'],CHF:['CHF'],XAU:['GRA','GRAM-ALTIN','GRAMALTIN','GA','GRAM_ALTIN'],XAG:['GUMUS','GRAM-GUMUS','GRAMGUMUS','GAG'],CEY:['CEYREKALTIN','CEYREK-ALTIN','C'],BIST:['XU100','BIST100','BIST-100','XU-100']};
@@ -540,7 +547,7 @@ document.addEventListener('change',function(e){
   if(t.id==='f-acct'||t.id==='f-to'){syncCcy();}
   if(t.id==='f-date')dateChips();
   if(t.id==='r-acct'){var lr=document.getElementById('lb-ramt');if(lr)lr.textContent='Tutar ('+CSYM[ccyOf(t.value)]+')';}
-  if(t.id==='h-ccy'||t.id==='h-acct')syncH();
+  if(t.id==='h-ccy'){delete t.dataset.auto;syncH();}if(t.id==='h-acct')syncH();if(t.id==='h-type')autoSrc();
   if(t.id==='g-acct')syncG();
   if(t.id==='a-type')syncA();
   if(t.id==='a-ccy')syncA(true);

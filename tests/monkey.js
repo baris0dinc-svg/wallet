@@ -47,7 +47,7 @@ for(const seed of SEEDS){
       const rate=a=>{const c=(s.accx[a]||{}).ccy;return !c||c==='TRY'?1:(+s.fx[c]||0);};
       let tot=0;
       const sg=t=>t.type==='inc'||t.type==='adj'||(t.type==='inv'&&t.side==='sell')||(t.type==='dbt'&&t.side==='in')?1:-1;
-      acc.forEach(a=>{let b=+s.opening[a]||0;s.tx.forEach(t=>{if(t.type==='trf'){if(t.acct===a)b-=t.amt;if(t.to===a)b+=(t.amt2>0?t.amt2:t.amt);}else if(t.acct===a)b+=t.type==='adj'?t.amt:sg(t)*t.amt;});b=T.r2(b);
+      acc.forEach(a=>{let b=+s.opening[a]||0;const od=(s.openD||{})[a];s.tx.forEach(t=>{if(od&&t.date<od)return;/* 4.8: açılış tarihinden önceki işlemler bakiyeye girmez */if(t.type==='trf'){if(t.acct===a)b-=t.amt;if(t.to===a)b+=(t.amt2>0?t.amt2:t.amt);}else if(t.acct===a)b+=t.type==='adj'?t.amt:sg(t)*t.amt;});b=T.r2(b);
         if(T.acctBal(a)!==b)bad.push(name+': bakiye '+a+' '+T.acctBal(a)+' ≠ '+b);tot+=b*rate(a);});
       if(Math.abs(T.accTotal()-T.r2(tot))>1e-9)bad.push(name+': toplam '+T.accTotal()+' ≠ '+T.r2(tot));
       const trate=t=>{const c=(s.accx[t.acct]||{}).ccy;return !c||c==='TRY'?1:(+t.fx>0?+t.fx:rate(t.acct));};const k=T.ui.month,ex=T.r2(s.tx.filter(t=>t.type==='exp'&&T.pk(t.date)===k).reduce((x,t)=>x+t.amt*trate(t),0)),inc=T.r2(s.tx.filter(t=>t.type==='inc'&&T.pk(t.date)===k).reduce((x,t)=>x+t.amt*trate(t),0));
@@ -67,14 +67,14 @@ for(const seed of SEEDS){
         const amt=pick(AMTS),date=rdate(),note=pick(NOTES);setVal('#f-amt',amt);const cat=pickOpt('#f-cat'),acct=pickOpt('#f-acct'),to=pickOpt('#f-to');
         const cross=!$('#row-amt2').hidden,a2=pick(AMTS);if(cross)setVal('#f-amt2',a2);setVal('#f-date',date);setVal('#f-note',note);
         const realType=$('#f-type button[aria-pressed="true"]').dataset.v;
-        const n0=S().tx.length;$('.sheet .btn[data-act="save-tx"]').click();
+        const n0=S().tx.length;$('.sheet .btn[data-act="save-tx"]').click();/* 4.8: eksi bakiye uyarısında ikinci dokunuş */if($('.sheet .btn[data-act="save-tx"]')&&/eksiye/.test(($('#f-err')||{}).textContent||''))$('.sheet .btn[data-act="save-tx"]').click();
         const ok=valid(amt)&&!!date&&!(realType==='trf'&&(acct===to||(cross&&!valid(a2))));
         if(S().tx.length!==n0+(ok?1:0))bad.push('addTx: beklenen '+(ok?'eklenmeli':'eklenmemeli')+' '+JSON.stringify({amt,date,realType,acct,to,cross,a2}));
         if(ok){const t=S().tx[S().tx.length-1];if(t.amt!==T.r2(T.num(amt))||t.date!==date||t.acct!==acct||t.note!==note.trim()||(realType==='trf'?t.to!==to:t.cat!==$('#f-cat')?.value&&false))bad.push('addTx: alanlar '+JSON.stringify(t));}
         if(sheetOpen())act('close');},
       editTx(){act('sub',null,'islem');const rows=$$('[data-act="edit-tx"]');if(!rows.length)return;const r=pick(rows),id=r.dataset.id;r.click();
         const before=JSON.stringify(S().tx.find(t=>t.id===id));const amt=pick(AMTS);if(!$('#f-amt')){setVal('#m-amt',amt);$('.sheet [data-act="save-mv"]').click();if(sheetOpen())act('close');return;}setVal('#f-amt',amt);if(rnd()<0.3)pickOpt('#f-acct');
-        $('.sheet .btn[data-act="save-tx"]').click();const t=S().tx.find(x=>x.id===id);
+        $('.sheet .btn[data-act="save-tx"]').click();if($('.sheet .btn[data-act="save-tx"]')&&/eksiye/.test(($('#f-err')||{}).textContent||''))$('.sheet .btn[data-act="save-tx"]').click();const t=S().tx.find(x=>x.id===id);
         if(sheetOpen()){act('close');if(JSON.stringify(t)!==before)bad.push('editTx: geçersiz düzenleme kaydedildi');}
         else if(!valid(amt))bad.push('editTx: geçersiz tutar kabul edildi '+amt);},
       delTx(){act('sub',null,'islem');const rows=$$('[data-act="edit-tx"]');if(!rows.length)return;const r=pick(rows),id=r.dataset.id;r.click();const n0=S().tx.length;

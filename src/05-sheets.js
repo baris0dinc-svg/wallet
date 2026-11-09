@@ -97,7 +97,9 @@ function val(id){var e=document.getElementById(id);return e?e.value:'';}
 function badName(n){return /^(__proto__|constructor|prototype)$/.test(n);}
 var txType='exp',txOrig=null;
 function lastSel(type,k,list){var l=S.last&&S.last[type];var v=l&&l[k];return list.indexOf(v)>=0?v:undefined;}
-function defAcct(type){var acc=ACCS();return lastSel(type,'acct',acc)||(acc.indexOf(S.defAcct)>=0?S.defAcct:acc[0]);}
+/* yeni işlemin hesabı: Ayarlar'daki sabit varsayılan; yoksa son kullanılan TL hesabı; dövizli hesap kendiliğinden seçilmez */
+function defAcct(type){var acc=ACCS();if(acc.indexOf(S.defAcct)>=0)return S.defAcct;var l=lastSel(type,'acct',acc);if(l&&ccyOf(l)==='TRY')return l;
+  var tl=acc.filter(function(a){return ccyOf(a)==='TRY';});return tl[0]||l||acc[0];}
 function txSheet(id,force,pre){
   pre=pre||{};
   var t=id?byId(S.tx,id):null;
@@ -147,7 +149,10 @@ function balPreview(){
 }
 function syncCcy(){
   var a=document.getElementById('f-acct'),lb=document.getElementById('lb-amt');if(!a||!lb)return;
-  var c=ccyOf(a.value);lb.textContent='Tutar ('+CSYM[c]+')';
+  var c=ccyOf(a.value),ai=document.getElementById('f-amt');lb.textContent='Tutar ('+CSYM[c]+')';
+  /* dövizli hesap belirgin: TL alışkanlığıyla yanlış birimde tutar girilmesin */
+  if(c!=='TRY'){var bx=document.createElement('span');bx.className='ccyb';bx.textContent=(CCYN[c]||c)+' · '+a.value;lb.appendChild(document.createTextNode(' '));lb.appendChild(bx);}
+  if(ai)ai.classList.toggle('fxamt',c!=='TRY');
   var row=document.getElementById('row-amt2'),to=document.getElementById('f-to');
   var cross=txType==='trf'&&to&&ccyOf(to.value)!==c;
   if(row){row.hidden=!cross;if(cross){document.getElementById('lb-amt2').textContent='Giriş tutarı ('+CSYM[ccyOf(to.value)]+')';var i2=document.getElementById('f-amt2'),v1=num(val('f-amt'));if(i2&&!i2.dataset.manual&&v1>0&&rateOf(c)>0&&rateOf(ccyOf(to.value))>0)i2.value=nv(r2(v1*rateOf(c)/rateOf(ccyOf(to.value))));}}
@@ -196,7 +201,7 @@ function recSheet(a){
   var b=acctBal(a),t=acctType(a);
   openSheet('<h2>Bakiyeyi eşitle · '+esc(a)+'</h2><p class="small muted" style="margin:0">'+(t==='nakit'?'Cüzdanındaki parayı say ve gir.':'Bankadaki ya da ekstredeki güncel bakiyeyi gir.')+(t==='kart'?' Kartta borç varsa eksi yaz (örn. -2500).':'')+'</p>'
    +'<div class="field"><label for="rc-amt">Gerçek bakiye ('+CSYM[ccyOf(a)]+')</label><input id="rc-amt" inputmode="decimal" value="'+nv(b)+'"></div><div class="small muted">Wallet’taki bakiye: <span class="num">'+moneyIn(b,a)+'</span></div><div class="balprev" id="rc-diff"></div>'
-   +'<button class="row-tgl" id="rc-mode" data-act="rc-mode" role="switch" aria-checked="true"><span class="mid"><div class="t">Farkı gelir/gider olarak kaydet</div><div class="small muted">Kapalıysa yalnızca bakiye düzeltilir, gelir-gider raporlarına girmez</div></span><span class="sw"></span></button>'
+   +'<button class="row-tgl" id="rc-mode" data-act="rc-mode" role="switch" aria-checked="false"><span class="mid"><div class="t">Farkı gelir/gider olarak kaydet</div><div class="small muted">Kapalıyken (önerilen) yalnızca bakiye düzeltilir; fark gelir-gider raporlarına ve bütçeye girmez</div></span><span class="sw"></span></button>'
    +'<div class="err" id="f-err"></div><button class="btn" data-act="rc-save" data-id="'+esc(a)+'">Eşitle</button>');
 }
 function debtListSheet(){
@@ -235,6 +240,9 @@ function hSheet(id,kind,pre){
    +'<div class="err" id="f-err"></div><button class="btn" data-act="save-h" data-id="'+(x?x.id:'')+'" data-v="inv">Kaydet</button>'+(x?'<div class="two"><button class="btn ghost" data-act="h-buy" data-id="'+x.id+'">Al</button><button class="btn ghost" data-act="h-sell" data-id="'+x.id+'">Sat</button></div>'+delBtn('del-h',x.id):''));
   syncH();
 }
+function autoSrc(){var t=val('h-type'),s=document.getElementById('h-ccy');if(!s||(s.value&&s.value.indexOf('mk:')!==0&&s.dataset.auto!=='1'))return;if(s.value.indexOf('mk:')===0)return;
+  var n=fold(val('h-name')),c='';if(t==='Altın')c=/ceyrek/.test(n)?'CEY':'XAU';else if(t==='Gümüş')c='XAG';else if(t==='Döviz')c=/euro|eur\b|avro/.test(n)?'EUR':(/sterlin|gbp|pound/.test(n)?'GBP':(/frank|chf/.test(n)?'CHF':'USD'));
+  if(c){s.value=c;s.dataset.auto='1';syncH();}else if(s.dataset.auto==='1'){s.value='';delete s.dataset.auto;syncH();}}
 function syncH(){var c=val('h-ccy'),r=document.getElementById('row-hprice'),q=document.getElementById('lb-hqty'),mp=document.getElementById('h-mkp');if(r)r.hidden=!!c;if(mp)mp.hidden=c.indexOf('mk:')!==0;if(q)q.textContent=({XAU:'Miktar (gram)',XAG:'Miktar (gram)',CEY:'Adet',USD:'Miktar ($)',EUR:'Miktar (€)',GBP:'Miktar (£)',CHF:'Miktar (CHF)'})[c]||'Adet / miktar';
   var hh=document.getElementById('h-hint');if(hh){var qn=num(val('h-qty')),cs=num(val('h-cost'));hh.textContent=val('h-acct')&&qn>0&&cs>0?'Seçtiğin hesaptan '+TRY2.format(qn*cs)+' düşülecek.':'';}}
 function tradeSheet(id,side){
@@ -304,6 +312,7 @@ function renameAcct(old,nw){
   S.goals.forEach(function(g){if(g.acct===old)g.acct=nw;});
   if(S.accx[old]){S.accx[nw]=S.accx[old];delete S.accx[old];}
   if(Object.prototype.hasOwnProperty.call(S.opening,old)){S.opening[nw]=S.opening[old];delete S.opening[old];}
+  if(S.openD&&S.openD[old]){S.openD[nw]=S.openD[old];delete S.openD[old];}
   ['exp','inc','trf'].forEach(function(k){if(S.last&&S.last[k]&&S.last[k].acct===old)S.last[k].acct=nw;});
   if(S.defAcct===old)S.defAcct=nw;if(ui.acctF===old)ui.acctF=nw;
   /* SMS eşleştirmeleri ve bekleyen SMS işlemleri de yeni adı kullansın */

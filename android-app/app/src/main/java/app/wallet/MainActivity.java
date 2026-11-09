@@ -65,6 +65,9 @@ public class MainActivity extends Activity {
     private static WeakReference<MainActivity> live = new WeakReference<>(null);
     private WebView web;
     private ValueCallback<Uri[]> fileCb;
+    /** Fiş fotoğrafı için kameranın yazdığı geçici dosya (CamFiles sağlayıcısı üzerinden) */
+    private File camFile;
+    private Uri camUri;
     /** Açılış: sistem açılış ekranı sayfa çizilene kadar kalır; web açılışı bitince çubuk renkleri uygulamanınkine döner. */
     private boolean splashOver = false, pageLoaded = false;
     /** uygulama kısayolundan gelen eylem (exp, inc, trf, voice); sayfa yüklenince web uygulamasına iletilir */
@@ -121,17 +124,46 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        // Yedek ve CSV için "Dosya seç" düğmesi: WebView bunu kendiliğinden açmaz
+        // Yedek ve CSV için "Dosya seç" düğmesi: WebView bunu kendiliğinden açmaz.
+        // Fotoğraf istenirse (fiş): galeri/dosyaların yanında kamerayla çekme seçeneği de sunulur.
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
                 if (fileCb != null) fileCb.onReceiveValue(null);
                 fileCb = cb;
+                boolean img = false;
+                String[] acc = p == null ? null : p.getAcceptTypes();
+                if (acc != null) for (String a : acc) if (a != null && a.startsWith("image")) img = true;
                 Intent i = new Intent(Intent.ACTION_GET_CONTENT);
                 i.addCategory(Intent.CATEGORY_OPENABLE);
-                i.setType("*/*");
+                i.setType(img ? "image/*" : "*/*");
+                Intent ch = Intent.createChooser(i, img ? "Fiş fotoğrafı" : "Dosya seç");
+                camFile = null;
+                camUri = null;
+                if (img) {
+                    try {
+                        File dir = new File(getCacheDir(), "cam");
+                        if (!dir.exists()) dir.mkdirs();
+                        File[] old = dir.listFiles();
+                        if (old != null) for (File f : old) f.delete();
+                        File f = new File(dir, "fis-" + System.currentTimeMillis() + ".jpg");
+                        Uri u = Uri.parse("content://" + getPackageName() + ".cam/" + f.getName());
+                        Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                        cam.putExtra(MediaStore.EXTRA_OUTPUT, u);
+                        cam.setClipData(ClipData.newRawUri("", u));
+                        cam.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        if (cam.resolveActivity(getPackageManager()) != null) {
+                            ch.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cam});
+                            camFile = f;
+                            camUri = u;
+                        }
+                    } catch (Exception ignored) {
+                        camFile = null;
+                        camUri = null;
+                    }
+                }
                 try {
-                    startActivityForResult(Intent.createChooser(i, "Dosya seç"), FILE_REQ);
+                    startActivityForResult(ch, FILE_REQ);
                 } catch (Exception e) {
                     fileCb = null;
                     return false;
@@ -233,7 +265,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int req, int res, Intent data) {
         if (req == FILE_REQ) {
-            if (fileCb != null) fileCb.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(res, data));
+            Uri[] r = WebChromeClient.FileChooserParams.parseResult(res, data);
+            // kamerayla çekildiyse sonuç dosyada (çoğu kamera uygulaması adres döndürmez)
+            if (res == RESULT_OK && (r == null || r.length == 0) && camFile != null && camFile.length() > 0) r = new Uri[]{camUri};
+            if (fileCb != null) fileCb.onReceiveValue(r);
             fileCb = null;
             return;
         }

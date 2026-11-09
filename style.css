@@ -381,14 +381,6 @@ header h1.tt{font-size:1.625rem;font-weight:800;letter-spacing:-.01em}
 .nwper .pl{flex:1;display:grid;gap:1px;min-width:0}
 .nwper .lbl{font-size:.75rem}
 .nwper .ic{width:18px;height:18px;color:var(--ink2)}
-.addcard{display:flex;align-items:stretch;padding:0;overflow:hidden}
-.addmain{flex:1;display:flex;align-items:center;gap:14px;padding:16px;background:none;border:0;text-align:left;color:inherit;font:inherit;cursor:pointer;min-width:0}
-.addmain b{display:block;font-size:1.125rem}
-.addic{width:52px;height:52px;border-radius:16px;flex:none;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink)}
-.addic .ic{width:28px;height:28px;stroke-width:2.4}
-.addvoice{display:flex;align-items:center;gap:8px;padding:12px 16px;background:none;border:0;border-left:1px solid var(--line);color:var(--ink);font:inherit;font-weight:600;font-size:.875rem;line-height:1.15;text-align:left;cursor:pointer}
-.vic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--accent)}
-.vic .ic{width:21px;height:21px}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin:6px 2px -4px}
 .hrow h2{margin:0}
 /* takvim */
@@ -405,11 +397,7 @@ header h1.tt{font-size:1.625rem;font-weight:800;letter-spacing:-.01em}
 .cd.today .dn{color:var(--accent)}
 @media (max-width:374px){
   .sc{flex-direction:column;align-items:flex-start;gap:8px;padding:12px}
-  .addmain{gap:10px;padding:14px 12px}
-  .addic{width:46px;height:46px;border-radius:14px}
-  .addvoice{padding:10px 12px}
-  .addvoice span:last-child{display:none}
-}
+  }
 /* sık eklenenler */
 .favs{display:grid;gap:6px;min-width:0}
 .favs .lbl{margin:0 2px}
@@ -623,3 +611,41 @@ body.has-tb .wrap{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
 .stmt div{background:var(--bg);border-radius:12px;padding:8px 10px;min-width:0}
 .stmt b{display:block;font-family:var(--f-num);font-size:1.0625rem}
 .pill.mini{font-size:.6875rem;padding:0 6px;margin-left:4px;vertical-align:1px}
+/* 4.12: kategori simgeleri, alt kategoriler */
+.cic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;flex:none}
+.cic .ic{width:19px;height:19px;stroke-width:2}
+.cic.sm{width:28px;height:28px;border-radius:9px}
+.cic.sm .ic{width:16px;height:16px}
+.cic.xs{width:22px;height:22px;border-radius:7px;margin-left:-4px}
+.cic.xs .ic{width:14px;height:14px}
+.cic.lg{width:44px;height:44px;border-radius:14px}
+.cic.lg .ic{width:23px;height:23px}
+.catchips .chip .cic.xs{margin-left:-5px}
+.chips.catset .chip{display:inline-flex;align-items:center;gap:7px}
+.subchips .chip{padding:6px 12px;font-size:.8125rem}
+.icgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px}
+.icpick{height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink2);display:grid;place-items:center;cursor:pointer}
+.icpick[aria-pressed="true"]{border-color:var(--c);color:var(--c);background:color-mix(in srgb,var(--c) 16%,var(--surface));box-shadow:0 0 0 1px var(--c) inset}
+.icpick .ic{width:20px;height:20px}
+.chip.subdel{display:inline-flex;align-items:center;gap:4px;padding:5px 6px 5px 12px}
+.chip.subdel button{border:0;background:none;color:var(--ink2);width:26px;height:26px;display:grid;place-items:center;border-radius:50%;cursor:pointer}
+.chip.subdel button .ic{width:15px;height:15px}
+.subbrk{display:grid;gap:10px;padding:4px 0}
+.subbrk .sbt{display:flex;justify-content:space-between;gap:10px;font-size:.875rem;margin-bottom:4px}
+.subbrk .sbt .ell{min-width:0}
+.rcm{display:inline-grid;vertical-align:-2px;margin-right:5px;color:var(--ink2)}
+.rcm .ic{width:15px;height:15px}
+/* 4.12: fiş fotoğrafı, bulut yedeği, getiri satırı */
+.rcbox{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rcadd{display:inline-flex;align-items:center;gap:8px}
+.rcthumb{width:84px;height:84px;border-radius:12px;border:1px solid var(--line);background:var(--bg);padding:0;overflow:hidden;display:grid;place-items:center;cursor:zoom-in;flex:none}
+.rcthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.rcthumb .small{padding:6px;text-align:center;font-size:.6875rem}
+.rcacts{display:flex;gap:8px;flex-wrap:wrap}
+.rcview{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.92);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) 12px max(16px,env(safe-area-inset-bottom));overflow:auto}
+.rcview img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
+.rcview .icon-btn{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px;color:#fff;background:rgba(255,255,255,.14)}
+ol.steps{margin:0;padding-left:20px;display:grid;gap:6px}
+.ytl{display:flex;gap:6px;align-items:flex-start;margin:6px 0 0}
+.ytl .ic{width:15px;height:15px;flex:none;margin-top:2px}
+.chip[aria-pressed="true"] .cic{background:rgba(255,255,255,.22)!important;color:inherit!important}

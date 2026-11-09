@@ -68,7 +68,7 @@ function coachData(){
   var cards=[];ACCS().forEach(function(a){if(acctType(a)!=='kart')return;var b=acctBal(a);if(!(b<0))return;var d=r2(toTL(-b,a)),x=ax(a),lim=+x.limit>0?toTL(+x.limit,a):0;
     cards.push({a:a,debt:d,lim:lim,rate:cardRate(d),mp:lim>0?(lim>FACTS.minpay.lim?FACTS.minpay.hi:FACTS.minpay.lo):null});});
   var debts=S.debts.filter(function(d){return debtLeft(d)>0;}).map(function(d){var r=+d.rate>0?+d.rate:null,inst=0;
-    S.recurring.forEach(function(rc){if(rc.debt===d.id)inst+=toTL(+rc.amt||0,rc.acct);});return {d:d,left:debtLeft(d),rate:r,ann:r!=null?annual(r):null,inst:r2(inst)};});
+    S.recurring.forEach(function(rc){if(rc.debt===d.id)inst+=isWk(rc)?recMonthly(rc):toTL(+rc.amt||0,rc.acct);});return {d:d,left:debtLeft(d),rate:r,ann:r!=null?annual(r):null,inst:r2(inst)};});
   var v={cur:cur,n:n,incN:incN,inc:inc,exp:exp,surplus:surplus,sr:sr,W:W,eg:eg,em:r2(em),emM:emM,vad:r2(vad),buck:buck,fa:r2(fa),hold:hold,cards:cards,debts:debts,
     cardDebt:r2(cards.reduce(function(a,c){return a+c.debt;},0)),liquid:Math.max(W.g.liquid,0),fire:fireModel(),sample:hasSample()};
   CK={k:key,v:v};return v;

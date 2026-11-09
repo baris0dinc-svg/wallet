@@ -33,7 +33,7 @@ function flowCard(){
   if(isCur&&s.exp>0){var F=forecast();rows.push(['Dönem sonu gider tahmini',DC0.format(F.exp)]);if(F.recLeft>0)rows.push(['Tahmindeki kalan düzenli ödemeler',DC0.format(F.recLeft)]);}
   if(s.debt>0)rows.push(['Borç ödemeleri (anapara)',DC0.format(s.debt)]);
   if(Math.abs(s.inv)>=0.5)rows.push([s.inv>0?'Yatırıma aktarılan':'Yatırımdan çekilen',DC0.format(Math.abs(s.inv))]);
-  var fixed=0;S.recurring.forEach(function(r){var id=r.paid&&r.paid[k];var t=id&&byId(monthTx(k),id);if(t&&t.type==='exp')fixed+=txTL(t);});
+  var fixed=0,RL=recLinked();monthTx(k).forEach(function(t){if(RL[t.id]&&t.type==='exp')fixed+=txTL(t);});
   if(s.exp>0&&fixed>0)rows.push(['Sabit giderler (düzenli ödemeler)','%'+Math.round(fixed/s.exp*100)]);
   return '<div class="card"><h2>Nakit akışı</h2>'+res(rows,1)+'<p class="small muted" style="margin:8px 0 0">Oklar '+(isCur?'geçen dönemin aynı gününe':'geçen döneme')+' göre değişimi gösterir. Transferler, borç anapara ödemeleri ve yatırım alımları gider sayılmaz; birikim olarak değerlendirilir.</p></div>';
 }
@@ -85,7 +85,7 @@ function nwScrub(el,clientX){
 function calBody(){
   var k=ui.month,s=pStart(k),e=pEnd(k),t0=todayS(),by={};
   monthTx(k).forEach(function(t){var d=by[t.date]||(by[t.date]={i:0,x:0,n:0});d.n++;if(t.type==='inc')d.i+=txTL(t);else if(t.type==='exp')d.x+=txTL(t);});
-  var due={};S.recurring.forEach(function(r){if(!r.inc&&recOn(r,k)&&!recPaid(r,k)){var q=dueDate(r,k);(due[q]||(due[q]=[])).push(r.name);}});
+  var due={};S.recurring.forEach(function(r){if(r.inc)return;occs(r,k).forEach(function(o){if(recPaid(r,o))return;var q=dueDate(r,o);(due[q]||(due[q]=[])).push(r.name);});});
   var d=pdate(s);d.setDate(d.getDate()-(d.getDay()+6)%7);var end=pdate(e);end.setDate(end.getDate()+(7-(end.getDay()+6)%7)%7);
   var cells='',sm=function(v){/* gün kutusu 320 px ekranda ~34 px: tek harfli birim (B = bin, M = milyon), 10 milyondan büyükte küsuratsız */return maskOn?'•':(v>=1e9?Math.round(v/1e9)+'Mr':v>=1e7?Math.round(v/1e6)+'M':v>=1e6?NUM1.format(v/1e6).replace(/,0$/,'')+'M':v>=1e4?Math.round(v/1e3)+'B':v>=1000?NUM1.format(v/1e3).replace(/,0$/,'')+'B':Math.round(v));};
   while(d<=end){var iso=isoDate(d),inP=iso>=s&&iso<=e,x=by[iso],cls='cd'+(inP?'':' out')+(iso===t0?' today':'')+(x?' has':'')+(inP&&due[iso]?' due':'');
@@ -137,7 +137,8 @@ function borcBody(){
 function holdCard(x){
   var p=hVal(x)-hCost(x),pp=hCost(x)?p/hCost(x)*100:0,linked=!!x.mk||!!(x.ccy&&+S.fx[x.ccy]>0),ast=hKind(x)==='asset',mq=x.mk&&mQ(x.mk);
   return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="'+x.id+'"><span class="dot" style="background:'+color(x.type)+'"></span><span class="mid"><div class="t" style="font-weight:600">'+esc(x.name)+'</div><div class="small muted">'+esc(x.type)+(ast?'':' · '+qtyTxt(x)+' · ort. '+TRY2.format(x.cost))+(linked?' · '+esc(x.mk?(x.mks||mSym(x.mk)):FXL[x.ccy])+' '+TRY2.format(hPrice(x)):'')+(mq&&mq.c!=null?' '+chgSpan(mq.c):'')+'</div></span></button><span class="num" style="font-size:1.0625rem">'+TRY0.format(hVal(x))+'</span></div>'
-   +(linked?'':'<label class="pin-in"><span class="small muted">Güncel '+(ast?'değer':'fiyat')+' (₺)</span><input inputmode="decimal" data-price="'+x.id+'" value="'+nv(x.price)+'" aria-label="'+esc(x.name)+' güncel '+(ast?'değer':'fiyat')+' (₺)"></label>')
+   +yLine(x)
+   +(linked||yOn(x)?'':'<label class="pin-in"><span class="small muted">Güncel '+(ast?'değer':'fiyat')+' (₺)</span><input inputmode="decimal" data-price="'+x.id+'" value="'+nv(x.price)+'" aria-label="'+esc(x.name)+' güncel '+(ast?'değer':'fiyat')+' (₺)"></label>')
    +'<div class="hrow"><span class="num small '+(p>=0?'inc':'exp')+'">'+sgn(p)+(hCost(x)?' ('+(pp>=0?'+':'−')+'%'+NUM2.format(Math.abs(pp))+')':'')+'</span><span class="hbtn">'+(ast?'':'<button class="btn small ghost" data-act="h-buy" data-id="'+x.id+'">Al</button>')+'<button class="btn small ghost" data-act="h-sell" data-id="'+x.id+'">Sat</button></span></div></div>';
 }
 function yatirimBody(){

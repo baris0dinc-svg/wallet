@@ -14,7 +14,9 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  for(const k in want){T.ACT[k]();chk(want[k].test(sheetT()),k+' → '+sheetT());if(k==='qa-inc')chk($('#f-type [aria-pressed="true"]').dataset.v==='inc','gelir türü seçili');if(k==='qa-exp')chk($('#f-type [aria-pressed="true"]').dataset.v==='exp','gider türü');back();chk(!$('#sheet-root').innerHTML,k+' geri kapatır');}
  // ana sayfa: kalan kartı, işlem ekle, Koç, piyasa şeridi, notlar ve hesaplayıcılar, ayarlar
  chk(!!$('#left-now'),'bu dönem kalan');
- click('.addmain');chk(/Yeni işlem|Gider/.test(sheetT()),'işlem ekle kartı');back();
+ // 4.12: İşlem ekle kartı kaldırıldı (Gelir/Gider/Transfer düğmeleri yeter); sesle ekleme başlıkta
+ chk(!$('.addmain')&&!$('.addcard'),'işlem ekle kartı yok');chk(!!$('header [data-act="voice"]'),'başlıkta sesle ekle');
+ click('#qa [data-act="qa-exp"]');chk(/Gider ekle/.test(sheetT()),'Gider düğmesi işlem penceresi');back();
  click('.nwbig');chk(T.ui.sub==='servet'&&!!$('.nw .big'),'net servet Hesaplar’a');click('#tabbar [data-v="ev"]');
  {const gi=$$q('.gundem .list > .item'),k=c=>gi.map((e,i)=>e.classList.contains(c)?i:-1).filter(i=>i>=0),al=k('al'),bi=k('bi');
   chk(gi.length>1&&gi[gi.length-1].classList.contains('cochome')&&(!al.length||!bi.length||Math.max(...al)<Math.min(...bi)),'Gündem: önce ödeme/bütçe uyarıları, sonra akıllı tespitler, Koç adımı en sonda');}

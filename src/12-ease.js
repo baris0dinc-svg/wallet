@@ -29,7 +29,7 @@ ACT['fav-fill']=function(el,id){
   if(txType!==t.type){var b=document.querySelector('#f-type [data-v="'+t.type+'"]');if(b)b.click();}
   var set=function(i,v){var e=document.getElementById(i);if(e){e.value=v;}};
   set('f-amt',nv(t.amt));set('f-note',t.note||'');set('f-acct',t.acct);
-  var c=document.getElementById('f-cat');if(c){c.value=t.cat;c.dataset.manual='1';syncCatChips();}
+  set('f-sub',t.sub||'');var c=document.getElementById('f-cat');if(c){c.value=t.cat;c.dataset.manual='1';syncCatChips();}
   var a=document.getElementById('f-amt');if(a)a.dispatchEvent(new Event('input',{bubbles:true}));
   var ac=document.getElementById('f-acct');if(ac)ac.dispatchEvent(new Event('change',{bubbles:true}));
 };

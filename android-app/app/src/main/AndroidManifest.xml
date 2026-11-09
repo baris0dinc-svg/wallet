@@ -12,6 +12,10 @@
         <intent>
             <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
         </intent>
+        <!-- fiş fotoğrafı: kamera uygulamasını bulabilmek için -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
@@ -48,6 +52,11 @@
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
         </service>
+        <!-- fiş fotoğrafı: kameranın yazdığı geçici dosya (dışa kapalı, yalnız geçici izinle) -->
+        <provider android:name=".CamFiles"
+            android:authorities="${applicationId}.cam"
+            android:exported="false"
+            android:grantUriPermissions="true" />
         <receiver android:name=".Reminders" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

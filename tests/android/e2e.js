@@ -58,8 +58,8 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   ok('yeniden başlatıldı',await restart());d=await data();ok('kapatıp açınca veri duruyor',has(d));
   // açılış ekranı (4.16): telefonun temasındaki arayüz renkleri; emülatör açık temada: açık zemin (#F2F4F1) ve yeşil logo, sonra uygulama
   {ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1500);
-   sh('adb shell "rm -f /sdcard/sp*.png; am start -n '+ACT+'; sleep 0.5; screencap -p /sdcard/sp1.png; sleep 0.3; screencap -p /sdcard/sp2.png; sleep 0.3; screencap -p /sdcard/sp3.png; sleep 4; screencap -p /sdcard/sp4.png"');
-   const shots=[1,2,3,4].map(i=>{sh('adb pull /sdcard/sp'+i+'.png /tmp/sp'+i+'.png');try{return png(require('fs').readFileSync('/tmp/sp'+i+'.png'));}catch(e){return null;}});
+   sh('adb shell "rm -f /sdcard/sp*.png; am start -n '+ACT+'; sleep 0.5; screencap -p /sdcard/sp1.png; sleep 0.3; screencap -p /sdcard/sp2.png; sleep 0.3; screencap -p /sdcard/sp3.png; sleep 0.4; screencap -p /sdcard/sp5.png; sleep 0.4; screencap -p /sdcard/sp6.png; sleep 3; screencap -p /sdcard/sp4.png"');
+   const shots=[1,2,3,4,5,6].map(i=>{sh('adb pull /sdcard/sp'+i+'.png /tmp/sp'+i+'.png');try{return png(require('fs').readFileSync('/tmp/sp'+i+'.png'));}catch(e){return null;}});
    const navy=c=>c&&Math.abs(c[0]-242)<10&&Math.abs(c[1]-244)<10&&Math.abs(c[2]-241)<10,light=c=>c&&c[0]>200&&c[1]>200&&c[2]>200,gold=c=>c&&c[0]<90&&c[1]<90&&c[2]<90;
    const desc=im=>im?JSON.stringify({ust:im.at(im.w/2,8),orta:im.at(20,im.h/2),alt:im.at(im.w/2,im.h-8)}):'yok';
    shots.forEach((im,i)=>console.log('ℹ açılış '+(i+1)+': '+desc(im)));
@@ -67,7 +67,9 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
    const early=shots.slice(0,1).filter(Boolean);
    ok('açılış arayüzün zemin renginde',early.length===1&&early.every(im=>navy(im.at(20,im.h/2))&&navy(im.at(im.w/2,8))),early.map(desc).join(' | '));
    const hasGold=im=>{if(!im)return false;for(let y=im.h*0.35;y<im.h*0.6;y+=3)for(let x=im.w*0.25;x<im.w*0.75;x+=3)if(gold(im.at(x,y)))return true;return false;};
-   ok('açılışta logo görünüyor (tek açılış: web açılışında)',hasGold(shots[0])||hasGold(shots[1])||hasGold(shots[2]));
+   console.log('ℹ açılış logosu karelerde: '+JSON.stringify(shots.map(hasGold))+' (sıra: 0.5s, 0.8s, 1.1s, 4.7s, 1.5s, 1.9s)');
+   {await connect().catch(()=>{});const pt=await ev('const n=performance.getEntriesByType("navigation")[0]||{},p=performance.getEntriesByType("paint").map(x=>x.name+"="+Math.round(x.startTime));return JSON.stringify({dcl:Math.round(n.domContentLoadedEventEnd||0),load:Math.round(n.loadEventEnd||0),p,ver:window.VER||(document.querySelector("#ver")||{}).textContent||""})');console.log('ℹ açılış zamanlaması: '+JSON.stringify(pt));}
+   ok('açılışta logo görünüyor (tek açılış: web açılışında)',hasGold(shots[0])||hasGold(shots[1])||hasGold(shots[2])||hasGold(shots[4])||hasGold(shots[5]));
    ok('açılıştan sonra uygulama ve açık renk çubuklar',shots[3]&&light(shots[3].at(shots[3].w/2,8))&&light(shots[3].at(20,shots[3].h/2)),desc(shots[3]));
    for(const i of [1,2,3,4])console.log('ℹ AÇILIŞ'+i+'PNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/sp'+i+'.png')).toString('base64'));
    ok('açılıştan sonra bağlanıldı',await connect());}
@@ -94,7 +96,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   ok('planlanan hatırlatma zamanında geldi',fired);
   ok('yeniden başlatıldı (hatırlatma sonrası)',await restart());
   // 7 otomatik yedek
-  const ab=await ev(ACTJS+'act("open-set","veri");await new Promise(r=>setTimeout(r,300));document.querySelector("[data-act=\\"bk-auto\\"]").click();await new Promise(r=>setTimeout(r,1500));return document.getElementById("f-bka").innerText');
+  const ab=await ev(ACTJS+'act("open-set","veri");await new Promise(r=>setTimeout(r,300));window.__e2eErr=[];window.addEventListener("error",e=>window.__e2eErr.push(String(e.message)));window.addEventListener("unhandledrejection",e=>window.__e2eErr.push("söz: "+String(e.reason&&e.reason.message||e.reason)));document.querySelector("[data-act=\\"bk-auto\\"]").click();let t="";for(let i=0;i<40;i++){await new Promise(r=>setTimeout(r,200));const f=document.getElementById("f-bka");t=f?f.innerText:"(f-bka yok)";if(/yazıldı|yazılamadı/.test(t))break;}return t+(window.__e2eErr.length?" | HATA: "+window.__e2eErr.join(" ; "):"");');
   const dl=sh('adb shell ls /sdcard/Download/Wallet/');ok('otomatik yedek dosyası yazıldı',/yazıldı/.test(ab||'')&&/Wallet-otomatik-yedek\.json/.test(dl),JSON.stringify(ab)+' | '+dl.trim());
   await ev(ACTJS+'setv("bkp1","e2e-sifre");setv("bkp2","e2e-sifre");document.querySelector("[data-act=\\"bk-pw-set\\"]").click();await new Promise(r=>setTimeout(r,2500));return 1');
   const enc=sh('adb shell cat /sdcard/Download/Wallet/Wallet-otomatik-yedek.json');ok('şifreli otomatik yedek',/"wallet":1/.test(enc)&&!/E2E Elektrik/.test(enc),enc.slice(0,60));

@@ -55,6 +55,8 @@ const r=await p.evaluate(async()=>{const T=window.__T,o=[],S=T.S;const c=(x,m)=>
   S.watch.push({k:'bist:THYAO',n:'Türk Hava Yolları',s:'THYAO'},{k:'cg:bitcoin',n:'Bitcoin',s:'BTC'});T.save();
   T.openPage({k:'piyasa'},'piyasa');await W(600);
   const mr=k=>document.querySelector('#mres [data-id="'+k+'"]');
+  /* 4.29: CI'da canlı fiyat gelince liste yeniden çizilir; logoların yüklenmesini 5 sn'ye kadar bekle (sabit 600 ms ağ varken yetmiyordu) */
+  for(let i=0;i<25&&!(mr('cg:bitcoin')&&mr('cg:bitcoin').querySelector('.mbadge.mlg.ok img')&&mr('bist:THYAO')&&mr('bist:THYAO').querySelector('.mbadge.mlg.ok img'));i++)await W(200);
   c(!!mr('bist:THYAO')&&!!mr('bist:THYAO').querySelector('.mbadge.mlg.ok img'),'piyasada hisse logosu');
   c(!!mr('cg:bitcoin')&&!!mr('cg:bitcoin').querySelector('.mbadge.mlg.ok img'),'piyasada kripto logosu');
   c(!mr('fx:USD')||!!mr('fx:USD').querySelector('.mbadge.flg.ok img'),'piyasada dolar bayrağı');

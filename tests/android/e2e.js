@@ -181,10 +181,15 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   const na2=(sh('adb shell dumpsys alarm').match(new RegExp(PKG.replace(/\./g,'\\.'),'g'))||[]).length;ok('hatırlatmalar iptal edildi',na2<na,na+' → '+na2);
   ok('yeniden başlatıldı (silme sonrası)',await restart());d=await data();ok('silme sonrası açılış boş',d.tx&&d.tx.length===0&&!d.tx.some(t=>t.sample));
   // 4.21 ilk açılışta internet yoksa: tarayıcı hata sayfası yerine uygulamanın "bağlantı yok" ekranı, internet gelince kendiliğinden açılır
-  {ws&&ws.close();ws=null;sh('adb shell am force-stop '+PKG);sh('adb shell pm clear '+PKG);sh('adb shell svc wifi disable');sh('adb shell svc data disable');await sleep(4000);
-   sh('adb shell am start -n '+ACT);await sleep(9000);sh('adb shell uiautomator dump /sdcard/u.xml');const ux=sh('adb shell cat /sdcard/u.xml');
-   ok('internetsiz ilk açılışta bağlantı yok ekranı',/bağlantısı kurulamadı/.test(ux)&&/Yeniden dene/.test(ux),(ux.match(/text="[^"]{3,80}"/g)||[]).slice(0,6).join(' '));
-   sh('adb shell svc wifi enable');sh('adb shell svc data enable');await sleep(8000);
+  {ws&&ws.close();ws=null;sh('adb shell am force-stop '+PKG);sh('adb shell pm clear '+PKG);sh('adb shell cmd connectivity airplane-mode enable');sh('adb shell svc wifi disable');sh('adb shell svc data disable');await sleep(5000);
+   const net=sh('adb shell ping -c 1 -W 2 8.8.8.8');console.log('ℹ uçak modu: '+(/1 received|1 packets received/.test(net)?'internet HÂLÂ VAR':'internet yok'));
+   sh('adb shell am start -n '+ACT);await sleep(9000);
+   /* sayfanın metni doğrudan WebView'dan okunur (adres about:blank olduğundan connect() bağlanmaz) */
+   const pageText=async()=>{try{const pid=sh('adb shell pidof '+PKG).trim();if(!pid)return 'pid yok';sh('adb forward --remove-all');sh('adb forward tcp:9222 localabstract:webview_devtools_remote_'+pid);const l=await getJson('http://127.0.0.1:9222/json');const t=l.find(x=>x.type==='page'&&x.webSocketDebuggerUrl);if(!t)return 'hedef yok '+JSON.stringify(l.map(x=>x.url));
+     const w=new WebSocket(t.webSocketDebuggerUrl);await new Promise((r,j)=>{w.on('open',r);w.on('error',j);});const txt=await new Promise(r=>{w.on('message',m=>{const o=JSON.parse(m);if(o.id===1)r(o.result&&o.result.result&&o.result.result.value);});w.send(JSON.stringify({id:1,method:'Runtime.evaluate',params:{expression:'location.href+" | "+document.body.innerText',returnByValue:true}}));setTimeout(()=>r('süre'),8000);});w.close();return String(txt);}catch(e){return 'hata '+e.message;}};
+   const ot=await pageText();
+   ok('internetsiz ilk açılışta bağlantı yok ekranı',/bağlantısı kurulamadı/.test(ot)&&/Yeniden dene/.test(ot),ot.replace(/\s+/g,' ').slice(0,220));
+   sh('adb shell cmd connectivity airplane-mode disable');sh('adb shell svc wifi enable');sh('adb shell svc data enable');await sleep(8000);
    ok('internet gelince uygulama kendiliğinden açıldı',await connect());}
   const fail=results.filter(r=>!r[0]);
   console.log(fail.length?'E2E BAŞARISIZ: '+fail.map(r=>r[1]).join(', '):'E2E ALL PASS ('+results.length+' kontrol)');

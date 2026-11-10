@@ -78,14 +78,19 @@ function mrcDom(txt){
   return MRC_C[k]=d;
 }
 /* denenecek adresler, sırayla: sitenin kendisi, www'li hâli, www'li ve www'siz tam adresi (servis bazı sitelerin logosunu yalnızca bunlardan biriyle verir);
-   "site,yedek" biçiminde birden çok site verilmişse sonraki siteler de aynı sırayla denenir; en son ikinci kaynak (Vemetric) denenir */
-function mrcUrls(d){var o=[],g='https://www.google.com/s2/favicons?sz=128&',v='https://favicon.vemetric.com/',L=String(d).split(',');L.forEach(function(x){if(x.charAt(0)==='~'){o.push(v+x.slice(1)+'?size=128');return;}o.push(g+'domain='+encodeURIComponent(x),g+'domain=www.'+encodeURIComponent(x),g+'domain_url='+encodeURIComponent('https://www.'+x+'/'),g+'domain_url='+encodeURIComponent('https://'+x+'/'));});
-  if(L[0].charAt(0)!=='~')o.push(v+L[0]+'?size=128');return o;}
+   "site,yedek" biçiminde birden çok site verilmişse sonraki siteler de aynı sırayla denenir; en son ikinci kaynak (Vemetric) denenir.
+   "!adres": doğrudan resim adresi (ülke bayrağı gibi) */
+function mrcUrls(d){var o=[],g='https://www.google.com/s2/favicons?sz=128&',v='https://favicon.vemetric.com/',L=String(d).split(',');L.forEach(function(x){if(x.charAt(0)==='!'){o.push(x.slice(1));return;}if(x.charAt(0)==='~'){o.push(v+x.slice(1)+'?size=128');return;}o.push(g+'domain='+encodeURIComponent(x),g+'domain=www.'+encodeURIComponent(x),g+'domain_url='+encodeURIComponent('https://www.'+x+'/'),g+'domain_url='+encodeURIComponent('https://'+x+'/'));});
+  if(L[0].charAt(0)!=='~'&&L[0].charAt(0)!=='!')o.push(v+L[0]+'?size=128');return o;}
 /* liste satırı simgesi: mağaza tanınırsa logosu (yüklenene kadar ve yüklenemezse kategori simgesi), tanınmazsa kategori simgesi */
+function lgOn(){return S.mlg!==false&&navigator.onLine!==false;}
+/* logo resmi: yüklenince kabın (cic, mbadge, aic) içindeki çizimin üstünü kaplar; kap "mlg" sınıfını taşır */
+function lgImg(d){var s=(MRC_OK[d]||1)-1;return '<img src="'+esc(mrcUrls(d)[s])+'" data-d="'+esc(d)+'" data-s="'+s+'" alt="" referrerpolicy="no-referrer">';}
+function lgCls(d){return ' mlg'+(MRC_OK[d]?' ok':'')+(d.charAt(0)==='!'?' flg':'');}
 function mrcIc(txts,c,cls){
-  var d='';if(S.mlg!==false&&navigator.onLine!==false)for(var i=0;i<txts.length&&!d;i++)d=mrcDom(txts[i]);
+  var d='';if(lgOn())for(var i=0;i<txts.length&&!d;i++)d=mrcDom(txts[i]);
   if(!d||MRC_BAD[d])return cic(c,cls);
-  return '<span class="cic mlg'+(MRC_OK[d]?' ok':'')+(cls?' '+cls:'')+'" style="color:'+color(c)+';background:'+catTint(c)+'" aria-hidden="true">'+ic(catIcKey(c))+'<img src="'+mrcUrls(d)[(MRC_OK[d]||1)-1]+'" data-d="'+esc(d)+'" data-s="'+((MRC_OK[d]||1)-1)+'" alt="""" referrerpolicy="no-referrer"></span>';
+  return '<span class="cic'+lgCls(d)+(cls?' '+cls:'')+'" style="color:'+color(c)+';background:'+catTint(c)+'" aria-hidden="true">'+ic(catIcKey(c))+lgImg(d)+'</span>';
 }
 function mrcFail(g){var d=g.dataset.d,u=mrcUrls(d),n=(+g.dataset.s||0)+1,p=g.parentNode;delete MRC_OK[d];if(p)p.classList.remove('ok');
   if(n<u.length){g.dataset.s=n;g.src=u[n];return;}
@@ -93,13 +98,13 @@ function mrcFail(g){var d=g.dataset.d,u=mrcUrls(d),n=(+g.dataset.s||0)+1,p=g.par
 /* güvenlik politikası satır içi olay işleyicisine izin vermediği için yükleme/hata olayları belgeden yakalanır.
    Google, simgesi olmayan site için 16 piksellik bir dünya resmi, Vemetric 24 piksellik bir çizim döndürür; ikisi de "logo yok" sayılır. */
 document.addEventListener('load',function(e){var g=e.target;if(!g||g.tagName!=='IMG'||!g.dataset||!g.dataset.d)return;
-  if(g.naturalWidth<=(g.src.indexOf('vemetric')>0?99:16)){mrcFail(g);return;}MRC_OK[g.dataset.d]=(+g.dataset.s||0)+1;if(g.parentNode)g.parentNode.classList.add('ok');},true);
+  if(g.naturalWidth<=(g.src.indexOf('favicon.vemetric.com')>0?99:(g.src.indexOf('google.com/s2/')>0?16:1))){mrcFail(g);return;}MRC_OK[g.dataset.d]=(+g.dataset.s||0)+1;if(g.parentNode)g.parentNode.classList.add('ok');},true);
 document.addEventListener('error',function(e){var g=e.target;if(g&&g.tagName==='IMG'&&g.dataset&&g.dataset.d)mrcFail(g);},true);
 window.addEventListener('online',function(){MRC_BAD={};});
 /* Ayarlar › Genel › Görünüm: aç/kapat ve listede olmayan mağaza için kendi eşleştirmen */
 function mrcSec(){
   var own=S.mlgs||{},ks=Object.keys(own).sort(),ls=ks.length?'<div class="list">'+ks.map(function(k){return '<div class="item">'+mrcIc([k],'')+'<span class="mid"><div class="t">'+esc(k)+'</div><div class="small muted ell">'+esc(own[k])+'</div></span><button class="btn small ghost" data-act="mlg-del" data-id="'+esc(k)+'">Sil</button></div>';}).join('')+'</div>':'';
-  return tgl('mlg','Mağaza logoları','Açıklamada adı geçen mağazanın gerçek logosu gösterilir (Migros, Trendyol, Netflix…). Logo internetten gelir; yalnızca mağazanın site adı gönderilir.')
+  return tgl('mlg','Gerçek logolar','Mağaza, banka, hisse, fon ve kripto logoları ile döviz bayrakları gösterilir (Migros, Garanti, THY, Bitcoin…). Logo internetten gelir; yalnızca ilgili site adı ya da ülke kodu gönderilir.')
    +(S.mlg!==false?'<div class="lbl">Listede olmayan mağaza</div>'+ls+'<div class="two"><div class="field"><label for="ml-n">Açıklamada geçen ad</label><input id="ml-n" placeholder="kahveci ali" autocapitalize="off"></div><div class="field"><label for="ml-d">Mağazanın sitesi</label><input id="ml-d" placeholder="kahveciali.com" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false"></div></div><div class="err" id="ml-err"></div><button class="btn" data-act="mlg-add">Logo ekle</button>':'');
 }
 ACT['mlg-add']=function(){

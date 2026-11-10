@@ -209,7 +209,7 @@ function acctLine(a){
   if(t==='kart'){if(+x.limit>0)sub.push('Kullanılabilir '+moneyIn(Math.max(+x.limit+b,0),a,1));if(x.due)sub.push('Son ödeme: ayın '+x.due+sfx(x.due));}
   /* 4.15: bu dönemdeki net hareket ve birikim faizi */
   else if(!x.arch){var pf=0;monthTx(curP()).forEach(function(tx){if(tx.acct===a||tx.to===a)pf+=txDelta(tx,a);});if(Math.abs(pf)>=1)sub.push('Bu dönem '+(pf>=0?'+':'−')+moneyIn(Math.abs(pf),a,1));if(aRate(a))sub.push('Yıllık %'+NUM2.format(aRate(a))+' faiz');}
-  return '<button class="item" data-act="acct-open" data-id="'+esc(a)+'"><span class="dot" style="background:'+color(a)+'"></span><span class="mid"><div class="t">'+esc(a)+'</div>'+(sub.length?'<div class="small muted">'+esc(sub.join(' · '))+'</div>':'')+'</span><span class="num'+(b<0?' exp':'')+'">'+moneyIn(b,a)+'</span></button>';
+  return '<button class="item" data-act="acct-open" data-id="'+esc(a)+'">'+acctIc(a)+'<span class="mid"><div class="t">'+esc(a)+'</div>'+(sub.length?'<div class="small muted">'+esc(sub.join(' · '))+'</div>':'')+'</span><span class="num'+(b<0?' exp':'')+'">'+moneyIn(b,a)+'</span></button>';
 }
 /* Hesaplar: türe göre gruplar (boş gruplar gizli); hesap eklemek tek düğmede, transfer + düğmesindeki işlem penceresinde */
 function hesapBody(){

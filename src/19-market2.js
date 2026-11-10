@@ -9,11 +9,12 @@ ACT['m-cat']=function(el,id,v){ui.mcat=v||'';mUpd();};
 ACT['m-mv']=function(el,k){mSheet(k);};
 /* satır rozeti: döviz simgesi, altın/gümüş, hisse ve fon kodu */
 var MSYMB={USD:'$',EUR:'€',GBP:'£',CHF:'₣',JPY:'¥',ONS:'oz',BRENT:'Br',XU100:'100',GUMUS:'Ag'};
-function mBadge(k){var m=mk(k),s=mSym(k),t,c;
+function mBadge(k,cls){var m=mk(k),s=mSym(k),t,c,d=lgOn()?mLogo(k):'',art=mArt(k);if(d&&MRC_BAD[d])d='';
   if(m.src==='fx'){t=MSYMB[m.sym]||(MGOLD[m.sym]?'Au':m.sym.slice(0,3));c=MGOLD[m.sym]&&m.sym!=='XU100'&&m.sym!=='BRENT'?(m.sym==='GUMUS'?'var(--ink2)':'var(--warn)'):(m.sym==='XU100'?'var(--accent)':'var(--blue)');}
   else if(m.src==='cg'){t={bitcoin:'₿',ethereum:'Ξ'}[m.sym]||s.slice(0,3);c='var(--warn)';}
   else{t=s.replace(/\.[A-Z]+$/,'').slice(0,m.src==='fon'?3:4);c=m.src==='bist'?'var(--accent)':(m.src==='fon'?'var(--inc)':'var(--ink2)');}
-  return '<span class="mbadge'+(t.length>2?' sm':'')+'" style="--c:'+c+'" aria-hidden="true">'+esc(t)+'</span>';}
+  if(art)return '<span class="mbadge art'+(cls?' '+cls:'')+'" style="--c:'+c+'" aria-hidden="true">'+art+'</span>';
+  return '<span class="mbadge'+(t.length>2?' sm':'')+(d?lgCls(d):'')+(cls?' '+cls:'')+'" style="--c:'+c+'" aria-hidden="true">'+esc(t)+(d?lgImg(d):'')+'</span>';}
 function chgPill(c){if(c==null||!isFinite(c))return '';var cl=c>0.0049?'up':(c<-0.0049?'dn':'');return '<span class="chg num '+cl+'">'+pctTxt(c)+'</span>';}
 /* elindeki: bu fiyata bağlı yatırımlar (piyasa bağlantısı ya da aynı döviz/altın) */
 function mHolds(k){var m=mk(k),f=m.src==='fx'&&MFXK[m.sym];return S.holdings.filter(function(h){return hKind(h)==='inv'&&(h.mk===k||(f&&!h.mk&&h.ccy===f));});}

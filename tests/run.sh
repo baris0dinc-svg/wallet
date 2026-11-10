@@ -15,8 +15,8 @@ trap 'kill $S1 $S2 2>/dev/null' EXIT
 sleep 1
 declare -A PASS=( [math]="ALL PASS" [nav]="ALL PASS" [native]="ALL PASS" [sms]="ALL PASS" [regress]="ALL PASS"
   [multiccy]="ALL PASS" [fire]="ALL PASS" [calc]="ALL PASS" [migrate]="no page errors" [overflow]="TAŞMA YOK"
-  [monkey]="HEPSİ TEMİZ" [update]="BUSY PROMPT PASS" [v31]="ALL PASS" [v33]="ALL PASS" [em]="ALL PASS" [ease]="ALL PASS" [security]="ALL PASS" [brain]="ALL PASS" [review]="ALL PASS" [coach]="ALL PASS" [markets]="ALL PASS" [updcheck]="ALL PASS" [fix47]="ALL PASS" [v412]="ALL PASS" [fix413]="ALL PASS" [v415]="ALL PASS" [v421]="ALL PASS" )
-LIST=("$@"); [ ${#LIST[@]} -eq 0 ] && LIST=(math sms v31 v33 em ease security brain review coach markets nav native regress multiccy fire calc migrate overflow monkey updcheck fix47 v412 fix413 v415 v421 update)
+  [monkey]="HEPSİ TEMİZ" [update]="BUSY PROMPT PASS" [v31]="ALL PASS" [v33]="ALL PASS" [em]="ALL PASS" [ease]="ALL PASS" [security]="ALL PASS" [brain]="ALL PASS" [review]="ALL PASS" [coach]="ALL PASS" [markets]="ALL PASS" [updcheck]="ALL PASS" [fix47]="ALL PASS" [v412]="ALL PASS" [fix413]="ALL PASS" [v415]="ALL PASS" [v421]="ALL PASS" [v422]="ALL PASS" )
+LIST=("$@"); [ ${#LIST[@]} -eq 0 ] && LIST=(math sms v31 v33 em ease security brain review coach markets nav native regress multiccy fire calc migrate overflow monkey updcheck fix47 v412 fix413 v415 v421 v422 update)
 FAILED=()
 for t in "${LIST[@]}"; do
   passed=0

@@ -58,7 +58,7 @@ function txRow(t){
   if(t.type==='inv'||t.type==='dbt'||t.type==='adj'){var lb=mvLabel(t),up=txDelta(t,t.acct)>0;
     return '<button class="item" data-act="edit-tx" data-id="'+t.id+'">'+(t.type==='dbt'?mvIc('bank','warn'):(t.type==='inv'?mvIc('trend','blue'):mvIc('scale','ink2')))+'<span class="mid"><div class="t">'+esc(t.note||lb)+'</div><div class="small muted ell">'+esc((t.note?lb+' · ':'')+t.acct)+'</div></span><span class="num'+(up?' inc':'')+'">'+(up?'+':'−')+moneyIn(Math.abs(t.amt),t.acct)+'</span></button>';}
   var inc=t.type==='inc';
-  return '<button class="item" data-act="edit-tx" data-id="'+t.id+'">'+cic(t.cat)+'<span class="mid"><div class="t">'+(t.rc?'<span class="rcm" title="Fiş fotoğrafı var">'+ic('camera')+'</span>':'')+esc(t.note||t.sub||t.cat)+'</div><div class="small muted ell">'+(t.note?esc(catLabel(t.cat,t.sub))+' · ':(t.sub?esc(t.cat)+' · ':''))+esc(t.acct)+(t.split?' · bölünmüş':'')+(t.inst?' · taksitli':'')+'</div></span><span class="num '+(inc?'inc':'exp')+'">'+(inc?'+':'−')+moneyIn(t.amt,t.acct)+'</span></button>';
+  return '<button class="item" data-act="edit-tx" data-id="'+t.id+'">'+mrcIc([t.note,t.sub],t.cat)+'<span class="mid"><div class="t">'+(t.rc?'<span class="rcm" title="Fiş fotoğrafı var">'+ic('camera')+'</span>':'')+esc(t.note||t.sub||t.cat)+'</div><div class="small muted ell">'+(t.note?esc(catLabel(t.cat,t.sub))+' · ':(t.sub?esc(t.cat)+' · ':''))+esc(t.acct)+(t.split?' · bölünmüş':'')+(t.inst?' · taksitli':'')+'</div></span><span class="num '+(inc?'inc':'exp')+'">'+(inc?'+':'−')+moneyIn(t.amt,t.acct)+'</span></button>';
 }
 function dcol(i){return 'hsl('+((i*67+155)%360)+' 52% 55%)';}
 function ccySel(id,val){return '<span class="ccy"><select id="'+id+'" aria-label="Para birimi">'+CCYS.map(function(c){return '<option value="'+c+'"'+(c===val?' selected':'')+'>'+CCYS_SHORT[c]+'</option>';}).join('')+'</select>'+ic('down')+'</span>';}
@@ -342,7 +342,7 @@ function duzenliBody(){
     var q=recShow(r,ui.month),paid=recPaid(r,q),st,dd=dueDate(r,q),dbt=r.debt&&byId(S.debts,r.debt),on=recOn(r,ui.month),inc=!!r.inc,wq=isWk(r)?occs(r,ui.month):null;
     var fq=recFq(r),no=+r.n>0&&on?recNo(r,q)+'/'+r.n:'',wp=wq&&wq.length>1?wq.filter(function(x){return recPaid(r,x);}).length+'/'+wq.length+' '+(inc?'geldi':'ödendi'):'';
     var sub=esc([on?pdate(dd).toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):'',fq,no?(isWk(r)?'':'taksit ')+no:'',wp,dbt?'Borç: '+dbt.name:catLabel(r.cat,r.sub),r.acct].filter(Boolean).join(' · '));
-    var head=function(am){return '<button class="rmain" data-act="edit-r" data-id="'+r.id+'">'+cic(r.cat)+'<span class="mid"><span class="rtop"><span class="t ell">'+esc(r.name)+'</span>'+am+'</span><span class="small muted rsub">'+sub+'</span></span></button>';};
+    var head=function(am){return '<button class="rmain" data-act="edit-r" data-id="'+r.id+'">'+mrcIc([r.name,r.sub],r.cat)+'<span class="mid"><span class="rtop"><span class="t ell">'+esc(r.name)+'</span>'+am+'</span><span class="small muted rsub">'+sub+'</span></span></button>';};
     if(!on){return '<div class="ritem">'+head('<span class="num">'+moneyIn(r.amt,r.acct,1)+'</span>')+'<div class="rfoot"><span class="pill">'+(recDone(r)?'Tamamlandı':'Bu dönem yok')+'</span></div></div>';}
     if(paid)st='<span class="pill ok">'+(inc?'Geldi':'Ödendi')+'</span>';
     else if(ui.month===cur){var diff=daysBetween(t0,dd);st=diff<0?'<span class="pill late">'+(-diff)+' gün gecikti</span>':(diff===0?'<span class="pill late">Bugün</span>':'<span class="pill">'+diff+' gün sonra</span>');}

@@ -708,3 +708,9 @@ ol.steps{margin:0;padding-left:20px;display:grid;gap:6px}
 .ctrend .cb.on i{opacity:1}
 .ctrend .cb .small{font-size:.6875rem;white-space:nowrap}
 .ctrend .cb.on .muted{color:var(--ink);font-weight:600}
+
+/* ---------- 4.22: gerçek mağaza logosu (yüklenince kategori simgesinin üstünü kaplar) ---------- */
+.cic.mlg{position:relative;overflow:hidden}
+.cic.mlg img{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:contain;background:#fff;border-radius:inherit;opacity:0}
+.cic.mlg.ok img{opacity:1}
+.cic.mlg.ok{box-shadow:inset 0 0 0 1px var(--line)}

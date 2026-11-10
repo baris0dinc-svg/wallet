@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.21';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.22';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -221,6 +221,7 @@ function norm(d){
   if(!d.subs||typeof d.subs!=='object'||Array.isArray(d.subs)){d.subs={};Object.keys(SUB_DEF).forEach(function(c){if(d.cats.exp.indexOf(c)>=0)d.subs[c]=SUB_DEF[c].slice();});}
   Object.keys(d.subs).forEach(function(c){if(!Array.isArray(d.subs[c]))delete d.subs[c];else d.subs[c]=d.subs[c].filter(function(x){return typeof x==='string'&&x;});});
   d.catIc=d.catIc&&typeof d.catIc==='object'?d.catIc:{};
+  d.mlg=d.mlg!==false;var ml={};if(d.mlgs&&typeof d.mlgs==='object')Object.keys(d.mlgs).forEach(function(k){var v=mrcClean(d.mlgs[k]);if(v&&k.length>=2&&k.length<=60)ml[k]=v;});d.mlgs=ml;
   d.rules=d.rules||[];d.payday=d.payday||1;d.name=d.name||'';d.fs=d.fs||1;d.hide=!!d.hide;d.theme=d.theme||'auto';
   d.dccy=CCYS.indexOf(d.dccy)>=0?d.dccy:'TRY';d.openD=d.openD&&typeof d.openD==='object'?d.openD:{};d.defAcct=d.defAcct||'';
   d.sms=Object.assign({on:false,ntf:false,auto:false,pend:[],seen:[],map:{},recent:[]},d.sms||{});if(!Array.isArray(d.sms.recent))d.sms.recent=[];

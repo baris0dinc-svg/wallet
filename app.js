@@ -10,7 +10,7 @@ window.addEventListener('unhandledrejection',function(e){var r=e.reason;errLog('
 document.addEventListener('securitypolicyviolation',function(e){errLog('politika',e.violatedDirective,e.blockedURI);});
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.22';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.23';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -4223,18 +4223,22 @@ function mrcDom(txt){
   if(!d){var L=mrcList();for(var j=0;j<L.length;j++)if(L[j][0].test(f)){d=L[j][1];break;}}
   return MRC_C[k]=d;
 }
-function mrcUrl(d){return 'https://www.google.com/s2/favicons?sz=128&domain='+encodeURIComponent(d);}
+/* denenecek adresler, sırayla: sitenin kendisi, www'li hâli, tam adresi (servis bazı sitelerin logosunu yalnızca bunlardan biriyle verir);
+   "site,yedek" biçiminde birden çok site verilmişse sonraki siteler de aynı sırayla denenir */
+function mrcUrls(d){var o=[],g='https://www.google.com/s2/favicons?sz=128&';String(d).split(',').forEach(function(x){o.push(g+'domain='+encodeURIComponent(x),g+'domain=www.'+encodeURIComponent(x),g+'domain_url='+encodeURIComponent('https://www.'+x+'/'));});return o;}
 /* liste satırı simgesi: mağaza tanınırsa logosu (yüklenene kadar ve yüklenemezse kategori simgesi), tanınmazsa kategori simgesi */
 function mrcIc(txts,c,cls){
   var d='';if(S.mlg!==false&&navigator.onLine!==false)for(var i=0;i<txts.length&&!d;i++)d=mrcDom(txts[i]);
   if(!d||MRC_BAD[d])return cic(c,cls);
-  return '<span class="cic mlg'+(MRC_OK[d]?' ok':'')+(cls?' '+cls:'')+'" style="color:'+color(c)+';background:'+catTint(c)+'" aria-hidden="true">'+ic(catIcKey(c))+'<img src="'+mrcUrl(d)+'" data-d="'+esc(d)+'" alt="" referrerpolicy="no-referrer"></span>';
+  return '<span class="cic mlg'+(MRC_OK[d]?' ok':'')+(cls?' '+cls:'')+'" style="color:'+color(c)+';background:'+catTint(c)+'" aria-hidden="true">'+ic(catIcKey(c))+'<img src="'+mrcUrls(d)[(MRC_OK[d]||1)-1]+'" data-d="'+esc(d)+'" data-s="'+((MRC_OK[d]||1)-1)+'" alt="""" referrerpolicy="no-referrer"></span>';
 }
-function mrcFail(g){MRC_BAD[g.dataset.d]=1;delete MRC_OK[g.dataset.d];var p=g.parentNode;if(p){p.classList.remove('ok');p.removeChild(g);}}
+function mrcFail(g){var d=g.dataset.d,u=mrcUrls(d),n=(+g.dataset.s||0)+1,p=g.parentNode;delete MRC_OK[d];if(p)p.classList.remove('ok');
+  if(n<u.length){g.dataset.s=n;g.src=u[n];return;}
+  MRC_BAD[d]=1;if(p)p.removeChild(g);}
 /* güvenlik politikası satır içi olay işleyicisine izin vermediği için yükleme/hata olayları belgeden yakalanır.
    Servis, simgesi olmayan site için 16 piksellik bir dünya resmi döndürür; o da "logo yok" sayılır. */
 document.addEventListener('load',function(e){var g=e.target;if(!g||g.tagName!=='IMG'||!g.dataset||!g.dataset.d)return;
-  if(g.naturalWidth<=16){mrcFail(g);return;}MRC_OK[g.dataset.d]=1;if(g.parentNode)g.parentNode.classList.add('ok');},true);
+  if(g.naturalWidth<=16){mrcFail(g);return;}MRC_OK[g.dataset.d]=(+g.dataset.s||0)+1;if(g.parentNode)g.parentNode.classList.add('ok');},true);
 document.addEventListener('error',function(e){var g=e.target;if(g&&g.tagName==='IMG'&&g.dataset&&g.dataset.d)mrcFail(g);},true);
 window.addEventListener('online',function(){MRC_BAD={};});
 /* Ayarlar › Genel › Görünüm: aç/kapat ve listede olmayan mağaza için kendi eşleştirmen */

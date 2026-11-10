@@ -54,11 +54,10 @@ const r=await p.evaluate(async()=>{const T=window.__T,o=[],S=T.S;const c=(x,m)=>
   // ---- piyasalar ----
   S.watch.push({k:'bist:THYAO',n:'Türk Hava Yolları',s:'THYAO'},{k:'cg:bitcoin',n:'Bitcoin',s:'BTC'});T.save();
   T.openPage({k:'piyasa'},'piyasa');await W(600);
-  const mr=k=>document.querySelector('#mres [data-id="'+k+'"]');
-  /* 4.29: CI'da canlı fiyat gelince liste yeniden çizilir; logoların yüklenmesini 5 sn'ye kadar bekle (sabit 600 ms ağ varken yetmiyordu) */
-  for(let i=0;i<25&&!(mr('cg:bitcoin')&&mr('cg:bitcoin').querySelector('.mbadge.mlg.ok img')&&mr('bist:THYAO')&&mr('bist:THYAO').querySelector('.mbadge.mlg.ok img'));i++)await W(200);
+  /* 4.29: canlı fiyatla çıkan "Günün yükseleni/düşeni" düğmesi (.mmv) aynı data-id'yi taşır; satırın kendisine bak */
+  const mr=k=>document.querySelector('#mres [data-id="'+k+'"]:not(.mmv)');
   c(!!mr('bist:THYAO')&&!!mr('bist:THYAO').querySelector('.mbadge.mlg.ok img'),'piyasada hisse logosu');
-  c(!!mr('cg:bitcoin')&&!!mr('cg:bitcoin').querySelector('.mbadge.mlg.ok img'),'piyasada kripto logosu '+(mr('cg:bitcoin')?mr('cg:bitcoin').outerHTML.slice(0,500):'satır yok')+' bad='+JSON.stringify(T.MRC_BAD||null)+' on='+navigator.onLine);
+  c(!!mr('cg:bitcoin')&&!!mr('cg:bitcoin').querySelector('.mbadge.mlg.ok img'),'piyasada kripto logosu');
   c(!mr('fx:USD')||!!mr('fx:USD').querySelector('.mbadge.flg.ok img'),'piyasada dolar bayrağı');
   c(!!mr('fon:XYZ')&&!mr('fon:XYZ').querySelector('img')&&/XYZ/.test(mr('fon:XYZ').querySelector('.mbadge').textContent),'logosu olmayan fonda kod rozeti');
   T.ui.page=null;

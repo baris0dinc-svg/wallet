@@ -29,7 +29,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
  chk(ak.st==='now'&&/6\.000/.test(ak.sum),'C: açık 6.000 '+ak.sum);
  chk(/Kira/.test(ak.body)&&/18\.000/.test(txt(ak.body))&&/30\.000/.test(txt(ak.body))&&/36\.000/.test(txt(ak.body)),'C: gelir, gider ve en büyük kalem gösterilir: '+txt(ak.body));
  chk(T.coachCur(l)===0,'C: ilk adım şimdiki adım');
- T.ui.sub='ev';T.ui.page=null;T.render();chk(/Gelirin giderini karşılasın/.test((document.querySelector('.cochome')||{}).innerText||''),'C: ana sayfa Koç kartı');
+ T.ui.sub='plan';T.ui.plan='koc';T.ui.page=null;T.render();chk(/Gelirin giderini karşılasın/.test((document.querySelector('.kocnow')||{}).innerText||''),'C: Plan › Koç şu anki adım');
  // C2. fazla veren bütçe: açık uyarısı yok, tasarruf oranı doğru
  l=mk({inc:40000,exp:30000,liquid:200000});chk(st(l,'akis').st==='done'&&/%25/.test(st(l,'akis').sum)&&!/açık/.test(st(l,'akis').body),'C2: tasarruf oranı %25 '+st(l,'akis').sum);
  // D. 1 aylık tampon eksik

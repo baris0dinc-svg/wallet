@@ -15,12 +15,12 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  // ana sayfa: kalan kartı, işlem ekle, Koç, piyasa şeridi, notlar ve hesaplayıcılar, ayarlar
  chk(!!$('#left-now'),'bu dönem kalan');
  // 4.12: İşlem ekle kartı kaldırıldı (Gelir/Gider/Transfer düğmeleri yeter); sesle ekleme başlıkta
- chk(!$('.addmain')&&!$('.addcard'),'işlem ekle kartı yok');chk(!$('header [data-act="voice"]')&&!$('header [data-v="notlar"]')&&$$q('header .icon-btn').length===3,'başlıkta yalnız ara, uyarılar, ayarlar');
+ chk(!$('.addmain')&&!$('.addcard'),'işlem ekle kartı yok');chk(!$('header [data-act="voice"]')&&!$('header [data-v="notlar"]')&&$$q('header .icon-btn').length===2,'4.30: başlıkta yalnız uyarılar ve ayarlar');
  click('#qa [data-act="qa-exp"]');chk(/Gider ekle/.test(sheetT()),'Gider düğmesi işlem penceresi');back();
  click('.nwbig');chk(T.ui.sub==='servet'&&!!$('.nw .big'),'net servet Hesaplar’a');click('#tabbar [data-v="ev"]');
- {const gi=$$q('.gundem .list > .item'),k=c=>gi.map((e,i)=>e.classList.contains(c)?i:-1).filter(i=>i>=0),al=k('al'),bi=k('bi');
-  chk(gi.length>1&&gi[gi.length-1].classList.contains('cochome')&&(!al.length||!bi.length||Math.max(...al)<Math.min(...bi)),'Gündem: önce ödeme/bütçe uyarıları, sonra akıllı tespitler, Koç adımı en sonda');}
- click('.cochome');chk(T.ui.sub==='plan'&&T.ui.plan==='koc'&&!!$('#view .kocnow'),'Koç kartı Plan › Koç');
+ // 4.30: Gündem kartı yok; uyarılar zilde, Koç Plan › Koç'ta
+ chk(!$('.gundem')&&!$('.cochome'),'4.30: ana sayfada Gündem yok');
+ click('#tabbar [data-v="plan"]');click('[data-act="plan"][data-v="koc"]');chk(T.ui.sub==='plan'&&T.ui.plan==='koc'&&!!$('#view .kocnow'),'Plan › Koç');
  {const tl=$('#view .homelinks'),rm=[...document.querySelectorAll('#view .card h2')].find(e=>/Yol haritan/.test(e.innerText));chk(tl&&rm&&(tl.compareDocumentPosition(rm)&4)&&($('#view .kocnow').compareDocumentPosition(tl)&4),'Koç: Hesaplayıcılar ve Claude’a sor şu anki adımın hemen altında');}
  click('#view .kt[data-act="an-go"][data-v="ozet"]');chk(T.ui.sub==='analiz'&&T.ui.an==='ozet','Koç › Tasarruf oranı Analiz › Özet’e');
  click('#tabbar [data-v="ev"]');
@@ -52,11 +52,11 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  {const m0=T.ui.month;click('#secbody [data-act="mprev"]');chk(T.ui.txv==='cal'&&T.ui.month===T.addMonth(m0,-1)&&!!$('.cd'),'takvimde önceki aya geçilir');T.ui.month=T.curP();T.render();}
  click('header [data-act="tx-view"]');chk(T.ui.txv==='list'&&!!$('#txlist')&&!$('.cd'),'takvimden listeye');
  click('header [data-act="tx-view"]');click('#tabbar [data-v="ev"]');click('.linkbtn[data-act="tx-all"]');chk(T.ui.sub==='islem'&&T.ui.txv==='list'&&!!$('#txlist'),'Son işlemler › Tümü her zaman listeyi açar');
- click('header [data-act="tx-view"]');click('#tabbar [data-v="ev"]');click('header [data-act="srch"]');chk(T.ui.txv==='list'&&!!$('#tq'),'ana sayfadaki ara listeyi açar');
+ click('header [data-act="tx-view"]');click('#tabbar [data-v="ev"]');chk(!$('header [data-act="srch"]'),'4.30: başlıkta ara düğmesi yok');click('#tabbar [data-v="islem"]');if(T.ui.txv==='cal')click('header [data-act="tx-view"]');chk(T.ui.txv==='list'&&!!$('#tq'),'arama İşlemler listesinde');click('#tabbar [data-v="ev"]');
  act('an-go',null,'takvim');chk(T.ui.sub==='islem'&&T.ui.txv==='cal'&&!!$('.cd'),'eski Analiz › Takvim bağlantısı İşlemler takvimine gider');T.ui.txv='list';
- click('#tabbar [data-v="analiz"]');click('[data-act="an"][data-v="harcama"]');chk(!!$('#secbody [data-act="plan-go"]')&&!!$('#secbody .donut'),'4.5: Kategoriler’de dağılım pastası ve Bütçeler kartı');
+ click('#tabbar [data-v="analiz"]');click('[data-act="an"][data-v="harcama"]');chk(!$('#secbody [data-act="plan-go"]')&&!/En büyük harcamalar|Dağılım/.test($('#secbody').innerText),'4.30: Kategoriler’de tekrar eden pasta, Bütçeler kartı ve En büyük harcamalar yok');
  click('#tabbar [data-v="plan"]');click('[data-act="plan"][data-v="butce"]');chk(!page()&&T.ui.sub==='plan'&&T.ui.plan==='butce','Plan › Bütçe');
- click('#view .linkbtn[data-act="an-go"]');chk(!page()&&T.ui.sub==='analiz'&&T.ui.an==='harcama','bütçeden analize');
+ chk(!$('#view .linkbtn[data-act="an-go"]'),'4.30: Bütçe’de Analiz’e dönen bağlantı yok (alt menüde var)');
  click('#tabbar [data-v="analiz"]');chk($$q('[data-act="an"]').length===2&&!$('[data-act="an"][data-v="takvim"]')&&/Kategoriler/.test($('[data-act="an"][data-v="harcama"]').innerText),'Analiz: Özet, Kategoriler (Takvim İşlemler’de)');
  act('an',null,'servet');chk(T.ui.sub==='servet'&&!!$('#secbody .nwchart'),'eski Analiz › Servet Hesaplar’daki net servet grafiğine gider');
  click('#secbody [data-act="nwr"][data-v="12"]');chk(T.ui.nwr===12&&!!$('#secbody [data-act="nwr"][data-v="12"][aria-pressed="true"]'),'grafik süresi 1 yıl');
@@ -96,8 +96,8 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  // uyarı şeridi → pencere → Ödendi
  // uyarılar Gündem'de düğmeleriyle: Ödendi tek dokunuş, sonra tutar düzeltilebilir (değişken faturalar)
  const rd=new Date();T.S.recurring.push({id:'ra',name:'Uyarı testi',amt:5,day:rd.getDate(),cat:'Fatura',acct:'Banka',paid:{}});T.render();
- const pb=$('.gundem [data-act="al-pay"][data-id="ra"]');chk(!!pb,'Gündem’de Ödendi düğmesi');
- if(pb){const n0=T.S.tx.length;pb.click();chk(T.S.tx.length===n0+1&&!$('#sheet-root').innerHTML,'Gündem’den tek dokunuşla ödeme');chk(!$('.gundem [data-act="al-pay"][data-id="ra"]'),'ödenen uyarı kalktı');
+ click('header [data-act="alerts"]');const pb=$('.sheet [data-act="al-pay"][data-id="ra"]');chk(!!pb,'zildeki uyarılarda Ödendi düğmesi');
+ if(pb){const n0=T.S.tx.length;pb.click();chk(T.S.tx.length===n0+1,'zilden tek dokunuşla ödeme');chk(!$('.sheet [data-act="al-pay"][data-id="ra"]'),'ödenen uyarı kalktı');if($('#sheet-root').innerHTML)act('close');
   const tb=$('#toast button');chk(tb&&/Tutarı düzenle/.test(tb.innerText),'ödeme sonrası tutar düzeltme');if(tb){tb.click();chk(/İşlemi düzenle/.test(sheetT())&&$('#f-amt').value==='5','düzeltme penceresi ödeme işlemini açar');back();}}
  T.S.recurring=T.S.recurring.filter(r=>r.id!=='ra');T.render();chk(o.b[0]===true&&o.b[1]==='ev'&&o.b[2]===false,'bölümden geri '+o.b);
  }catch(e){F.push('HATA '+e.message+' @'+String(e.stack||'').split('\n')[1]);}

@@ -42,7 +42,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  // (4.0: hızlı işlem daireleri kaldırıldı; tüm eylemler sabit yerlerinde)
  // 7 uyarılar kısalır
  T.S.recurring=[1,2,3,4,5].map(i=>({id:'r'+i,name:'Ödeme '+i,amt:10,day:new Date().getDate(),cat:'Fatura',acct:'Banka',paid:{}}));T.ui.sub='ev';T.render();
- chk(document.querySelectorAll('.gundem [data-act="al-pay"]').length===3&&/\(5\)/.test(($('.gundem .almore')||{}).innerText||''),'Gündem’de 3 uyarı + Tüm uyarılar (5)');act('alerts');chk(document.querySelectorAll('.sheet .item').length===5&&document.querySelectorAll('.sheet [data-act="al-pay"]').length===5,'uyarı penceresi 5 + Ödendi');act('close');
+ chk(!document.querySelector('.gundem')&&/5/.test(($('header .bellb .badge')||{}).innerText||''),'4.30: zil rozetinde 5 uyarı');act('alerts');chk(document.querySelectorAll('.sheet .item').length===5&&document.querySelectorAll('.sheet [data-act="al-pay"]').length===5,'uyarı penceresi 5 + Ödendi');act('close');
  // hızlı kategori ve tarih
  act('qa-exp');const cc=[...document.querySelectorAll('#f-catchips .chip[data-act="cat-pick"]')];chk(cc.length===T.S.cats.exp.length&&cc[0].dataset.v==='Market','kategori düğmeleri sık kullanılan önde '+(cc[0]&&cc[0].dataset.v));
  document.querySelector('#f-catchips [data-v="Kira"]').click();chk($('#f-cat').value==='Kira'&&$('#f-catchips [data-v="Kira"]').getAttribute('aria-pressed')==='true','kategori düğmesi seçer');

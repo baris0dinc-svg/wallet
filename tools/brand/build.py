@@ -123,6 +123,8 @@ def main():
     fg_w = BW * (31.5 / RMAX)
     w(os.path.join(res, 'drawable/ic_launcher_fg.xml'), vec(108, 108, logo_vec(108, fg_w)))
     w(os.path.join(res, 'drawable/ic_launcher_mono.xml'), vec(108, 108, logo_vec(108, fg_w, '#FFFFFFFF')))
+    # 4.30: bildirim simgesi zil değil logo (durum çubuğu tek renk ister; renk Reminders.setColor ile)
+    w(os.path.join(res, 'drawable/ic_notif.xml'), vec(24, 24, logo_vec(24, 22, '#FFFFFFFF')))
     bg = ('<path android:pathData="M0,0h108v108h-108z"><aapt:attr name="android:fillColor"><gradient android:type="radial" '
           'android:centerX="54" android:centerY="41" android:gradientRadius="84"><item android:offset="0" android:color="%s"/>'
           '<item android:offset="1" android:color="%s"/></gradient></aapt:attr></path>') % (BG_HI, BG_LO)
@@ -175,19 +177,42 @@ def main():
     def mask(vw, vh, d):
         svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %.1f %.1f"><path fill-rule="evenodd" d="%s"/></svg>' % (vw, vh, d)
         return 'url("data:image/svg+xml,%s")' % urllib.parse.quote(svg, safe=' /=:,.-#')
+    # 4.30: daha özenli açılış: logo üstte (marka renk geçişiyle), altında "Wallet" ve kısa alt yazı; arkada hafif ışık,
+    # altta dolan ince çizgi (açılış süresi kadar). Telefonun temasını izler; hareket azaltılmışsa animasyon yok.
     css = (
-        '#splash{position:fixed;inset:0;z-index:9999;background:%(dbg)s;display:flex;align-items:center;justify-content:center;transition:opacity .45s ease}'
-        '#splash .sp-r{display:flex;align-items:center;gap:17px;animation:spIn .5s cubic-bezier(.2,.7,.2,1) both}'
+        '#splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;'
+        'background:radial-gradient(120%% 70%% at 50%% 38%%,%(dhi)s 0%%,%(dbg)s 58%%,%(dlo)s 100%%);transition:opacity .45s ease,transform .45s ease}'
+        '#splash .sp-r{position:relative;display:flex;flex-direction:column;align-items:center}'
+        '#splash .sp-g{position:absolute;left:50%%;top:34px;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%%;'
+        'background:radial-gradient(circle,%(dglow)s 0%%,transparent 68%%);opacity:0;animation:spGlow 1.3s ease-out .1s both}'
         '/* yalnızca -webkit-mask: eski Android WebView içinde öneksiz mask öğeyi tümüyle gizler */'
-        '#splash .sp-l{display:block;flex:none;width:66px;height:42px;background:%(dink)s;-webkit-mask:%(m1)s center/100%% 100%% no-repeat}'
-        "#splash .sp-w{font:700 44px/1 'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-.01em;color:%(dink)s}"
-        '@media (prefers-color-scheme:light){#splash{background:%(lbg)s}#splash .sp-l{background:%(link)s}#splash .sp-w{color:%(link)s}}'
-        '#splash.out{opacity:0}'
-        '@keyframes spIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}'
-        '@media (prefers-reduced-motion:reduce){#splash .sp-r{animation:none}}'
-    ) % dict(dbg=DARK['bg'], dac=DARK['accent'], dink=DARK['ink'], lbg=LIGHT['bg'], lac=LIGHT['accent'], link=LIGHT['ink'], m1=mask(BW, BH, logo_d))
+        '#splash .sp-l{position:relative;display:block;width:108px;height:68px;'
+        'background:linear-gradient(135deg,%(dl0)s 0%%,%(dl1)s 55%%,%(dl2)s 100%%);-webkit-mask:%(m1)s center/100%% 100%% no-repeat;'
+        'animation:spLogo .7s cubic-bezier(.2,.8,.2,1) both}'
+        "#splash .sp-w{position:relative;margin-top:22px;font:700 34px/1 'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;"
+        'letter-spacing:-.01em;color:%(dink)s;animation:spUp .6s cubic-bezier(.2,.8,.2,1) .12s both}'
+        "#splash .sp-t{position:relative;margin-top:10px;font:500 14px/1.2 'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;"
+        'color:%(dmut)s;animation:spUp .6s cubic-bezier(.2,.8,.2,1) .24s both}'
+        '#splash .sp-b{position:absolute;left:50%%;bottom:calc(56px + env(safe-area-inset-bottom,0px));width:72px;height:3px;margin-left:-36px;'
+        'border-radius:3px;background:%(dtrk)s;overflow:hidden}'
+        '#splash .sp-b i{display:block;height:100%%;width:100%%;border-radius:3px;background:%(dac)s;transform-origin:left;animation:spBar 1.2s cubic-bezier(.4,0,.2,1) both}'
+        '@media (prefers-color-scheme:light){#splash{background:radial-gradient(120%% 70%% at 50%% 38%%,%(lhi)s 0%%,%(lbg)s 58%%,%(llo)s 100%%)}'
+        '#splash .sp-g{background:radial-gradient(circle,%(lglow)s 0%%,transparent 68%%)}'
+        '#splash .sp-l{background:linear-gradient(135deg,%(ll0)s 0%%,%(ll1)s 55%%,%(ll2)s 100%%)}#splash .sp-w{color:%(link)s}#splash .sp-t{color:%(lmut)s}'
+        '#splash .sp-b{background:%(ltrk)s}#splash .sp-b i{background:%(lac)s}}'
+        '#splash.out{opacity:0;transform:scale(1.03)}'
+        '@keyframes spLogo{from{opacity:0;transform:scale(.86)}to{opacity:1;transform:none}}'
+        '@keyframes spUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}'
+        '@keyframes spGlow{0%%{opacity:0;transform:scale(.6)}55%%{opacity:1}100%%{opacity:.7;transform:none}}'
+        '@keyframes spBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}'
+        '@media (prefers-reduced-motion:reduce){#splash .sp-l,#splash .sp-w,#splash .sp-t,#splash .sp-g,#splash .sp-b i{animation:none}#splash .sp-g{opacity:.7}#splash.out{transform:none}}'
+    ) % dict(dbg=DARK['bg'], dhi='#16231D', dlo='#0A100D', dglow='rgba(63,191,159,.22)', dl0=DARK['logo'][0], dl1=DARK['logo'][1], dl2=DARK['logo'][2],
+             dink=DARK['ink'], dmut='#8A9A93', dtrk='rgba(231,238,234,.12)', dac=DARK['accent'],
+             lbg=LIGHT['bg'], lhi='#FFFFFF', llo='#E4EAE5', lglow='rgba(14,107,88,.12)', ll0=LIGHT['logo'][0], ll1=LIGHT['logo'][1], ll2=LIGHT['logo'][2],
+             link=LIGHT['ink'], lmut='#5E6E67', ltrk='rgba(19,32,27,.1)', lac=LIGHT['accent'], m1=mask(BW, BH, logo_d))
     block = ('<!-- açılış:başla (tools/brand/build.py üretir) -->\n<style>%s</style>\n'
-             '<div id="splash" aria-hidden="true"><div class="sp-r"><i class="sp-l"></i><span class="sp-w">Wallet</span></div></div>\n<!-- açılış:bitir -->') % css
+             '<div id="splash" aria-hidden="true"><div class="sp-r"><i class="sp-g"></i><i class="sp-l"></i><span class="sp-w">Wallet</span>'
+             '<span class="sp-t">Paranın tamamı tek yerde</span></div><div class="sp-b"><i></i></div></div>\n<!-- açılış:bitir -->') % css
     ip = os.path.join(ROOT, 'index.html')
     h = open(ip, encoding='utf-8').read()
     h2 = re.sub(r'<!-- açılış:başla.*?<!-- açılış:bitir -->', lambda m: block, h, flags=re.S)

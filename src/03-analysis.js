@@ -107,16 +107,15 @@ function analizBody(){
     h+=monthNav()+(k===curP()?brainCard()+insights():'')+flowCard();
     if(!S.tx.some(function(t){return t.type==='inc'||t.type==='exp';}))return h;
     h+='<div class="card"><div class="ghead" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Gelir ve gider</h2><div class="seg mini" role="group" aria-label="Süre"><button data-act="trn" data-v="6" aria-pressed="'+(ui.tr===6)+'">6 ay</button><button data-act="trn" data-v="12" aria-pressed="'+(ui.tr===12)+'">12 ay</button></div></div>'+trendSvg(ui.tr)+'</div>';
-    h+=ageCard()+fireCard();
+    /* 4.30: FIRE kartı yalnız Plan › Koç'ta (Özgürlük göstergesi ve yol haritası) */
+    h+=ageCard();
     return h;
   }
   /* Kategoriler. 4.2: kategori listesinin tekrarı olan pasta grafikleri ve Bütçe'ye dönen bağlantı kartı kaldırıldı */
-  var big=m.filter(function(t){return t.type==='exp';}).sort(function(a,b){return txTL(b)-txTL(a);}).slice(0,5);
   var byA={};m.forEach(function(t){if(t.type==='exp')byA[t.acct]=(byA[t.acct]||0)+txTL(t);});var sbc=spentByCat(k),ak=Object.keys(byA);
-  h+=monthNav()+'<div class="card"><h2>Dağılım</h2>'+donut(Object.keys(sbc).map(function(c){return [c,sbc[c]];}),'Bu dönemde harcama yok.','cat-tx')+'</div>';
+  /* 4.30: Dağılım pastası (Kategoriler listesinin tekrarı), Bütçeler bağlantısı ve En büyük harcamalar (Nereye gitti'nin tekrarı) kalktı */
+  h+=monthNav()+(Object.keys(sbc).length?'':'<div class="card"><div class="empty">Bu dönemde harcama yok.</div></div>');
   h+='<div class="card"><h2>Kategoriler</h2>'+catChanges()+'</div>'+whereCard(k);
-  h+='<button class="setcard" data-act="plan-go" data-v="butce"><span class="sic" style="--c:var(--inc)">'+ic('scale')+'</span><span class="mid"><div class="t">Bütçeler</div><div class="small muted">Kategori limitlerini belirle ve takip et</div></span>'+ic('r')+'</button>';
-  if(big.length)h+='<div class="card" style="padding-top:12px"><h2>En büyük harcamalar</h2><div class="list">'+big.map(txRow).join('')+'</div></div>';
   if(ak.length>1)h+='<div class="card"><h2>Hesaplara göre</h2>'+donut(ak.map(function(a){return [a,byA[a]];}),'')+'</div>';
   return h+weekdayCard();
 }

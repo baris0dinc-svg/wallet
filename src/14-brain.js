@@ -126,7 +126,8 @@ function paydayHint(){
 
 /* ---- tespitlerin listesi ve kartı ---- */
 function brainItems(){
-  S.brainDis=S.brainDis||{};var D=S.brainDis,out=[];
+  /* 4.30: yalnız okunur (çizim sırasında S değişmesin; kaydedilmemiş değişiklik bırakmasın) */
+  var D=S.brainDis||{},out=[];
   /* kapatılanlar önce elenir, sonra her türden en çok 2 gösterilir (kapatılan bir öneri sıradakini gizlemesin) */
   var top=function(l){return l.filter(function(x){return !D[x.key];}).slice(0,2);};
   top(dupTx()).forEach(function(x){if(!D[x.key])out.push({key:x.key,c:'warn',ic:'copy',t:'Olası çift kayıt: '+esc(x.b.note||x.b.cat)+' '+esc(moneyIn(x.b.amt,x.b.acct,1))+' ('+esc(pdate(x.b.date).toLocaleDateString('tr-TR',{day:'numeric',month:'long'}))+', '+esc(x.b.acct)+') iki kez girilmiş.',btn:'Birini sil',act:'br-dup',id:x.b.id});});

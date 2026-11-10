@@ -62,6 +62,8 @@ public class Reminders extends BroadcastReceiver {
         PendingIntent cp = PendingIntent.getActivity(c, 0, open, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         Notification no = new Notification.Builder(c, CHANNEL)
                 .setSmallIcon(R.drawable.ic_notif)
+                .setLargeIcon(android.graphics.drawable.Icon.createWithResource(c, R.drawable.notif_large))
+                .setColor(0xFF0E6B58)
                 .setContentTitle(title)
                 .setContentText(body)
                 .setStyle(new Notification.BigTextStyle().bigText(body))

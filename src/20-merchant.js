@@ -13,13 +13,13 @@ var MRC_T=
  /* giyim, ayakkabı, kozmetik */
 +'lcwaikiki.com:lc ?waikiki|lcw|waikiki;defacto.com.tr:defacto;koton.com:koton;mavi.com:mavi jeans|=mavi;zara.com:zara;hm.com:h ?& ?m|=hm;boyner.com.tr:boyner;beymen.com:beymen;flo.com.tr:flo;'
 +'bershka.com:bershka;pullandbear.com:pull ?(and|&) ?bear;stradivarius.com:stradivarius;mango.com:=mango;decathlon.com.tr:decathlon;nike.com:nike;adidas.com.tr:adidas;puma.com:puma;'
-+'skechers.com.tr:skechers;newbalance.com.tr:new balance;colins.com.tr:colin.?s;penti.com:penti;vakko.com:vakko;ipekyol.com.tr:ipekyol;kigili.com:kigili;sarar.com:sarar;'
-+'altinyildizclassics.com:altinyildiz;uspoloassn.com.tr:u\\.?s\\.? ?polo;lacoste.com.tr:lacoste;levis.com.tr:levi.?s;superstep.com.tr:superstep;instreet.com.tr:instreet;'
-+'derimod.com.tr:derimod;hotic.com.tr:hotic;gratis.com:gratis;watsons.com.tr:watsons;rossmann.com.tr:rossmann;sephora.com.tr:sephora;flormar.com.tr:flormar;yvesrocher.com.tr:yves rocher;'
++'skechers.com.tr:skechers;newbalance.com.tr:new balance;colins.com.tr:colin.?s;penti.com:penti;vakko.com:vakko;ipekyol.com.tr:ipekyol;kigili.com:kigili;sarar.com.tr:sarar;'
++'altinyildizclassics.com:altinyildiz;tr.uspoloassn.com,uspoloassn.com:u\\.?s\\.? ?polo;lacoste.com.tr:lacoste;levis.com.tr:levi.?s;superstep.com.tr:superstep;instreet.com.tr:instreet;'
++'derimod.com.tr:derimod;hotic.com.tr:hotic;gratis.com:gratis;watsons.com.tr:watsons;rossmann.com.tr:rossmann;sephora.com:sephora;flormar.com.tr:flormar;yvesrocher.com.tr:yves rocher;'
 +'atasay.com:atasay;altinbas.com:altinbas;saatvesaat.com.tr:saat ?(ve|&) ?saat;atasunoptik.com.tr:atasun;e-bebek.com:e-?bebek;civilim.com:civil;'
  /* elektronik, iletişim */
 +'teknosa.com:teknosa;mediamarkt.com.tr:media ?markt;vatanbilgisayar.com:vatan bilgisayar|vatan computer|=vatan;apple.com:apple|app store|icloud|itunes;samsung.com:samsung;mi.com:xiaomi;'
-+'turkcell.com.tr:turkcell|superonline|paycell;vodafone.com.tr:vodafone;turktelekom.com.tr:turk ?telekom|ttnet;turk.net:turknet|turk\\.net;digiturk.com.tr:digiturk;dsmart.com.tr:d-?smart;'
++'paycell.com.tr:paycell;turkcell.com.tr:turkcell|superonline;vodafone.com.tr:vodafone;turktelekom.com.tr:turk ?telekom|ttnet;turk.net:turknet|turk\\.net;digiturk.com:digiturk;dsmart.com.tr:d-?smart;'
  /* abonelik, yazılım, oyun */
 +'netflix.com:netflix;spotify.com:spotify;youtube.com:youtube;disneyplus.com:disney;primevideo.com:prime video;blutv.com:blu ?tv;exxen.com:exxen;gain.tv:gain tv|=gain;todtv.com.tr:tod tv|=tod;'
 +'beinconnect.com.tr:bein;tabii.com:=tabii|tabii uyelik;mubi.com:mubi;hbomax.com:hbo;deezer.com:deezer;fizy.com:fizy;google.com:google;microsoft.com:microsoft|office 365;xbox.com:xbox|game pass;'
@@ -35,23 +35,23 @@ var MRC_T=
 +'jollytur.com:jolly ?tur|=jolly;tatilsepeti.com:tatil ?sepeti;tatilbudur.com:tatil ?budur;avis.com.tr:avis;garenta.com.tr:garenta;yolcu360.com:yolcu360;biletix.com:biletix;passo.com.tr:passo;'
 +'paribucineverse.com:cineverse|cinemaximum;'
  /* yeme içme */
-+'starbucks.com.tr:starbucks;kahvedunyasi.com:kahve dunyasi;mcdonalds.com.tr:mc ?donald.?s?;burgerking.com.tr:burger ?king;kfcturkiye.com:kfc;popeyes.com.tr:popeyes;dominos.com.tr:domino.?s;'
-+'littlecaesars.com.tr:little caesars;subway.com:subway;simitsarayi.com:simit sarayi;tavukdunyasi.com:tavuk dunyasi;komagene.com.tr:komagene;espressolab.com:espresso ?lab;gloriajeans.com.tr:gloria jean.?s?;'
++'starbucks.com.tr:starbucks;kahvedunyasi.com:kahve dunyasi;mcdonalds.com:mc ?donald.?s?;burgerking.com.tr:burger ?king;kfcturkiye.com:kfc;popeyes.com.tr:popeyes;dominos.com.tr:domino.?s;'
++'littlecaesars.com.tr,littlecaesars.com:little caesars;subway.com.tr:subway;simitsarayi.com.tr:simit sarayi;tavukdunyasi.com:tavuk dunyasi;komagene.com:komagene;espressolab.com:espresso ?lab;gloriajeans.com.tr:gloria jean.?s?;'
 +'mado.com.tr:mado;bigchefs.com.tr:big ?chefs;hdiskender.com:hd iskender;baydoner.com:baydoner;arbys.com.tr:arby.?s;tchibo.com.tr:tchibo;nespresso.com:nespresso;kofteciyusuf.com:kofteci yusuf;ozsut.com.tr:ozsut;'
  /* ev, yapı market, beyaz eşya, kitap, oyuncak */
 +'ikea.com.tr:ikea;koctas.com.tr:koctas;bauhaus.com.tr:bauhaus;tekzen.com.tr:tekzen;englishhome.com:english home;madamecoco.com:madame coco;karaca.com:karaca home|=karaca;bellona.com.tr:bellona;'
-+'istikbal.com.tr:istikbal mobilya|=istikbal;dogtas.com:dogtas;vivense.com:vivense;evidea.com:evidea;arcelik.com.tr:arcelik;beko.com.tr:beko;vestel.com.tr:vestel;bosch-home.com.tr:bosch;dyson.com.tr:dyson;'
++'istikbal.com.tr:istikbal mobilya|=istikbal;dogtas.com:dogtas;vivense.com:vivense;evidea.com:evidea;arcelik.com.tr:arcelik;beko.com.tr:beko;vestel.com:vestel;bosch-home.com.tr:bosch;dyson.com.tr:dyson;'
 +'philips.com.tr:philips;mudo.com.tr:mudo;dr.com.tr:d ?& ?r;kitapyurdu.com:kitap ?yurdu;idefix.com:idefix;bkmkitap.com:bkm ?kitap;toyzzshop.com:toyzz;lego.com:lego;petlebi.com:petlebi;'
  /* sağlık, spor */
 +'acibadem.com.tr:acibadem;medicalpark.com.tr:medical ?park;memorial.com.tr:memorial;medicana.com.tr:medicana;livhospital.com:liv hospital;dunyagoz.com:dunyagoz|dunya goz;macfit.com:mac ?fit;'
 +'sportive.com.tr:sportive;intersport.com.tr:intersport;'
  /* fatura, kamu, kargo, sigorta */
 +'enerjisa.com.tr:enerjisa;igdas.istanbul:igdas;iski.istanbul:iski;baskentdogalgaz.com.tr:baskent ?gaz|baskent dogalgaz;turkiye.gov.tr:e-?devlet;gib.gov.tr:gib|vergi dairesi;sgk.gov.tr:sgk|bagkur|bag-kur;'
-+'ptt.gov.tr:ptt;yurticikargo.com:yurtici kargo;araskargo.com.tr:aras kargo;mngkargo.com.tr:mng;suratkargo.com.tr:surat kargo;ups.com:ups;dhl.com:dhl;fedex.com:fedex;allianz.com.tr:allianz;'
-+'axasigorta.com.tr:axa;anadolusigorta.com.tr:anadolu sigorta;aksigorta.com.tr:aksigorta;turkiyesigorta.com.tr:turkiye sigorta;mapfre.com.tr:mapfre;'
++'ptt.gov.tr:ptt;yurticikargo.com:yurtici kargo;araskargo.com.tr:aras kargo;mngkargo.com.tr:mng;suratkargo.com.tr:surat kargo;ups.com:ups;dhl.de:dhl;fedex.com:fedex;allianz.com.tr:allianz;'
++'axa.com:axa;anadolusigorta.com.tr:anadolu sigorta;aksigorta.com.tr:aksigorta;turkiyesigorta.com.tr:turkiye sigorta;mapfre.com.tr:mapfre;'
  /* banka, ödeme, yatırım */
 +'garantibbva.com.tr:garanti bbva|garanti bankasi|garanti kart|bonus kart|=garanti;isbank.com.tr:is bankasi|isbank|is bank|maximum kart;akbank.com:akbank|axess;yapikredi.com.tr:yapi ?kredi|worldcard;'
-+'ziraatbank.com.tr:ziraat;halkbank.com.tr:halkbank|halk bankasi;vakifbank.com.tr:vakifbank|vakif bank;qnb.com.tr:qnb|finansbank;denizbank.com:denizbank;teb.com.tr:teb;ing.com.tr:ing;enpara.com:enpara;'
++'ziraatbank.com.tr:ziraat;halkbank.com.tr:halkbank|halk bankasi;vakifbank.com.tr:vakifbank|vakif bank;qnb.com.tr:qnb|finansbank;denizbank.com:denizbank;cepteteb.com.tr:teb;ing.com.tr:ing;enpara.com:enpara;'
 +'kuveytturk.com.tr:kuveyt ?turk;hsbc.com.tr:hsbc;odeabank.com.tr:odeabank|odea;fibabanka.com.tr:fibabanka;sekerbank.com.tr:sekerbank;albaraka.com.tr:albaraka;turkiyefinans.com.tr:turkiye finans;'
 +'nkolay.com:n ?kolay;papara.com:papara;paypal.com:paypal;iyzico.com:iyzico;wise.com:=wise|wise transfer;tosla.com:tosla;ininal.com:ininal;binance.com:binance;paribu.com:paribu;btcturk.com:btc ?turk;getmidas.com:midas';
 var MRC=null,MRC_C={},MRC_OK={},MRC_BAD={};
@@ -76,9 +76,9 @@ function mrcDom(txt){
   if(!d){var L=mrcList();for(var j=0;j<L.length;j++)if(L[j][0].test(f)){d=L[j][1];break;}}
   return MRC_C[k]=d;
 }
-/* denenecek adresler, sırayla: sitenin kendisi, www'li hâli, tam adresi (servis bazı sitelerin logosunu yalnızca bunlardan biriyle verir);
+/* denenecek adresler, sırayla: sitenin kendisi, www'li hâli, www'li ve www'siz tam adresi (servis bazı sitelerin logosunu yalnızca bunlardan biriyle verir);
    "site,yedek" biçiminde birden çok site verilmişse sonraki siteler de aynı sırayla denenir */
-function mrcUrls(d){var o=[],g='https://www.google.com/s2/favicons?sz=128&';String(d).split(',').forEach(function(x){o.push(g+'domain='+encodeURIComponent(x),g+'domain=www.'+encodeURIComponent(x),g+'domain_url='+encodeURIComponent('https://www.'+x+'/'));});return o;}
+function mrcUrls(d){var o=[],g='https://www.google.com/s2/favicons?sz=128&';String(d).split(',').forEach(function(x){o.push(g+'domain='+encodeURIComponent(x),g+'domain=www.'+encodeURIComponent(x),g+'domain_url='+encodeURIComponent('https://www.'+x+'/'),g+'domain_url='+encodeURIComponent('https://'+x+'/'));});return o;}
 /* liste satırı simgesi: mağaza tanınırsa logosu (yüklenene kadar ve yüklenemezse kategori simgesi), tanınmazsa kategori simgesi */
 function mrcIc(txts,c,cls){
   var d='';if(S.mlg!==false&&navigator.onLine!==false)for(var i=0;i<txts.length&&!d;i++)d=mrcDom(txts[i]);

@@ -21,7 +21,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x
   const M=[['Migros','migros.com.tr'],['migros’tan alışveriş','migros.com.tr'],['BİM','bim.com.tr'],['A101','a101.com.tr'],['a-101 market','a101.com.tr'],['ŞOK','sokmarket.com.tr'],['Şok Market','sokmarket.com.tr'],
     ['CarrefourSA','carrefoursa.com'],['Trendyol Yemek','trendyol.com'],['hepsiburada','hepsiburada.com'],['Getir','getir.com'],['Yemeksepeti','yemeksepeti.com'],['NETFLIX.COM','netflix.com'],['Spotify Premium','spotify.com'],
     ['LC Waikiki','lcwaikiki.com'],['H&M','hm.com'],['Pull&Bear','pullandbear.com'],['Pull and Bear','pullandbear.com'],['Mavi','mavi.com'],['Mavi’den','mavi.com'],['D&R','dr.com.tr'],['Starbucks','starbucks.com.tr'],
-    ['McDonald’s','mcdonalds.com.tr'],['Burger King','burgerking.com.tr'],['Shell','shell.com.tr'],['Opet','opet.com.tr'],['Turkcell fatura','turkcell.com.tr'],['Türk Telekom','turktelekom.com.tr'],['THY bilet','turkishairlines.com'],
+    ['McDonald’s','mcdonalds.com'],['Paycell','paycell.com.tr'],['U.S. Polo','tr.uspoloassn.com,uspoloassn.com'],['Burger King','burgerking.com.tr'],['Shell','shell.com.tr'],['Opet','opet.com.tr'],['Turkcell fatura','turkcell.com.tr'],['Türk Telekom','turktelekom.com.tr'],['THY bilet','turkishairlines.com'],
     ['İş Bankası','isbank.com.tr'],['Garanti','garantibbva.com.tr'],['IKEA','ikea.com.tr'],['Koçtaş','koctas.com.tr'],['PttAVM','pttavm.com'],['PTT','ptt.gov.tr'],['Saat&Saat','saatvesaat.com.tr'],['GetirYemek','getir.com'],['Çiçeksepeti','ciceksepeti.com'],['Kahve Dünyası','kahvedunyasi.com'],['İGDAŞ','igdas.istanbul']];
   M.forEach(m=>c(T.mrcDom(m[0])===m[1],'“'+m[0]+'” → '+m[1]+' (çıkan: '+T.mrcDom(m[0])+')'));
   // gündelik kelimeler yanlış logo getirmez
@@ -65,7 +65,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x
   const g8=row('m8')&&row('m8').querySelector('img'),g9=row('m9')&&row('m9').querySelector('img');
   c(!!g8&&/[?&]domain=www\.sadecewww\.example\.com$/.test(g8.src)&&g8.dataset.s==='1'&&row('m8').querySelector('.cic').classList.contains('ok'),'logo www’li adresten geldi '+(g8&&g8.src));
   c(!!g9&&/domain_url=https%3A%2F%2Fwww\.tamadres\.example\.com%2F$/.test(g9.src)&&g9.dataset.s==='2'&&row('m9').querySelector('.cic').classList.contains('ok'),'logo tam adresten geldi '+(g9&&g9.src));
-  c(T.mrcUrls('a.com,b.com').length===6&&/domain=b\.com$/.test(T.mrcUrls('a.com,b.com')[3]),'yedek site sırası');
+  c(T.mrcUrls('a.com,b.com').length===8&&/domain=b\.com$/.test(T.mrcUrls('a.com,b.com')[4])&&/domain_url=https%3A%2F%2Fa\.com%2F$/.test(T.mrcUrls('a.com')[3]),'yedek site sırası');
   // ---- yedek: ayar ve eşleştirmeler korunur, bozuk veri ayıklanır ----
   const n=T.norm(JSON.parse(JSON.stringify(Object.assign({},S,{mlgs:{'iyi ad':'iyi.com','x':'a.com','kotu':'<script>'}}))));c(n.mlg===true&&JSON.stringify(n.mlgs)==='{"iyi ad":"iyi.com"}','norm ayıklar '+JSON.stringify(n.mlgs));
   c(T.norm({}).mlg===true&&T.norm({mlg:false}).mlg===false,'varsayılan açık, kapalıysa kapalı kalır');
@@ -78,6 +78,6 @@ const r=await p.evaluate(async()=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x
   return o;});
 F.push(...r);if(errs.length)F.push('JS hata: '+errs.join(' | '));if(csp.length)F.push('güvenlik politikası engeli: '+csp[0]);
 if(req.indexOf('migros.com.tr')<0||req.indexOf('netflix.com')<0)F.push('logo istekleri: '+req.join());
-if(req.filter(d=>/yok\.example/.test(d)).length!==3||req.filter(d=>/bozuk\.example/.test(d)).length!==3)F.push('başarısız site için 3 deneme bekleniyordu: '+req.filter(d=>/yok\.|bozuk\./.test(d)).join());
-if(req.some(d=>!/^(https:\/\/www\.)?[a-z0-9.-]+\/?$/.test(d)))F.push('istekte site adından başka veri: '+req.join());
+if(req.filter(d=>/yok\.example/.test(d)).length!==4||req.filter(d=>/bozuk\.example/.test(d)).length!==4)F.push('başarısız site için 4 deneme bekleniyordu: '+req.filter(d=>/yok\.|bozuk\./.test(d)).join());
+if(req.some(d=>!/^(https:\/\/)?[a-z0-9.-]+\/?$/.test(d)))F.push('istekte site adından başka veri: '+req.join());
 console.log(F.length?'HATA:\n - '+F.join('\n - '):'ALL PASS');await b.close();process.exit(F.length?1:0);})();

@@ -728,3 +728,17 @@ ol.steps{margin:0;padding-left:20px;display:grid;gap:6px}
 .mbadge.flg img,.aic.flg img{object-fit:cover;background:none}
 .mbadge.art{background:color-mix(in srgb,var(--c) 12%,transparent)}
 .mbadge .mart{width:66%;height:66%}
+
+/* ---------- 4.27: Nereye gitti (mağazalara göre) ---------- */
+.wsum{margin:2px 0 8px;line-height:1.45}
+.wlist{display:grid;gap:2px}
+.wrow{display:flex;align-items:center;gap:12px;width:100%;padding:9px 0;background:none;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:12px}
+.wrow .mid{flex:1;min-width:0;display:grid;gap:3px}
+.wrow .wt{display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0}
+.wrow .wt .t{font-weight:600;min-width:0}
+.wrow .wr{display:flex;gap:8px;align-items:baseline;flex:none}
+.wrow .bar{height:5px;margin-top:2px}
+.wrow .bar i{display:block;height:100%;border-radius:inherit;opacity:.8}
+.wnew{color:var(--accent);font-weight:600}
+.wnone{margin-top:8px;line-height:1.45}
+.wcard .btn.small{margin-top:6px}

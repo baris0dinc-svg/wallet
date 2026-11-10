@@ -23,7 +23,8 @@ function mName(k){var w=mW(k),q=S.quotes[k],c=MCAND[k],m=mk(k);
   if(m.src==='fon')return (q&&q.n)||(w&&w.n)||m.sym+' fonu';
   return (w&&w.n)||(c&&c.n)||(q&&q.n)||(m.src==='fx'?fxName(m.sym):m.sym);}
 function mSym(k){var w=mW(k),c=MCAND[k],m=mk(k);return String((w&&w.s)||(c&&c.s)||m.sym).toUpperCase();}
-function mSub(k){var m=mk(k),s=mSym(k);return (m.src==='fx'&&MGOLD[m.sym]?'':s+' · ')+MSRC[m.src];}
+/* 4.32: BIST 100 Truncgil'den gelse de döviz/altın değil endekstir */
+function mSub(k){var m=mk(k),s=mSym(k);if(m.src==='fx'&&m.sym==='XU100')return 'Borsa İstanbul endeksi';return (m.src==='fx'&&MGOLD[m.sym]?'':s+' · ')+MSRC[m.src];}
 /* son fiyat: önce indirilen değer, döviz ve altında uygulamanın kendi kurları yedek olur */
 function mQ(k){var q=S.quotes[k];if(q&&q.p>0)return q;var m=mk(k);
   if(m.src==='fx'){var f=MFXK[m.sym];if(f&&+S.fx[f]>0)return {p:+S.fx[f],c:S.fxChg?S.fxChg[f]:null,ccy:'TRY',ts:S.fxTs||0};
@@ -221,14 +222,20 @@ function mRow(k,i,n){var q=mQ(k),u=q&&q.ccy||'TRY',st=q&&q.p>0&&qStale(k,q),hd=m
   return '<button class="item mrow" data-act="m-open" data-id="'+esc(k)+'">'+mBadge(k)+'<span class="mid"><div class="t ell">'+esc(mName(k))+(mTargets(k).length?' <span class="mtg" title="Fiyat hedefi var">'+ic('flag')+'</span>':'')+'</div><div class="small muted ell">'+(hd?'<span class="mheld">Sende '+esc(hd.q)+'</span> · ':'')+esc(mSub(k))+'</div></span>'
    +'<span class="msp">'+sparkSvg(q&&q.h,52,22)+'</span><span class="mq"><span class="num">'+(q&&q.p>0?fmtPx(q.p,u,k):'—')+'</span>'+(q?chgPill(q.c):'')+(q&&q.p>0&&(q.err||st)?'<span class="small muted">'+esc(ago(q.ts))+'</span>':'')+'</span></button>';}
 /* verinin kaynaktaki zamanı (at); yoksa alındığı an. "az önce" yalnız gerçekten yeni veri için */
+/* takip listesinde elinde olanların toplam değeri ve bugünkü değişimi */
+function mPort(){var v=0,d=0,n=0;S.watch.forEach(function(w){var hd=mHeld(w.k),q=mQ(w.k);if(!hd||!(hd.v>0))return;n++;v+=hd.v;if(q&&q.c!=null&&isFinite(q.c))d+=hd.v-hd.v/(1+q.c/100);});
+  if(!n)return '';d=r2(d);
+  return '<div class="card mport"><div class="lbl">Takip listendeki varlıkların</div><p class="big num">'+TRY0.format(v)+'</p><div class="small"><b class="num '+(d>=0?'inc':'exp')+'">'+(d>=0?'+':'−')+TRY0.format(Math.abs(d))+' ('+pctTxt(v-d>0?d/(v-d)*100:0)+')</b> <span class="muted">bugün · '+n+' kalem</span></div></div>';}
 function mLast(){var t=0;S.watch.forEach(function(w){var q=mQ(w.k),v=q&&(q.at||q.ts);if(v>t)t=v;});return t;}
 function mWatch(){
   var n=S.watch.length,cats=mCats(),cf=cats.indexOf(ui.mcat)>=0?ui.mcat:'',list=S.watch.filter(function(w){return !cf||mk(w.k).src===cf;});
-  var h=ui.medit?'':mConv()+mMovers();
+  /* 4.32: önce elindekilerin bugünkü durumu ve takip listesi; çevirici listenin altında */
+  var h=ui.medit?'':mPort()+mMovers();
   h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span class="lbl">Takip listem</span><span style="display:flex;gap:6px">'+(n?'<button class="btn small ghost" data-act="m-edit" aria-pressed="'+!!ui.medit+'">'+(ui.medit?'Bitti':'Düzenle')+'</button>':'')+(ui.medit?'':'<button class="btn small ghost" data-act="m-refresh">'+ic('refresh')+' Yenile</button>')+'</span></div>';
   if(cats.length>1&&!ui.medit)h+='<div class="chips mcats" role="group" aria-label="Takip listesini süz">'+[['','Tümü']].concat(cats.map(function(c){return [c,MCATN[c]];})).map(function(x){return '<button class="chip" data-act="m-cat" data-v="'+x[0]+'" aria-pressed="'+(cf===x[0])+'">'+esc(x[1])+'</button>';}).join('')+'</div>';
   var all=ui.medit?S.watch:list;
   h+=n?'<div class="card" style="padding-top:4px;padding-bottom:4px"><div class="list">'+all.map(function(w,i){return mRow(w.k,i,all.length);}).join('')+'</div></div>':'<div class="empty">Takip listen boş. Yukarıdan arayıp ekleyebilirsin.</div>';
+  if(!ui.medit)h+=mConv();
   var sug=MSUG.filter(function(x){return !mW(x[0]);});
   if(sug.length&&!ui.medit)h+='<div class="lbl" style="margin:4px 2px 0">Hızlı ekle</div><div class="chips">'+sug.map(function(x){return '<button class="chip" data-act="m-sug" data-id="'+x[0]+'">+ '+esc(x[1])+'</button>';}).join('')+'</div>';
   var t=mLast();h+='<div class="small muted" id="m-ts">'+(t?'Veri zamanı: '+esc(fmtTs(t))+' ('+esc(ago(t))+')':'')+(S.fxSrc==='ecb'?' · döviz yedek kaynaktan (ECB günlük referans kuru)':'')+'</div>';

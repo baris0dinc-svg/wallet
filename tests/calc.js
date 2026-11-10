@@ -6,7 +6,10 @@ const out=await p.evaluate(async()=>{
  const T=window.__T,F=[],ok=(c,m)=>{if(!c)F.push(m);};
  let seed=777;const rnd=()=>{seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296;};
  // 1 ayarlar: 8 bölüm, hepsi açılır, boş değil, kaldırılanlar yok
- ok(T.SETS.length===7,'ayar sayısı '+T.SETS.length);
+ ok(T.SETS.length===5,'ayar sayısı '+T.SETS.length);
+ /* 4.32: birleşen başlıklar: eski adlar yeni sayfada, içerikleri duruyor (özellik silinmedi) */
+ ok(/Kurların güncellenmesi/.test(T.setBody('kurlar'))&&/Görüntüleme para birimi/.test(T.setBody('genel')),'kurlar Genel’de');
+ ok(/SMS/.test(T.setBody('oto'))&&/hatırlatıcı/i.test(T.setBody('bild')),'otomatik işlemler Bildirimler’de');
  T.SETS.forEach(s=>{let h='';try{h=T.setBody(s.id);}catch(e){F.push('ayar hata '+s.id+' '+e.message);}ok(h&&h.length>50,'ayar boş '+s.id);});
  ok(!T.SETS.some(s=>['notlar','hak','demo'].includes(s.id)),'eski bölüm duruyor');
  // 2 kuruş: float tuzakları

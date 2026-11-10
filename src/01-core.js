@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.31';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.32';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -125,17 +125,16 @@ var ANS=[['ozet','Özet'],['harcama','Kategoriler']];
 var PLANS=[['butce','Bütçe'],['duzenli','Düzenli'],['hedef','Hedefler'],['koc','Koç']];
 /* Gelişim sekmesinin alt sekmeleri: önce Analiz'in, sonra Plan'ın bölümleri (tek satır, yana kayar) */
 var GEL=ANS.concat(PLANS);
+/* 4.32: ayarlar beş başlıkta (gruplar yok): Para birimi ve kurlar Genel'e, Otomatik işlemler Bildirimler'e katıldı; hiçbir ayar silinmedi */
 var SETS=[
- {g:'Genel',id:'genel',t:'Genel',d:'Adın, maaş günü, varsayılan hesap, tema ve yazı boyutu',i:'user',c:'var(--inc)'},
- {g:'Genel',id:'kurlar',t:'Para birimi ve kurlar',d:'Görüntüleme para birimi, kurların güncellenmesi',i:'trend',c:'var(--blue)'},
- {g:'Genel',id:'kat',t:'Kategoriler ve kurallar',d:'Gelir ve gider kategorileri, otomatik kurallar',i:'shapes',c:'var(--warn)'},
- {g:'Otomasyon',id:'oto',t:'Otomatik işlemler',d:'Banka SMS’leri ve uygulama bildirimlerinden işlem yakala',i:'sparkles',c:'var(--accent)'},
- {g:'Otomasyon',id:'bild',t:'Bildirimler ve hatırlatıcılar',d:'Fatura ve ödeme hatırlatıcısı, bütçe uyarıları',i:'bell',c:'var(--warn)'},
- {g:'Güvenlik ve veri',id:'guv',t:'Güvenlik ve gizlilik',d:'PIN kilidi, parmak izi, ekran gizliliği',i:'shield',c:'var(--inc)'},
- {g:'Güvenlik ve veri',id:'veri',t:'Veri ve yedek',d:'Yedek, geri yükleme, ekstre ve CSV, sıfırlama',i:'server',c:'var(--blue)'}
+ {g:'',id:'genel',t:'Genel',d:'Adın, maaş günü, tema, para birimi ve kurlar',i:'user',c:'var(--inc)'},
+ {g:'',id:'kat',t:'Kategoriler ve kurallar',d:'Gelir ve gider kategorileri, otomatik kurallar',i:'shapes',c:'var(--warn)'},
+ {g:'',id:'bild',t:'Bildirimler ve otomatik işlemler',d:'Ödeme hatırlatıcısı, bütçe uyarıları, banka SMS’leri',i:'bell',c:'var(--accent)'},
+ {g:'',id:'guv',t:'Güvenlik ve gizlilik',d:'PIN kilidi, parmak izi, ekran gizliliği',i:'shield',c:'var(--inc)'},
+ {g:'',id:'veri',t:'Veri ve yedek',d:'Yedek, geri yükleme, ekstre ve CSV, sıfırlama',i:'server',c:'var(--blue)'}
 ];
 /* eski ayar sayfası adları birleştirilenlere gider */
-var SETMAP={profil:'genel',hesap:'genel',gor:'genel'};
+var SETMAP={profil:'genel',hesap:'genel',gor:'genel',kurlar:'genel',oto:'bild'};
 var ACT={};
 var dl=null;
 try{if(window.claude&&window.claude.use){window.claude.use('downloads').then(function(x){dl=x||null;},function(){});}}catch(e){}
@@ -275,7 +274,7 @@ function save(){var ts0=Date.now();S.tx.forEach(function(t){if(!t.ts)t.ts=ts0;})
   try{wgSoon();}catch(e){}
 }
 var hostTheme=document.documentElement.getAttribute('data-theme');
-function applyTheme(){var r=document.documentElement,t=S.theme;if(t==='light'||t==='dark')r.setAttribute('data-theme',t);else if(hostTheme)r.setAttribute('data-theme',hostTheme);else r.removeAttribute('data-theme');}
+function applyTheme(){var r=document.documentElement,t=S.theme;try{localStorage.setItem('wallet-theme',t==='light'||t==='dark'?t:'');}catch(e){}if(t==='light'||t==='dark')r.setAttribute('data-theme',t);else if(hostTheme)r.setAttribute('data-theme',hostTheme);else r.removeAttribute('data-theme');}
 function EXPC(){return S.cats.exp;} function INCC(){return S.cats.inc;} function ACCS(){return S.accounts;}
 function ensureCat(type,name){var l=S.cats[type];if(l.indexOf(name)<0)l.push(name);return name;}
 /* ---------- 4.12: kategori simgeleri ve alt kategoriler ----------

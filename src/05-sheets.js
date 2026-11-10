@@ -38,8 +38,6 @@ function render0(){
   }else{
     hd.innerHTML=tabHead();
     vw.innerHTML=vMain();
-    /* Gelişim alt sekmeleri yana kayar: seçili olan görünür kalsın */
-    var gb=document.getElementById('glbar'),ga=gb&&gb.querySelector('[aria-pressed="true"]');if(ga)gb.scrollLeft=Math.max(0,ga.offsetLeft-(gb.clientWidth-ga.offsetWidth)/2);
   }
   applyNoteColor();
   var tb=document.getElementById('tabbar');
@@ -82,7 +80,7 @@ function restoreUi(){
   if(h&&!ui.page){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
 }
 /* adres çubuğundaki #… ile sayfa eşleşmesi (tarayıcı/telefon geri tuşu için) */
-function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='ayarlar')return {k:'ayar'};if(h==='notlar')return {k:'notlar'};if(/^ayar-[a-z]+$/.test(h)&&SETS.some(function(x){return x.id===h.slice(5);}))return {k:'set',s:h.slice(5)};if(/^ayar-/.test(h))return {k:'ayar'};return null;}
+function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='ayarlar')return {k:'ayar'};if(h==='notlar')return {k:'notlar'};if(/^ayar-[a-z]+$/.test(h)&&(SETS.some(function(x){return x.id===h.slice(5);})||SETMAP[h.slice(5)]))return {k:'set',s:SETMAP[h.slice(5)]||h.slice(5)};if(/^ayar-/.test(h))return {k:'ayar'};return null;}
 var TABH={islemler:'islem',hesaplar:'ev',analiz:'gelisim',plan:'gelisim',gelisim:'gelisim',ayarlar:'ayar',anasayfa:'ev'};
 function openPage(p,hash){closeSheet();if(ui.page&&ui.page!==p&&ui.page.k!==p.k){finishPage();p.prev=ui.page;}ui.page=p;try{if(hash)location.hash=hash;}catch(e){}render();window.scrollTo(0,0);}
 function finishPage(){if(ui.page&&ui.page.k==='note')saveNote();}

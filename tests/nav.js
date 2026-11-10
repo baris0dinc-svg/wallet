@@ -35,7 +35,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  for(const k of ['islem','gelisim']){click('#tabbar [data-v="'+k+'"]');chk(!$('#fab').hidden,'+ düğmesi '+k);}
  click('#fab');chk(/Yeni işlem/.test(sheetT()),'+ düğmesi işlem penceresi');back();
  click('#tabbar [data-v="ev"]');chk($('#fab').hidden,'ana sayfada + düğmesi yerine kart');
- click('#tabbar [data-v="ayar"]');chk(!page()&&T.ui.sub==='ayar'&&$$q('#setlist .setcard').length===7&&$('#tabbar [aria-current="page"]').dataset.v==='ayar','4.31: Ayarlar alt menüde sekme');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','ayarlardan geri');
+ click('#tabbar [data-v="ayar"]');chk(!page()&&T.ui.sub==='ayar'&&$$q('#setlist .setcard').length===5&&!$('#setlist .setgrp')&&$('#tabbar [aria-current="page"]').dataset.v==='ayar','4.32: Ayarlar sekmesi, beş başlık, grup yok');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','ayarlardan geri');
  // Plan sekmesi: Koç, Bütçe, Düzenli, Hedefler
  click('#tabbar [data-v="gelisim"]');click('[data-act="plan"][data-v="hedef"]');chk(T.ui.plan==='hedef'&&!!$('#view [data-act="new-g"]'),'Plan › Hedefler');
  click('[data-act="plan"][data-v="duzenli"]');chk(!!$('#view [data-act="new-r"]'),'Plan › Düzenli');

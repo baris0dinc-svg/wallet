@@ -18,7 +18,7 @@ ntfSync();
 (function(){var sp=document.getElementById('splash'),done=function(){if(nb('splashDone')){try{NB.splashDone();}catch(e){}}};
   if(!sp){done();return;}
   var rm=false;try{rm=matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){}
-  setTimeout(function(){sp.classList.add('out');done();setTimeout(function(){sp.remove();},470);},rm?450:1300);})();
+  setTimeout(function(){sp.classList.add('out');done();setTimeout(function(){sp.remove();},320);},rm?400:850);})();
 if(ui.intent)setTimeout(runIntent,ui.locked?0:700);
 /* 4.12: silinmiş işlemlerin fiş fotoğrafları temizlenir; bekleyen bulut yedeği yüklenir; mevduat ve birikim getirileri işlenir */
 setTimeout(function(){try{rcGc();}catch(e){}try{if(clDue())clPush();}catch(e){}},6000);

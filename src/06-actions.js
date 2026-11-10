@@ -57,6 +57,7 @@ ACT['qa-inv']=function(){hSheet(null,'inv');};
 ACT['qa-save']=function(){birSheet();};
 ACT['qa-asset']=function(){hSheet(null,'asset');};
 ACT['qa-calc']=function(){openPage({k:'araclar'},'araclar');};
+ACT['qa-notes']=function(){goSec('notlar');};
 
 /* işlemler */
 ACT['new-tx']=function(){txSheet();};
@@ -696,6 +697,9 @@ document.addEventListener('input',function(e){
 });
 /* net servet grafiğinde dokunma ve parmak kaydırma */
 ['pointerdown','pointermove'].forEach(function(ev){document.addEventListener(ev,function(e){var c=e.target.closest&&e.target.closest('.nwchart');if(!c)return;if(ev==='pointermove'&&!(e.buttons||e.pointerType==='touch'))return;nwScrub(c,e.clientX);},{passive:true});});
+/* 4.29: + düğmesi aşağı kaydırırken çekilir, yukarı kaydırınca ya da sayfa sonunda geri gelir; satırlardaki tutarları kapatmaz */
+var fabY=0;window.addEventListener('scroll',function(){var y=window.scrollY||0,fb=document.getElementById('fab');if(!fb)return;
+  var end=y+window.innerHeight>=document.documentElement.scrollHeight-40;fb.classList.toggle('away',y>fabY+4&&y>80&&!end);if(y<fabY-4||end||y<=80)fb.classList.remove('away');fabY=y;},{passive:true});
 document.addEventListener('scroll',function(e){
   var t=e.target;if(!t||!t.id)return;
   if(t.id==='secbar')edgeFade('secbar','secwrap');

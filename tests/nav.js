@@ -26,8 +26,8 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('#tabbar [data-v="ev"]');
  click('.mstrip');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa şeridi Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','piyasadan geri');
  // 4.2: Notlar ana sayfa başlığındaki simgede (tek dokunuş); Hesaplayıcılar Plan › Koç'ta (ana sayfadaki kutucuklar kaldırıldı)
- chk(!!$('header .bellb')&&!!$('#qa')&&document.querySelectorAll('.scg .sc').length===6,'4.5: ana sayfada zil, hızlı işlemler ve kısayol kutucukları');
- click('.scg [data-act="sub"][data-v="notlar"]');chk(page()==='notlar'&&location.hash==='#notlar','kısayoldan Notlar');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan geri');
+ chk(!!$('header .bellb')&&!!$('#qa')&&!$('.scg'),'4.29: ana sayfada zil ve hızlı işlemler; kısayol kutucukları kalktı (sekmelerde var)');
+ click('#qa [data-act="qa-more"]');click('#qaall [data-act="qa-notes"]');chk(page()==='notlar'&&location.hash==='#notlar','Tümü › Notlar');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan geri');
  click('#tabbar [data-v="plan"]');click('[data-act="plan"][data-v="koc"]');click('#view .homelinks [data-act="qa-calc"]');chk(page()==='araclar','Koç › Hesaplayıcılar');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='plan','hesaplayıcılardan geri Plan’a');
  // işlem ekle her sekmeden tek dokunuş: ana sayfada kart, diğerlerinde + düğmesi
  for(const k of ['islem','plan','analiz','servet']){click('#tabbar [data-v="'+k+'"]');chk(!$('#fab').hidden,'+ düğmesi '+k);}

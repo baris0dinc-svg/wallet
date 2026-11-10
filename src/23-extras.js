@@ -77,7 +77,7 @@ function unassignedLine(limSum){
   var k=ui.month,inc=pstat(k).inc,est=false;if(!(inc>0)){inc=avgMonthly('inc');est=true;}if(!(inc>0)||!(limSum>0))return '';
   var z=r2(inc-limSum);
   if(z<0)return '<div class="unas warn"><b>Limitler gelirini '+TRY0.format(-z)+' aşıyor.</b><span class="small muted">'+(est?'Ortalama gelirin':'Bu dönemin geliri')+' '+TRY0.format(inc)+', limitlerin toplamı '+TRY0.format(limSum)+'. Bazı limitleri düşür.</span></div>';
-  return '<div class="unas"><span class="mid"><b>Görevsiz para: '+TRY0.format(z)+'</b><span class="small muted">'+(est?'Ortalama gelirin':'Bu dönemin geliri')+' '+TRY0.format(inc)+', limitlere '+TRY0.format(limSum)+' ayırdın. Her liraya bir görev ver: kalanı bir hedefe ya da birikime ayır.</span></span><button class="btn small" data-act="plan-go" data-v="hedef">Hedefe ayır</button></div>';
+  return '<div class="unas"><span class="mid"><b>Planlanmamış para: '+TRY0.format(z)+'</b><span class="small muted">'+(est?'Ortalama gelirin':'Bu dönemin geliri')+' '+TRY0.format(inc)+', limitlere '+TRY0.format(limSum)+' ayırdın. Kalanı bir hedefe ya da birikime ayır.</span></span><button class="btn small" data-act="plan-go" data-v="hedef">Hedefe ayır</button></div>';
 }
 
 /* ---- Excel (.xlsx) dışa aktarma: işlemler ve aylık özet (kategori × ay, formüllü toplamlar) ---- */

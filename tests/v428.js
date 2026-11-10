@@ -47,7 +47,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,S=T.S,o=[];const c=(x,m)=>
   S.tx=[];T.save();c(T.moneyAge()===null,'veri yoksa gösterilmez');
   // ---- görevsiz para ----
   S.tx.push({id:'in1',type:'inc',amt:40000,acct:'Banka',cat:T.INCC()[0],date:d,note:'Maaş'});S.budgets={[E[0]]:10000,[E[1]]:5000};T.save();T.ui.month=k;
-  c(/Görevsiz para: ₺25\.000/.test(T.unassignedLine(15000).replace(/<[^>]+>/g,'')),'görevsiz para: '+T.unassignedLine(15000).replace(/<[^>]+>/g,''));
+  c(/Planlanmamış para: ₺25\.000/.test(T.unassignedLine(15000).replace(/<[^>]+>/g,'')),'görevsiz para: '+T.unassignedLine(15000).replace(/<[^>]+>/g,''));
   c(/Limitler gelirini ₺5\.000 aşıyor/.test(T.unassignedLine(45000).replace(/<[^>]+>/g,'')),'limit geliri aşınca uyarı');
   T.ui.sub='plan';T.ui.plan='butce';T.render();c(!!document.querySelector('.unas [data-act="plan-go"][data-v="hedef"]'),'Bütçe’de görevsiz para ve hedefe ayır');
   // ---- bileşen verisi ----

@@ -83,7 +83,7 @@ function leftNow(){
 function heroCard(W){
   var L=leftNow(),ch=histChange(30);
   var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
-  h+='<button class="nwbig" data-act="sub" data-v="servet" aria-label="Net servet: hesaplar ve yatırımlar"><span class="big num">'+DC0.format(W.net)+'</span>'+ic('r')+'</button>';
+  h+='<button class="nwbig" data-act="nw-jump" aria-label="Net servet: hesaplar ve yatırımlar"><span class="big num">'+DC0.format(W.net)+'</span>'+ic('r')+'</button>';
   if(S.dccy!=='TRY'&&dccy()==='TRY')h+='<div class="small exp">'+esc(CCYN[S.dccy])+' kuru henüz yok; TL gösteriliyor.</div>';
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
   if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">'+(ch.since?'ilk kayıttan beri':'son '+ch.days+' günde')+'</span></div>';
@@ -113,7 +113,7 @@ function periodHead(withSum){
 }
 function vMain(){
   var cur=SECS.some(function(x){return x[0]===ui.sub;})?ui.sub:'ev';ui.sub=cur;
-  var body={ev:vHome,islem:vIslem,analiz:analizBody,servet:servetBody,plan:planBody}[cur];
+  var body={ev:vHome,islem:vIslem,gelisim:gelisimBody,ayar:vAyarlar}[cur];
   return '<section id="secbody" class="stack">'+body()+'</section>';
 }
 /* ---------- Ana Sayfa ---------- */
@@ -123,7 +123,8 @@ function vHome(){
   /* sıra: ne kaldı → ekle → yapılacaklar (tek kart) → son işlemler → piyasalar. Notlar başlıktaki simgede, hesaplayıcılar Plan › Koç'ta */
   /* 4.30: Gündem kartı kalktı: uyarılar zilde (Ödendi düğmeleriyle), akıllı tespitler Analiz › Özet'te, Koç adımı Plan › Koç'ta */
   h+=heroCard(W)+smsBanner()+qaRow()+favRow('home');
-  return h+recentCard()+mStrip();
+  /* 4.31: Hesaplar (hesaplar, yatırımlar, borçlar; net servet gelişimi ve dağılımı) ana sayfada */
+  return h+recentCard()+homeWealth()+mStrip();
 }
 function hello(){var hr=new Date().getHours();return hr<5?'İyi geceler':hr<12?'Günaydın':hr<18?'İyi günler':'İyi akşamlar';}
 /* "Tümü" her zaman listeyi açar (İşlemler takvim görünümünde bırakılmış olsa da) */
@@ -269,14 +270,25 @@ function distBar(){
   if(l.length>5){var rest=l.slice(4).reduce(function(a,x){return a+x[1];},0);l=l.slice(0,4).concat([['Diğer',rest]]);}
   return '<div class="lbl" style="margin-top:10px">Varlık dağılımı</div><div class="stackbar" style="margin-top:6px" role="img" aria-label="Varlık dağılımı">'+l.map(function(x,i){return '<i style="width:'+(x[1]/tot*100)+'%;background:'+dcol(i)+'"></i>';}).join('')+'</div><div class="legend">'+l.map(function(x,i){return '<span style="--c:'+dcol(i)+'">'+esc(x[0])+' %'+(x[1]/tot<0.01?'<1':Math.round(x[1]/tot*100))+'</span>';}).join('')+'</div>';
 }
+function homeWealth(){if(ui.sv==='varlik')ui.sv='yatirim';var v=WEALTH.some(function(x){return x[0]===ui.sv;})?ui.sv:'hesap',ch=nwChart(),db=distBar();
+  return '<div id="wealth" class="stack">'+(ch||db?'<div class="card nw">'+ch+db+'</div>':'')+segTabs(WEALTH,v,'sv','Hesaplar')+({hesap:hesapBody,yatirim:yatirimBody,borc:borcBody}[v])()+'</div>';}
+ACT['nw-jump']=function(){var w=document.getElementById('wealth');if(w)w.scrollIntoView({behavior:'smooth',block:'start'});};
+/* Gelişim: Analiz (Özet, Kategoriler) ve Plan (Bütçe, Düzenli, Hedefler, Koç) tek sekmede; düğmeler eski eylemleriyle (an / plan) */
+function gelisimBody(){
+  var v=GEL.some(function(x){return x[0]===ui.gl;})?ui.gl:'ozet';ui.gl=v;
+  var isA=ANS.some(function(x){return x[0]===v;});
+  var tabs='<div class="seg scroll scroll-x" id="glbar" role="tablist" aria-label="Gelişim">'+GEL.map(function(x){var a=ANS.some(function(y){return y[0]===x[0];})?'an':'plan';return '<button role="tab" data-act="'+a+'" data-v="'+x[0]+'" aria-pressed="'+(v===x[0])+'" aria-selected="'+(v===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
+  if(isA){ui.an=v;return tabs+analizBody(true);}
+  ui.plan=v;return tabs+planBody(true);
+}
 function servetBody(){if(ui.sv==='varlik')ui.sv='yatirim';var v=WEALTH.some(function(x){return x[0]===ui.sv;})?ui.sv:'hesap';return nwTop()+segTabs(WEALTH,v,'sv','Hesaplar')+({hesap:hesapBody,yatirim:yatirimBody,borc:borcBody}[v])();}
 /* liste ekranlarında "… ekle" tek biçimde: listenin altında (Hesap ekle gibi); liste boşken asıl eylem olduğundan birincil düğme */
 function addBtn(act,label,empty,v){return '<button class="btn'+(empty?'':' ghost')+'" data-act="'+act+'"'+(v?' data-v="'+v+'"':'')+'>'+(empty?'':ic('plus')+' ')+label+'</button>';}
 
 /* ---------- Bütçe, Hedefler, Düzenli ---------- */
-function planBody(){
+function planBody(noTabs){
   var p=PLANS.some(function(x){return x[0]===ui.plan;})?ui.plan:'butce';ui.plan=p;
-  var seg=segTabs(PLANS,p,'plan','Plan');
+  var seg=noTabs?'':segTabs(PLANS,p,'plan','Plan');
   return seg+(p==='koc'?vKoc():(p==='butce'?periodHead(false)+budgetBody():(p==='duzenli'?periodHead(false)+duzenliBody():hedefBody())));
 }
 /* Bütçe: üstte bütçeden kalan; limitli kategoriler ilerlemeleriyle; limitsizler katlanır "Limit koy" listesinde */

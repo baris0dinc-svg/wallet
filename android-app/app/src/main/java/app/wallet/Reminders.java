@@ -80,6 +80,29 @@ public class Reminders extends BroadcastReceiver {
             show(c, 100 + i.getIntExtra("id", 0), i.getStringExtra("title"), i.getStringExtra("body"));
         } else if (Intent.ACTION_BOOT_COMPLETED.equals(a) || Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)) {
             apply(c, MainActivity.prefs(c).getString("plan", "[]"));
+            if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(a)) refreshIcons(c);
         }
+    }
+
+    /** 4.31: güncellemeden önce gösterilmiş bildirimler eski (zil) simgeyle kalmasın: ekrandakileri Wallet logosuyla yeniden yaz. */
+    static void refreshIcons(Context c) {
+        try {
+            NotificationManager nm = c.getSystemService(NotificationManager.class);
+            if (nm == null) return;
+            SharedPreferences p = MainActivity.prefs(c);
+            if (p.getInt("notifIconV", 0) >= 2) return;
+            for (android.service.notification.StatusBarNotification s : nm.getActiveNotifications()) {
+                try {
+                    Notification n = Notification.Builder.recoverBuilder(c, s.getNotification())
+                            .setSmallIcon(R.drawable.ic_notif)
+                            .setLargeIcon(android.graphics.drawable.Icon.createWithResource(c, R.drawable.notif_large))
+                            .setColor(0xFF0E6B58)
+                            .setOnlyAlertOnce(true)
+                            .build();
+                    nm.notify(s.getTag(), s.getId(), n);
+                } catch (Exception ignored) { }
+            }
+            p.edit().putInt("notifIconV", 2).apply();
+        } catch (Exception ignored) { }
     }
 }

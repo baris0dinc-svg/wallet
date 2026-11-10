@@ -36,7 +36,7 @@ for(const W of [320,360,412]){for(const scheme of ['light','dark']){
   act('new-tx');document.querySelector('.catnew').click();check('yeni kategori kutusu');act('close');act('alerts');check('uyarılar');act('close');act('new-r');check('düzenli');act('close');act('new-g');check('hedef');act('close');
   act('open-fire');check('fire');act('back');act('qa-calc');check('araçlar');for(const c of Object.keys(T.CALCS)){act('calc',null,c);check('hesaplayıcı '+c);}act('back');
   for(const s of T.SETS){act('open-set',s.id);check('ayar '+s.id);act('back');}
-  act('open-settings');check('ayarlar');act('back');
+  act('open-settings');check('ayarlar');act('sub',null,'ev');
   act('sub',null,'notlar');act('edit-n','nn');check('not');act('back');
   return out;});
  res.push(...r.map(x=>W+' '+scheme+' '+x));if(errs.length)res.push(W+' HATA '+errs.join(' | '));

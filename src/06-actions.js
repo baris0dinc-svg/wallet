@@ -12,12 +12,12 @@ ACT.mprev=function(){ui.month=addMonth(ui.month,-1);render();};
 ACT.mnext=function(){ui.month=addMonth(ui.month,1);render();};
 ACT.filter=function(el,id,v){ui.filter=v;render();};
 ACT['acct-clear']=function(){ui.acctF='';render();};
-ACT.plan=function(el,id,v){ui.plan=v;persistUi();render();};
+ACT.plan=function(el,id,v){ui.plan=v;ui.gl=v;if(ui.sub!=='gelisim'&&!ui.page)ui.sub='gelisim';persistUi();render();};
 /* 4.4: eski Hesaplar › Varlıklar, Yatırımlar'ın altındaki "Ev, araba ve diğer varlıklar" bölümü */
 function toVarlik(){setTimeout(function(){var a=document.getElementById('varliklar');if(a)window.scrollTo(0,Math.max(a.getBoundingClientRect().top+window.scrollY-document.getElementById('hdr').offsetHeight-12,0));},0);}
 ACT.sv=function(el,id,v){var va=v==='varlik';ui.sv=va?'yatirim':v;persistUi();render();if(va)toVarlik();};
 /* eski Analiz › Servet: net servet gelişimi artık Hesaplar sekmesinin üstünde; eski Analiz › Takvim İşlemler'in takvim görünümü */
-ACT.an=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}if(v==='takvim'){goSec('takvim');return;}ui.an=v;persistUi();render();};
+ACT.an=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}if(v==='takvim'){goSec('takvim');return;}ui.an=v;ui.gl=v;if(ui.sub!=='gelisim'&&!ui.page)ui.sub='gelisim';persistUi();render();};
 ACT['sv-go']=function(el,id,v){goSec(v);if(v==='varlik')toVarlik();};
 ACT['an-go']=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}if(v==='takvim'){goSec('takvim');return;}ui.an=v;goSec('analiz');};
 /* İşlemler: liste ↔ takvim; dönem kartı ve ay aynı kalır */

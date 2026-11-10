@@ -77,6 +77,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
+        Reminders.refreshIcons(this);
         if (prefs(this).getBoolean("secure", false)) getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
         // yalnızca test derlemesinde (webDebug=true) WebView uzaktan incelenebilir
         if (BuildConfig.WEB_DEBUG) WebView.setWebContentsDebuggingEnabled(true);

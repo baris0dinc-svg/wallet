@@ -20,8 +20,8 @@ const r=await p.evaluate(()=>{const T=window.__T,o={};const $=s=>document.queryS
  // 4) geri tuşu
  act('sub',null,'portfoy');act('new-h');o.b1=window.walletBack()&&!document.getElementById('sheet-root').innerHTML;
  act('open-set','kurlar');o.b2=window.walletBack()&&!T.ui.page;
- o.b3=window.walletBack()&&T.ui.sub==='ev';o.b4=window.walletBack()===false;
- act('open-settings');document.querySelector('[data-act="open-set"][data-id="genel"]').click();o.nest1=T.ui.page&&T.ui.page.k==='set';window.walletBack();o.nest2=!!T.ui.page&&T.ui.page.k==='ayar';window.walletBack();o.nest3=T.ui.page===null&&T.ui.sub==='ev';
+ o.b3=T.ui.sub==='ev';o.b4=window.walletBack()===false;
+ act('open-settings');document.querySelector('[data-act="open-set"][data-id="genel"]').click();o.nest1=T.ui.page&&T.ui.page.k==='set';window.walletBack();o.nest2=!T.ui.page&&T.ui.sub==='ayar';window.walletBack();o.nest3=T.ui.page===null&&T.ui.sub==='ev';
  act('open-set','hesap');o.oldSet=$('header h1').innerText;act('back');
  // 5) banka ekstresi: hedef hesap + kural
  S.rules=[{kw:'migros',cat:'Market'}];

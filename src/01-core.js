@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.30';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.31';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -114,7 +114,8 @@ var ICONS={
 };
 function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="'+ICONS[n]+'"/></svg>';}
 /* alt menü: Ana Sayfa, İşlemler (liste / takvim), Plan (Bütçe, Düzenli, Hedefler, Koç), Analiz (Özet, Kategoriler), Hesaplar (Hesaplar, Yatırımlar, Borçlar). Ayarlar başlıktaki çark simgesiyle açılır. */
-var SECS=[['ev','Ana Sayfa','home'],['islem','İşlemler','list'],['plan','Plan','flag'],['analiz','Analiz','chart'],['servet','Hesaplar','wallet']];
+/* 4.31: alt menü dört sekme: Ana Sayfa (net servet + hesaplar, yatırımlar, borçlar), İşlemler, Gelişim (eski Plan ve Analiz), Ayarlar */
+var SECS=[['ev','Ana Sayfa','home'],['islem','İşlemler','list'],['gelisim','Gelişim','trend'],['ayar','Ayarlar','cog']];
 /* 4.4: Varlıklar (ev, araba) Yatırımlar'ın altında ayrı bölüm; eski 'varlik' bağlantıları oraya gider */
 var WEALTH=[['hesap','Hesaplar'],['yatirim','Yatırımlar'],['borc','Borçlar']];
 /* 4.2: net servet gelişimi ve dağılımı Hesaplar sekmesinde (eski Analiz › Servet oraya gider).
@@ -122,6 +123,8 @@ var WEALTH=[['hesap','Hesaplar'],['yatirim','Yatırımlar'],['borc','Borçlar']]
 var ANS=[['ozet','Özet'],['harcama','Kategoriler']];
 /* 4.2: her gün kullanılan Bütçe ve Düzenli önde, Koç sonda */
 var PLANS=[['butce','Bütçe'],['duzenli','Düzenli'],['hedef','Hedefler'],['koc','Koç']];
+/* Gelişim sekmesinin alt sekmeleri: önce Analiz'in, sonra Plan'ın bölümleri (tek satır, yana kayar) */
+var GEL=ANS.concat(PLANS);
 var SETS=[
  {g:'Genel',id:'genel',t:'Genel',d:'Adın, maaş günü, varsayılan hesap, tema ve yazı boyutu',i:'user',c:'var(--inc)'},
  {g:'Genel',id:'kurlar',t:'Para birimi ve kurlar',d:'Görüntüleme para birimi, kurların güncellenmesi',i:'trend',c:'var(--blue)'},

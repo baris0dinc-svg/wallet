@@ -178,7 +178,7 @@ function refreshMarket(opt){
   return run;
 }
 function mUpd(){var e=document.getElementById('mres');if(e)e.innerHTML=mBody();}
-function mAfter(){if(ui.page&&ui.page.k==='piyasa'){if(!sheetOpen()&&!busy())render();else mUpd();}else if(!ui.page&&!busy()&&ui.sub==='servet')render();}
+function mAfter(){if(ui.page&&ui.page.k==='piyasa'){if(!sheetOpen()&&!busy())render();else mUpd();}else if(!ui.page&&!busy()&&ui.sub==='ev')render();}
 
 /* ---------- arama ---------- */
 function mLocal(q){

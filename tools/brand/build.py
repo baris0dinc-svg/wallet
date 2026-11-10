@@ -124,7 +124,7 @@ def main():
     w(os.path.join(res, 'drawable/ic_launcher_fg.xml'), vec(108, 108, logo_vec(108, fg_w)))
     w(os.path.join(res, 'drawable/ic_launcher_mono.xml'), vec(108, 108, logo_vec(108, fg_w, '#FFFFFFFF')))
     # 4.30: bildirim simgesi zil değil logo (durum çubuğu tek renk ister; renk Reminders.setColor ile)
-    w(os.path.join(res, 'drawable/ic_notif.xml'), vec(24, 24, logo_vec(24, 22, '#FFFFFFFF')))
+    w(os.path.join(res, 'drawable/ic_notif.xml'), vec(24, 24, logo_vec(24, 21, '#FFFFFFFF').replace('/>', ' android:strokeColor="#FFFFFFFF" android:strokeWidth="0.9" android:strokeLineJoin="round"/>')))
     bg = ('<path android:pathData="M0,0h108v108h-108z"><aapt:attr name="android:fillColor"><gradient android:type="radial" '
           'android:centerX="54" android:centerY="41" android:gradientRadius="84"><item android:offset="0" android:color="%s"/>'
           '<item android:offset="1" android:color="%s"/></gradient></aapt:attr></path>') % (BG_HI, BG_LO)
@@ -177,7 +177,7 @@ def main():
     def mask(vw, vh, d):
         svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %.1f %.1f"><path fill-rule="evenodd" d="%s"/></svg>' % (vw, vh, d)
         return 'url("data:image/svg+xml,%s")' % urllib.parse.quote(svg, safe=' /=:,.-#')
-    # 4.30: daha özenli açılış: logo üstte (marka renk geçişiyle), altında "Wallet" ve kısa alt yazı; arkada hafif ışık,
+    # 4.30: daha özenli açılış: logo üstte (marka renk geçişiyle), altında "Wallet" (4.31: alt yazı yok); arkada hafif ışık,
     # altta dolan ince çizgi (açılış süresi kadar). Telefonun temasını izler; hareket azaltılmışsa animasyon yok.
     css = (
         '#splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;'
@@ -212,7 +212,7 @@ def main():
              link=LIGHT['ink'], lmut='#5E6E67', ltrk='rgba(19,32,27,.1)', lac=LIGHT['accent'], m1=mask(BW, BH, logo_d))
     block = ('<!-- açılış:başla (tools/brand/build.py üretir) -->\n<style>%s</style>\n'
              '<div id="splash" aria-hidden="true"><div class="sp-r"><i class="sp-g"></i><i class="sp-l"></i><span class="sp-w">Wallet</span>'
-             '<span class="sp-t">Paranın tamamı tek yerde</span></div><div class="sp-b"><i></i></div></div>\n<!-- açılış:bitir -->') % css
+             '</div><div class="sp-b"><i></i></div></div>\n<!-- açılış:bitir -->') % css
     ip = os.path.join(ROOT, 'index.html')
     h = open(ip, encoding='utf-8').read()
     h2 = re.sub(r'<!-- açılış:başla.*?<!-- açılış:bitir -->', lambda m: block, h, flags=re.S)

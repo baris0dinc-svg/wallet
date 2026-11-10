@@ -10,7 +10,7 @@ window.addEventListener('unhandledrejection',function(e){var r=e.reason;errLog('
 document.addEventListener('securitypolicyviolation',function(e){errLog('politika',e.violatedDirective,e.blockedURI);});
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.30';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.31';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -124,7 +124,8 @@ var ICONS={
 };
 function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="'+ICONS[n]+'"/></svg>';}
 /* alt menü: Ana Sayfa, İşlemler (liste / takvim), Plan (Bütçe, Düzenli, Hedefler, Koç), Analiz (Özet, Kategoriler), Hesaplar (Hesaplar, Yatırımlar, Borçlar). Ayarlar başlıktaki çark simgesiyle açılır. */
-var SECS=[['ev','Ana Sayfa','home'],['islem','İşlemler','list'],['plan','Plan','flag'],['analiz','Analiz','chart'],['servet','Hesaplar','wallet']];
+/* 4.31: alt menü dört sekme: Ana Sayfa (net servet + hesaplar, yatırımlar, borçlar), İşlemler, Gelişim (eski Plan ve Analiz), Ayarlar */
+var SECS=[['ev','Ana Sayfa','home'],['islem','İşlemler','list'],['gelisim','Gelişim','trend'],['ayar','Ayarlar','cog']];
 /* 4.4: Varlıklar (ev, araba) Yatırımlar'ın altında ayrı bölüm; eski 'varlik' bağlantıları oraya gider */
 var WEALTH=[['hesap','Hesaplar'],['yatirim','Yatırımlar'],['borc','Borçlar']];
 /* 4.2: net servet gelişimi ve dağılımı Hesaplar sekmesinde (eski Analiz › Servet oraya gider).
@@ -132,6 +133,8 @@ var WEALTH=[['hesap','Hesaplar'],['yatirim','Yatırımlar'],['borc','Borçlar']]
 var ANS=[['ozet','Özet'],['harcama','Kategoriler']];
 /* 4.2: her gün kullanılan Bütçe ve Düzenli önde, Koç sonda */
 var PLANS=[['butce','Bütçe'],['duzenli','Düzenli'],['hedef','Hedefler'],['koc','Koç']];
+/* Gelişim sekmesinin alt sekmeleri: önce Analiz'in, sonra Plan'ın bölümleri (tek satır, yana kayar) */
+var GEL=ANS.concat(PLANS);
 var SETS=[
  {g:'Genel',id:'genel',t:'Genel',d:'Adın, maaş günü, varsayılan hesap, tema ve yazı boyutu',i:'user',c:'var(--inc)'},
  {g:'Genel',id:'kurlar',t:'Para birimi ve kurlar',d:'Görüntüleme para birimi, kurların güncellenmesi',i:'trend',c:'var(--blue)'},
@@ -697,7 +700,7 @@ function leftNow(){
 function heroCard(W){
   var L=leftNow(),ch=histChange(30);
   var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
-  h+='<button class="nwbig" data-act="sub" data-v="servet" aria-label="Net servet: hesaplar ve yatırımlar"><span class="big num">'+DC0.format(W.net)+'</span>'+ic('r')+'</button>';
+  h+='<button class="nwbig" data-act="nw-jump" aria-label="Net servet: hesaplar ve yatırımlar"><span class="big num">'+DC0.format(W.net)+'</span>'+ic('r')+'</button>';
   if(S.dccy!=='TRY'&&dccy()==='TRY')h+='<div class="small exp">'+esc(CCYN[S.dccy])+' kuru henüz yok; TL gösteriliyor.</div>';
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
   if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">'+(ch.since?'ilk kayıttan beri':'son '+ch.days+' günde')+'</span></div>';
@@ -727,7 +730,7 @@ function periodHead(withSum){
 }
 function vMain(){
   var cur=SECS.some(function(x){return x[0]===ui.sub;})?ui.sub:'ev';ui.sub=cur;
-  var body={ev:vHome,islem:vIslem,analiz:analizBody,servet:servetBody,plan:planBody}[cur];
+  var body={ev:vHome,islem:vIslem,gelisim:gelisimBody,ayar:vAyarlar}[cur];
   return '<section id="secbody" class="stack">'+body()+'</section>';
 }
 /* ---------- Ana Sayfa ---------- */
@@ -737,7 +740,8 @@ function vHome(){
   /* sıra: ne kaldı → ekle → yapılacaklar (tek kart) → son işlemler → piyasalar. Notlar başlıktaki simgede, hesaplayıcılar Plan › Koç'ta */
   /* 4.30: Gündem kartı kalktı: uyarılar zilde (Ödendi düğmeleriyle), akıllı tespitler Analiz › Özet'te, Koç adımı Plan › Koç'ta */
   h+=heroCard(W)+smsBanner()+qaRow()+favRow('home');
-  return h+recentCard()+mStrip();
+  /* 4.31: Hesaplar (hesaplar, yatırımlar, borçlar; net servet gelişimi ve dağılımı) ana sayfada */
+  return h+recentCard()+homeWealth()+mStrip();
 }
 function hello(){var hr=new Date().getHours();return hr<5?'İyi geceler':hr<12?'Günaydın':hr<18?'İyi günler':'İyi akşamlar';}
 /* "Tümü" her zaman listeyi açar (İşlemler takvim görünümünde bırakılmış olsa da) */
@@ -883,14 +887,25 @@ function distBar(){
   if(l.length>5){var rest=l.slice(4).reduce(function(a,x){return a+x[1];},0);l=l.slice(0,4).concat([['Diğer',rest]]);}
   return '<div class="lbl" style="margin-top:10px">Varlık dağılımı</div><div class="stackbar" style="margin-top:6px" role="img" aria-label="Varlık dağılımı">'+l.map(function(x,i){return '<i style="width:'+(x[1]/tot*100)+'%;background:'+dcol(i)+'"></i>';}).join('')+'</div><div class="legend">'+l.map(function(x,i){return '<span style="--c:'+dcol(i)+'">'+esc(x[0])+' %'+(x[1]/tot<0.01?'<1':Math.round(x[1]/tot*100))+'</span>';}).join('')+'</div>';
 }
+function homeWealth(){if(ui.sv==='varlik')ui.sv='yatirim';var v=WEALTH.some(function(x){return x[0]===ui.sv;})?ui.sv:'hesap',ch=nwChart(),db=distBar();
+  return '<div id="wealth" class="stack">'+(ch||db?'<div class="card nw">'+ch+db+'</div>':'')+segTabs(WEALTH,v,'sv','Hesaplar')+({hesap:hesapBody,yatirim:yatirimBody,borc:borcBody}[v])()+'</div>';}
+ACT['nw-jump']=function(){var w=document.getElementById('wealth');if(w)w.scrollIntoView({behavior:'smooth',block:'start'});};
+/* Gelişim: Analiz (Özet, Kategoriler) ve Plan (Bütçe, Düzenli, Hedefler, Koç) tek sekmede; düğmeler eski eylemleriyle (an / plan) */
+function gelisimBody(){
+  var v=GEL.some(function(x){return x[0]===ui.gl;})?ui.gl:'ozet';ui.gl=v;
+  var isA=ANS.some(function(x){return x[0]===v;});
+  var tabs='<div class="seg scroll scroll-x" id="glbar" role="tablist" aria-label="Gelişim">'+GEL.map(function(x){var a=ANS.some(function(y){return y[0]===x[0];})?'an':'plan';return '<button role="tab" data-act="'+a+'" data-v="'+x[0]+'" aria-pressed="'+(v===x[0])+'" aria-selected="'+(v===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
+  if(isA){ui.an=v;return tabs+analizBody(true);}
+  ui.plan=v;return tabs+planBody(true);
+}
 function servetBody(){if(ui.sv==='varlik')ui.sv='yatirim';var v=WEALTH.some(function(x){return x[0]===ui.sv;})?ui.sv:'hesap';return nwTop()+segTabs(WEALTH,v,'sv','Hesaplar')+({hesap:hesapBody,yatirim:yatirimBody,borc:borcBody}[v])();}
 /* liste ekranlarında "… ekle" tek biçimde: listenin altında (Hesap ekle gibi); liste boşken asıl eylem olduğundan birincil düğme */
 function addBtn(act,label,empty,v){return '<button class="btn'+(empty?'':' ghost')+'" data-act="'+act+'"'+(v?' data-v="'+v+'"':'')+'>'+(empty?'':ic('plus')+' ')+label+'</button>';}
 
 /* ---------- Bütçe, Hedefler, Düzenli ---------- */
-function planBody(){
+function planBody(noTabs){
   var p=PLANS.some(function(x){return x[0]===ui.plan;})?ui.plan:'butce';ui.plan=p;
-  var seg=segTabs(PLANS,p,'plan','Plan');
+  var seg=noTabs?'':segTabs(PLANS,p,'plan','Plan');
   return seg+(p==='koc'?vKoc():(p==='butce'?periodHead(false)+budgetBody():(p==='duzenli'?periodHead(false)+duzenliBody():hedefBody())));
 }
 /* Bütçe: üstte bütçeden kalan; limitli kategoriler ilerlemeleriyle; limitsizler katlanır "Limit koy" listesinde */
@@ -1109,8 +1124,8 @@ ACT['cal-day']=function(el,id,v){
   openSheet('<h2>'+esc(pdate(v).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',weekday:'long'}))+'</h2>'+(l.length?'<div class="list">'+l.map(txRow).join('')+'</div>':'<div class="empty">Bu gün işlem yok.</div>')
    +'<button class="btn" data-act="cal-add" data-v="'+v+'">Bu güne işlem ekle</button>');};
 ACT['cal-add']=function(el,id,v){txSheet(null,null,{date:v});};
-function analizBody(){
-  var v=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet',k=ui.month,m=monthTx(k),h=segTabs(ANS,v,'an','Analiz');
+function analizBody(noTabs){
+  var v=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet',k=ui.month,m=monthTx(k),h=noTabs?'':segTabs(ANS,v,'an','Analiz');
   if(v==='ozet'){
     h+=monthNav()+(k===curP()?brainCard()+insights():'')+flowCard();
     if(!S.tx.some(function(t){return t.type==='inc'||t.type==='exp';}))return h;
@@ -1456,7 +1471,11 @@ function render(){RIN=true;try{render0();}finally{RIN=false;}}
 function render0(){
   TXV++;
   /* eski Planlama sayfası artık Plan sekmesi */
-  if(ui.page&&ui.page.k==='plan'){ui.page=null;ui.sub='plan';}
+  if(ui.page&&ui.page.k==='plan'){ui.page=null;ui.sub='gelisim';ui.gl=ui.plan||'butce';}
+  /* 4.31: eski sekme adları (plan, analiz, servet) yeni yerlerine */
+  if(ui.sub==='plan'||ui.sub==='analiz'||ui.sub==='servet'||ui.sub==='ayarlar')ui.sub=mapSec(ui.sub);
+  /* 4.31: Ayarlar sekme oldu; eski Ayarlar sayfası (adres #ayarlar) sekmeye döner */
+  if(ui.page&&ui.page.k==='ayar'){ui.page=null;ui.sub='ayar';}
   try{snap();}catch(e){}
   var L=document.getElementById('lock');
   document.body.classList.toggle('locked',!!ui.locked);
@@ -1474,6 +1493,8 @@ function render0(){
   }else{
     hd.innerHTML=tabHead();
     vw.innerHTML=vMain();
+    /* Gelişim alt sekmeleri yana kayar: seçili olan görünür kalsın */
+    var gb=document.getElementById('glbar'),ga=gb&&gb.querySelector('[aria-pressed="true"]');if(ga)gb.scrollLeft=Math.max(0,ga.offsetLeft-(gb.clientWidth-ga.offsetWidth)/2);
   }
   applyNoteColor();
   var tb=document.getElementById('tabbar');
@@ -1481,43 +1502,48 @@ function render0(){
     if(!ui.page)tb.innerHTML='<div class="tbin">'+SECS.map(function(x){var on=ui.sub===x[0];return '<button data-act="sub" data-v="'+x[0]+'"'+(on?' aria-current="page"':'')+'>'+ic(x[2])+'<span>'+x[1]+'</span></button>';}).join('')+'</div>';}
   document.documentElement.style.setProperty('--hh',hd.offsetHeight+'px');
   /* işlem eklemek her sekmeden tek dokunuş: ana sayfada büyük kart, diğer sekmelerde + düğmesi */
-  var fb=document.getElementById('fab');fb.hidden=!!ui.page||ui.sub==='ev';document.body.classList.toggle('has-fab',!fb.hidden);
+  var fb=document.getElementById('fab');fb.hidden=!!ui.page||ui.sub==='ev'||ui.sub==='ayar';document.body.classList.toggle('has-fab',!fb.hidden);
 }
-function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({nv:ui.nv,plan:ui.plan,sv:ui.sv,an:ui.an}));}catch(e){}}
+function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({nv:ui.nv,plan:ui.plan,sv:ui.sv,an:ui.an,gl:ui.gl}));}catch(e){}}
 /* sekme başlığı: Ana Sayfa'da logo, ara ve uyarılar (4.15: sesle ekleme kaldırıldı, Notlar ana sayfadaki kısayolda); Hesaplar'da kur yenileme; ayarlar her sekmede sağdaki çark simgesinde.
    Uyarılar ana sayfadaki Gündem kartında (ayrı zil yok); tutarları gizleme ana sayfa ve Hesaplar kartındaki gözde. */
 function tabHead(){
   var gear='<button class="icon-btn" data-act="open-settings" aria-label="Ayarlar" title="Ayarlar">'+ic('cog')+'</button>';
   var rf='<button class="icon-btn" id="rfb" data-act="refresh" aria-label="Yenile: güncel kurlar ve piyasalar" title="Yenile">'+ic('refresh')+'</button>';
-  if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns">'+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+gear+'</span>';
+  /* 4.31: Ayarlar alt menüde (çark yok); Ana Sayfa'da kur yenileme ve uyarılar */
+  if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns">'+rf+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+'</span>';
   var t=(SECS.filter(function(x){return x[0]===ui.sub;})[0]||SECS[0])[1],cal=ui.txv==='cal';
   /* İşlemler: liste ↔ takvim (4.4'e kadar Analiz › Takvim) */
   var tv='<button class="icon-btn" id="txv" data-act="tx-view" aria-pressed="'+cal+'" aria-label="'+(cal?'Liste görünümü':'Takvim görünümü')+'" title="'+(cal?'Liste':'Takvim')+'">'+ic(cal?'list':'cal')+'</button>';
-  return '<h1 class="tt">'+esc(t)+'</h1><span class="hbtns">'+(ui.sub==='servet'?rf:'')+(ui.sub==='islem'?tv:'')+gear+'</span>';
+  return '<h1 class="tt">'+esc(t)+'</h1><span class="hbtns">'+(ui.sub==='islem'?tv:'')+'</span>';
 }
 /* eski bölüm adları: Bütçe, Düzenli, Hedefler ve Koç Plan sekmesinin; Yatırımlar, Varlıklar, Borçlar Hesaplar sekmesinin alt sekmeleri */
-function mapSec(s){if(s==='portfoy'||s==='varlik')s='yatirim';if(WEALTH.some(function(x){return x[0]===s;})){ui.sv=s;return 'servet';}
+/* 4.31: eski sekmeler: Hesaplar (servet) → Ana Sayfa'daki Hesaplar bölümü; Plan ve Analiz → Gelişim */
+function mapSec(s){if(s==='portfoy'||s==='varlik')s='yatirim';if(WEALTH.some(function(x){return x[0]===s;})){ui.sv=s;return 'ev';}
+  if(s==='servet'||s==='hesaplar')return 'ev';
   if(s==='takvim'){ui.txv='cal';return 'islem';}
-  if(PLANS.some(function(x){return x[0]===s;})){ui.plan=s;return 'plan';}if(s==='planlama')return 'plan';
+  if(PLANS.some(function(x){return x[0]===s;})){ui.plan=s;ui.gl=s;return 'gelisim';}if(s==='planlama'||s==='plan'){ui.gl=PLANS.some(function(x){return x[0]===ui.plan;})?ui.plan:'butce';return 'gelisim';}
+  if(ANS.some(function(x){return x[0]===s;})){ui.an=s;ui.gl=s;return 'gelisim';}if(s==='analiz'){ui.gl=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet';return 'gelisim';}
+  if(s==='ayarlar')return 'ayar';
   return SECS.some(function(x){return x[0]===s;})?s:'ev';}
 function restoreUi(){
   try{var u=JSON.parse(localStorage.getItem(UIKEY)||'{}');
-    if(PLANS.some(function(x){return x[0]===u.plan;}))ui.plan=u.plan;if(WEALTH.some(function(x){return x[0]===u.sv;}))ui.sv=u.sv;else if(u.sv==='varlik')ui.sv='yatirim';if(ANS.some(function(x){return x[0]===u.an;}))ui.an=u.an;
+    if(GEL.some(function(x){return x[0]===u.gl;}))ui.gl=u.gl;if(PLANS.some(function(x){return x[0]===u.plan;}))ui.plan=u.plan;if(WEALTH.some(function(x){return x[0]===u.sv;}))ui.sv=u.sv;else if(u.sv==='varlik')ui.sv='yatirim';if(ANS.some(function(x){return x[0]===u.an;}))ui.an=u.an;
     if(u.nv==='arch'||u.nv==='trash')ui.nv=u.nv;}catch(e){}
   var h=(location.hash||'').slice(1);
   var IH={'yeni-gider':'exp','yeni-gelir':'inc','yeni-transfer':'trf','yeni-ses':'exp'};if(IH[h])ui.intent=IH[h];
-  ui.page=pageFromHash(h);if(h==='planlama'||h==='koc')ui.sub='plan';if(h==='koc')ui.plan='koc';
+  ui.page=pageFromHash(h);if(h==='planlama'||h==='koc'){ui.sub='gelisim';ui.gl=h==='koc'?'koc':(ui.plan||'butce');}if(h==='koc')ui.plan='koc';
+  if(ui.page&&ui.page.k==='ayar'){ui.page=null;ui.sub='ayar';}
   if(h&&!ui.page){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
 }
 /* adres çubuğundaki #… ile sayfa eşleşmesi (tarayıcı/telefon geri tuşu için) */
 function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='ayarlar')return {k:'ayar'};if(h==='notlar')return {k:'notlar'};if(/^ayar-[a-z]+$/.test(h)&&SETS.some(function(x){return x.id===h.slice(5);}))return {k:'set',s:h.slice(5)};if(/^ayar-/.test(h))return {k:'ayar'};return null;}
-var TABH={islemler:'islem',hesaplar:'servet',analiz:'analiz',plan:'plan',anasayfa:'ev'};
+var TABH={islemler:'islem',hesaplar:'ev',analiz:'gelisim',plan:'gelisim',gelisim:'gelisim',ayarlar:'ayar',anasayfa:'ev'};
 function openPage(p,hash){closeSheet();if(ui.page&&ui.page!==p&&ui.page.k!==p.k){finishPage();p.prev=ui.page;}ui.page=p;try{if(hash)location.hash=hash;}catch(e){}render();window.scrollTo(0,0);}
 function finishPage(){if(ui.page&&ui.page.k==='note')saveNote();}
 function closePage(){finishPage();var p=ui.page;ui.page=(p&&p.prev)||null;render();try{if(location.hash.length>1)history.back();}catch(e){}}
 function goSec(s){closeSheet();
   if(s==='notlar'){openPage({k:'notlar'},'notlar');return;}
-  if(s==='ayar'||s==='ayarlar'){openPage({k:'ayar'},'ayarlar');return;}
   /* sayfadan sekmeye geçerken adresi yerinde temizle (history.back gecikmeli çalışıp sonraki sayfayı kapatmasın) */
   var from=ui.page?null:ui.sub,to=mapSec(s);if(ui.sub==='islem'&&to!=='islem')ui.tq='';
   if(ui.page){finishPage();ui.page=null;try{if(location.hash.length>1)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
@@ -1833,12 +1859,12 @@ ACT.mprev=function(){ui.month=addMonth(ui.month,-1);render();};
 ACT.mnext=function(){ui.month=addMonth(ui.month,1);render();};
 ACT.filter=function(el,id,v){ui.filter=v;render();};
 ACT['acct-clear']=function(){ui.acctF='';render();};
-ACT.plan=function(el,id,v){ui.plan=v;persistUi();render();};
+ACT.plan=function(el,id,v){ui.plan=v;ui.gl=v;if(ui.sub!=='gelisim'&&!ui.page)ui.sub='gelisim';persistUi();render();};
 /* 4.4: eski Hesaplar › Varlıklar, Yatırımlar'ın altındaki "Ev, araba ve diğer varlıklar" bölümü */
 function toVarlik(){setTimeout(function(){var a=document.getElementById('varliklar');if(a)window.scrollTo(0,Math.max(a.getBoundingClientRect().top+window.scrollY-document.getElementById('hdr').offsetHeight-12,0));},0);}
 ACT.sv=function(el,id,v){var va=v==='varlik';ui.sv=va?'yatirim':v;persistUi();render();if(va)toVarlik();};
 /* eski Analiz › Servet: net servet gelişimi artık Hesaplar sekmesinin üstünde; eski Analiz › Takvim İşlemler'in takvim görünümü */
-ACT.an=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}if(v==='takvim'){goSec('takvim');return;}ui.an=v;persistUi();render();};
+ACT.an=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}if(v==='takvim'){goSec('takvim');return;}ui.an=v;ui.gl=v;if(ui.sub!=='gelisim'&&!ui.page)ui.sub='gelisim';persistUi();render();};
 ACT['sv-go']=function(el,id,v){goSec(v);if(v==='varlik')toVarlik();};
 ACT['an-go']=function(el,id,v){if(v==='servet'){ui.sv='hesap';goSec('servet');return;}if(v==='takvim'){goSec('takvim');return;}ui.an=v;goSec('analiz');};
 /* İşlemler: liste ↔ takvim; dönem kartı ve ay aynı kalır */
@@ -2954,7 +2980,7 @@ function refreshMarket(opt){
   return run;
 }
 function mUpd(){var e=document.getElementById('mres');if(e)e.innerHTML=mBody();}
-function mAfter(){if(ui.page&&ui.page.k==='piyasa'){if(!sheetOpen()&&!busy())render();else mUpd();}else if(!ui.page&&!busy()&&ui.sub==='servet')render();}
+function mAfter(){if(ui.page&&ui.page.k==='piyasa'){if(!sheetOpen()&&!busy())render();else mUpd();}else if(!ui.page&&!busy()&&ui.sub==='ev')render();}
 
 /* ---------- arama ---------- */
 function mLocal(q){

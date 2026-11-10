@@ -101,8 +101,8 @@ ACT['cal-day']=function(el,id,v){
   openSheet('<h2>'+esc(pdate(v).toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric',weekday:'long'}))+'</h2>'+(l.length?'<div class="list">'+l.map(txRow).join('')+'</div>':'<div class="empty">Bu gün işlem yok.</div>')
    +'<button class="btn" data-act="cal-add" data-v="'+v+'">Bu güne işlem ekle</button>');};
 ACT['cal-add']=function(el,id,v){txSheet(null,null,{date:v});};
-function analizBody(){
-  var v=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet',k=ui.month,m=monthTx(k),h=segTabs(ANS,v,'an','Analiz');
+function analizBody(noTabs){
+  var v=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet',k=ui.month,m=monthTx(k),h=noTabs?'':segTabs(ANS,v,'an','Analiz');
   if(v==='ozet'){
     h+=monthNav()+(k===curP()?brainCard()+insights():'')+flowCard();
     if(!S.tx.some(function(t){return t.type==='inc'||t.type==='exp';}))return h;

@@ -16,7 +16,11 @@ function render(){RIN=true;try{render0();}finally{RIN=false;}}
 function render0(){
   TXV++;
   /* eski Planlama sayfası artık Plan sekmesi */
-  if(ui.page&&ui.page.k==='plan'){ui.page=null;ui.sub='plan';}
+  if(ui.page&&ui.page.k==='plan'){ui.page=null;ui.sub='gelisim';ui.gl=ui.plan||'butce';}
+  /* 4.31: eski sekme adları (plan, analiz, servet) yeni yerlerine */
+  if(ui.sub==='plan'||ui.sub==='analiz'||ui.sub==='servet'||ui.sub==='ayarlar')ui.sub=mapSec(ui.sub);
+  /* 4.31: Ayarlar sekme oldu; eski Ayarlar sayfası (adres #ayarlar) sekmeye döner */
+  if(ui.page&&ui.page.k==='ayar'){ui.page=null;ui.sub='ayar';}
   try{snap();}catch(e){}
   var L=document.getElementById('lock');
   document.body.classList.toggle('locked',!!ui.locked);
@@ -34,6 +38,8 @@ function render0(){
   }else{
     hd.innerHTML=tabHead();
     vw.innerHTML=vMain();
+    /* Gelişim alt sekmeleri yana kayar: seçili olan görünür kalsın */
+    var gb=document.getElementById('glbar'),ga=gb&&gb.querySelector('[aria-pressed="true"]');if(ga)gb.scrollLeft=Math.max(0,ga.offsetLeft-(gb.clientWidth-ga.offsetWidth)/2);
   }
   applyNoteColor();
   var tb=document.getElementById('tabbar');
@@ -41,43 +47,48 @@ function render0(){
     if(!ui.page)tb.innerHTML='<div class="tbin">'+SECS.map(function(x){var on=ui.sub===x[0];return '<button data-act="sub" data-v="'+x[0]+'"'+(on?' aria-current="page"':'')+'>'+ic(x[2])+'<span>'+x[1]+'</span></button>';}).join('')+'</div>';}
   document.documentElement.style.setProperty('--hh',hd.offsetHeight+'px');
   /* işlem eklemek her sekmeden tek dokunuş: ana sayfada büyük kart, diğer sekmelerde + düğmesi */
-  var fb=document.getElementById('fab');fb.hidden=!!ui.page||ui.sub==='ev';document.body.classList.toggle('has-fab',!fb.hidden);
+  var fb=document.getElementById('fab');fb.hidden=!!ui.page||ui.sub==='ev'||ui.sub==='ayar';document.body.classList.toggle('has-fab',!fb.hidden);
 }
-function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({nv:ui.nv,plan:ui.plan,sv:ui.sv,an:ui.an}));}catch(e){}}
+function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({nv:ui.nv,plan:ui.plan,sv:ui.sv,an:ui.an,gl:ui.gl}));}catch(e){}}
 /* sekme başlığı: Ana Sayfa'da logo, ara ve uyarılar (4.15: sesle ekleme kaldırıldı, Notlar ana sayfadaki kısayolda); Hesaplar'da kur yenileme; ayarlar her sekmede sağdaki çark simgesinde.
    Uyarılar ana sayfadaki Gündem kartında (ayrı zil yok); tutarları gizleme ana sayfa ve Hesaplar kartındaki gözde. */
 function tabHead(){
   var gear='<button class="icon-btn" data-act="open-settings" aria-label="Ayarlar" title="Ayarlar">'+ic('cog')+'</button>';
   var rf='<button class="icon-btn" id="rfb" data-act="refresh" aria-label="Yenile: güncel kurlar ve piyasalar" title="Yenile">'+ic('refresh')+'</button>';
-  if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns">'+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+gear+'</span>';
+  /* 4.31: Ayarlar alt menüde (çark yok); Ana Sayfa'da kur yenileme ve uyarılar */
+  if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns">'+rf+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+'</span>';
   var t=(SECS.filter(function(x){return x[0]===ui.sub;})[0]||SECS[0])[1],cal=ui.txv==='cal';
   /* İşlemler: liste ↔ takvim (4.4'e kadar Analiz › Takvim) */
   var tv='<button class="icon-btn" id="txv" data-act="tx-view" aria-pressed="'+cal+'" aria-label="'+(cal?'Liste görünümü':'Takvim görünümü')+'" title="'+(cal?'Liste':'Takvim')+'">'+ic(cal?'list':'cal')+'</button>';
-  return '<h1 class="tt">'+esc(t)+'</h1><span class="hbtns">'+(ui.sub==='servet'?rf:'')+(ui.sub==='islem'?tv:'')+gear+'</span>';
+  return '<h1 class="tt">'+esc(t)+'</h1><span class="hbtns">'+(ui.sub==='islem'?tv:'')+'</span>';
 }
 /* eski bölüm adları: Bütçe, Düzenli, Hedefler ve Koç Plan sekmesinin; Yatırımlar, Varlıklar, Borçlar Hesaplar sekmesinin alt sekmeleri */
-function mapSec(s){if(s==='portfoy'||s==='varlik')s='yatirim';if(WEALTH.some(function(x){return x[0]===s;})){ui.sv=s;return 'servet';}
+/* 4.31: eski sekmeler: Hesaplar (servet) → Ana Sayfa'daki Hesaplar bölümü; Plan ve Analiz → Gelişim */
+function mapSec(s){if(s==='portfoy'||s==='varlik')s='yatirim';if(WEALTH.some(function(x){return x[0]===s;})){ui.sv=s;return 'ev';}
+  if(s==='servet'||s==='hesaplar')return 'ev';
   if(s==='takvim'){ui.txv='cal';return 'islem';}
-  if(PLANS.some(function(x){return x[0]===s;})){ui.plan=s;return 'plan';}if(s==='planlama')return 'plan';
+  if(PLANS.some(function(x){return x[0]===s;})){ui.plan=s;ui.gl=s;return 'gelisim';}if(s==='planlama'||s==='plan'){ui.gl=PLANS.some(function(x){return x[0]===ui.plan;})?ui.plan:'butce';return 'gelisim';}
+  if(ANS.some(function(x){return x[0]===s;})){ui.an=s;ui.gl=s;return 'gelisim';}if(s==='analiz'){ui.gl=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet';return 'gelisim';}
+  if(s==='ayarlar')return 'ayar';
   return SECS.some(function(x){return x[0]===s;})?s:'ev';}
 function restoreUi(){
   try{var u=JSON.parse(localStorage.getItem(UIKEY)||'{}');
-    if(PLANS.some(function(x){return x[0]===u.plan;}))ui.plan=u.plan;if(WEALTH.some(function(x){return x[0]===u.sv;}))ui.sv=u.sv;else if(u.sv==='varlik')ui.sv='yatirim';if(ANS.some(function(x){return x[0]===u.an;}))ui.an=u.an;
+    if(GEL.some(function(x){return x[0]===u.gl;}))ui.gl=u.gl;if(PLANS.some(function(x){return x[0]===u.plan;}))ui.plan=u.plan;if(WEALTH.some(function(x){return x[0]===u.sv;}))ui.sv=u.sv;else if(u.sv==='varlik')ui.sv='yatirim';if(ANS.some(function(x){return x[0]===u.an;}))ui.an=u.an;
     if(u.nv==='arch'||u.nv==='trash')ui.nv=u.nv;}catch(e){}
   var h=(location.hash||'').slice(1);
   var IH={'yeni-gider':'exp','yeni-gelir':'inc','yeni-transfer':'trf','yeni-ses':'exp'};if(IH[h])ui.intent=IH[h];
-  ui.page=pageFromHash(h);if(h==='planlama'||h==='koc')ui.sub='plan';if(h==='koc')ui.plan='koc';
+  ui.page=pageFromHash(h);if(h==='planlama'||h==='koc'){ui.sub='gelisim';ui.gl=h==='koc'?'koc':(ui.plan||'butce');}if(h==='koc')ui.plan='koc';
+  if(ui.page&&ui.page.k==='ayar'){ui.page=null;ui.sub='ayar';}
   if(h&&!ui.page){try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}
 }
 /* adres çubuğundaki #… ile sayfa eşleşmesi (tarayıcı/telefon geri tuşu için) */
 function pageFromHash(h){if(h==='fire')return {k:'fire'};if(h==='araclar')return {k:'araclar'};if(h==='piyasa')return {k:'piyasa'};if(h==='ayarlar')return {k:'ayar'};if(h==='notlar')return {k:'notlar'};if(/^ayar-[a-z]+$/.test(h)&&SETS.some(function(x){return x.id===h.slice(5);}))return {k:'set',s:h.slice(5)};if(/^ayar-/.test(h))return {k:'ayar'};return null;}
-var TABH={islemler:'islem',hesaplar:'servet',analiz:'analiz',plan:'plan',anasayfa:'ev'};
+var TABH={islemler:'islem',hesaplar:'ev',analiz:'gelisim',plan:'gelisim',gelisim:'gelisim',ayarlar:'ayar',anasayfa:'ev'};
 function openPage(p,hash){closeSheet();if(ui.page&&ui.page!==p&&ui.page.k!==p.k){finishPage();p.prev=ui.page;}ui.page=p;try{if(hash)location.hash=hash;}catch(e){}render();window.scrollTo(0,0);}
 function finishPage(){if(ui.page&&ui.page.k==='note')saveNote();}
 function closePage(){finishPage();var p=ui.page;ui.page=(p&&p.prev)||null;render();try{if(location.hash.length>1)history.back();}catch(e){}}
 function goSec(s){closeSheet();
   if(s==='notlar'){openPage({k:'notlar'},'notlar');return;}
-  if(s==='ayar'||s==='ayarlar'){openPage({k:'ayar'},'ayarlar');return;}
   /* sayfadan sekmeye geçerken adresi yerinde temizle (history.back gecikmeli çalışıp sonraki sayfayı kapatmasın) */
   var from=ui.page?null:ui.sub,to=mapSec(s);if(ui.sub==='islem'&&to!=='islem')ui.tq='';
   if(ui.page){finishPage();ui.page=null;try{if(location.hash.length>1)history.replaceState(null,'',location.pathname+location.search);}catch(e){}}

@@ -8,4 +8,8 @@
     <string name="sc_voice_l">Sesle ekle</string>
     <string name="sc_trf_s">Transfer</string>
     <string name="sc_trf_l">Transfer yap</string>
+    <string name="w_name">Wallet özeti</string>
+    <string name="w_desc">Bu ay harcanan, bütçeden kalan; tek dokunuşla gider ya da gelir ekle</string>
+    <string name="w_exp">+ Gider</string>
+    <string name="w_inc">+ Gelir</string>
 </resources>

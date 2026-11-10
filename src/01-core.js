@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.27';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.28';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -269,6 +269,7 @@ function save(){var ts0=Date.now();S.tx.forEach(function(t){if(!t.ts)t.ts=ts0;})
   clearTimeout(planT);planT=setTimeout(pushPlan,700);
   clearTimeout(bkT);bkT=setTimeout(function(){if(S.autoBk&&bkOk()&&(S.savedAt||0)>(S.bkTs||0))autoBackup();},20000);
   try{clSoon();}catch(e){}
+  try{wgSoon();}catch(e){}
 }
 var hostTheme=document.documentElement.getAttribute('data-theme');
 function applyTheme(){var r=document.documentElement,t=S.theme;if(t==='light'||t==='dark')r.setAttribute('data-theme',t);else if(hostTheme)r.setAttribute('data-theme',hostTheme);else r.removeAttribute('data-theme');}
@@ -339,9 +340,9 @@ function sgnD(n){return Math.abs(n)<0.5?DC0.format(0):(n<0?'−':'+')+DC0.format
 /* işlemin TL karşılığı: dövizli işlemde kayıt günündeki kur kullanılır (raporlar geçmişe dönük değişmez) */
 function txTL(t){/* kayıtlı kur yoksa değerleme (alış) kuru: dövizli gider ile hesap bakiyesi aynı kurla TL'ye çevrilir */var c=ccyOf(t.acct);if(c==='TRY')return t.amt;var f=+t.fx;return t.amt*(f>0?f:vRate(c));}
 function stampFx(){S.tx.forEach(function(t){if(!(+t.fx>0)){var c=ccyOf(t.acct);if(c!=='TRY'&&rateOf(c)>0)t.fx=rateOf(c);}});}
-function sum(list,type){var s=0;for(var i=0;i<list.length;i++){var t=list[i];if(t.type===type)s+=txTL(t);}return r2(s);}
+function sum(list,type){var s=0;for(var i=0;i<list.length;i++){var t=list[i];if(t.type===type&&!t.xs)s+=txTL(t);}return r2(s);}
 function sumMv(list,type,side){var s=0;list.forEach(function(t){if(t.type===type&&t.side===side)s+=txTL(t);});return r2(s);}
-function spentByCat(k){var o={};monthTx(k).forEach(function(t){if(t.type==='exp')o[t.cat]=(o[t.cat]||0)+txTL(t);});Object.keys(o).forEach(function(c){o[c]=r2(o[c]);});return o;}
+function spentByCat(k){var o={};monthTx(k).forEach(function(t){if(t.type==='exp'&&!t.xs)o[t.cat]=(o[t.cat]||0)+txTL(t);});Object.keys(o).forEach(function(c){o[c]=r2(o[c]);});return o;}
 /* bir işlemin hesap bakiyesine etkisi (hesabın kendi para biriminde) */
 function txDelta(t,a){
   if(t.type==='trf'){var d=0;if(t.acct===a)d-=t.amt;if(t.to===a)d+=(t.amt2>0?t.amt2:t.amt);return d;}

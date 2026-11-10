@@ -4,6 +4,7 @@ try{if('scrollRestoration' in history)history.scrollRestoration='manual';}catch(
 purgeTrash();
 try{autoPost();}catch(e){}
 try{yieldPost();}catch(e){}
+try{wgSoon();}catch(e){}
 var H0=(location.hash||'').slice(1);
 restoreUi();
 try{if(TABH[H0]){ui.page=null;ui.sub=TABH[H0];persistUi();}}catch(e){}

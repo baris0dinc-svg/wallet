@@ -99,6 +99,17 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   const ab=await ev(ACTJS+'act("open-set","veri");await new Promise(r=>setTimeout(r,300));window.__e2eErr=[];window.addEventListener("error",e=>window.__e2eErr.push(String(e.message)));window.addEventListener("unhandledrejection",e=>window.__e2eErr.push("söz: "+String(e.reason&&e.reason.message||e.reason)));document.querySelector("[data-act=\\"bk-auto\\"]").click();let t="";for(let i=0;i<40;i++){await new Promise(r=>setTimeout(r,200));const f=document.getElementById("f-bka");t=f?f.innerText:"(f-bka yok)";if(/yazıldı|yazılamadı/.test(t))break;}return t+(window.__e2eErr.length?" | HATA: "+window.__e2eErr.join(" ; "):"");');
   const dl=sh('adb shell ls /sdcard/Download/Wallet/');ok('otomatik yedek dosyası yazıldı',/yazıldı/.test(ab||'')&&/Wallet-otomatik-yedek\.json/.test(dl),JSON.stringify(ab)+' | '+dl.trim());
   await ev(ACTJS+'setv("bkp1","e2e-sifre");setv("bkp2","e2e-sifre");document.querySelector("[data-act=\\"bk-pw-set\\"]").click();await new Promise(r=>setTimeout(r,2500));return 1');
+  // 4.28: Excel'e aktar (yerel saveB64), ana ekran bileşeni (kayıtlı sağlayıcı ve veri)
+  {const xr=await ev(ACTJS+'act("open-set","veri");await new Promise(r=>setTimeout(r,300));const b=document.querySelector("[data-act=\\"xlsx\\"]");if(!b)return "düğme yok";b.click();await new Promise(r=>setTimeout(r,1500));return document.getElementById("f-err").innerText');
+   const xl=sh('adb shell ls /sdcard/Download/').split(/\s+/).filter(f=>/^Wallet-\d{4}-\d{2}-\d{2}.*\.xlsx$/.test(f));
+   const hd=xl.length?sh('adb shell "head -c 4 /sdcard/Download/'+xl[0]+' | od -An -tx1"').trim():'';
+   ok('Excel dosyası İndirilenler’e yazıldı',/kaydedildi/.test(xr||'')&&xl.length>0&&/^50 4b 03 04/.test(hd),JSON.stringify(xr)+' | '+xl.join(',')+' | '+hd);
+   if(xl.length){sh('adb pull /sdcard/Download/'+xl[0]+' /tmp/e2e.xlsx');const ck=sh('python3 -I tests/xlsx_check.py /tmp/e2e.xlsx 2>/dev/null || echo yok');console.log('ℹ Excel içeriği: '+ck.trim().slice(0,200));ok('Excel dosyası açılıyor (özet ve işlemler)',/^OK/.test(ck.trim()),ck.trim().slice(0,200));}
+   xl.forEach(f=>sh('adb shell rm -f /sdcard/Download/'+f));
+   const ap=sh('adb shell dumpsys appwidget');ok('ana ekran bileşeni sisteme kayıtlı',/WalletWidget/.test(ap),(ap.match(/.{0,80}WalletWidget.{0,40}/)||[''])[0]);
+   const wr=await ev('return AndroidBridge.widget?"var":"yok"');ok('bileşen köprüsü var',wr==='var',wr);
+   await ev(ACTJS+'act("close");return 1');
+   const pref=sh('adb shell run-as '+PKG+' cat shared_prefs/wallet-widget.xml 2>/dev/null');ok('bileşene özet gönderildi',/Bu ay harcanan/.test(pref)||/&quot;a&quot;/.test(pref),pref.slice(0,160));}
   const enc=sh('adb shell cat /sdcard/Download/Wallet/Wallet-otomatik-yedek.json');ok('şifreli otomatik yedek',/"wallet":1/.test(enc)&&!/E2E Elektrik/.test(enc),enc.slice(0,60));
   await ev(ACTJS+'act("back");return 1');
   // 8 SMS

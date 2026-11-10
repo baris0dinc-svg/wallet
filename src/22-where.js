@@ -8,7 +8,7 @@ function wKey(t){
 /* bir dönemin gruplanmış giderleri: {key:{s:toplam,n:adet,l:[işlemler]}} ve açıklamasızlar */
 function wGroups(k){
   var g={},none={s:0,n:0};
-  monthTx(k).forEach(function(t){if(t.type!=='exp')return;var v=txTL(t),key=wKey(t);if(!key){none.s+=v;none.n++;return;}
+  monthTx(k).forEach(function(t){if(t.type!=='exp'||t.xs)return;var v=txTL(t),key=wKey(t);if(!key){none.s+=v;none.n++;return;}
     var x=g[key]||(g[key]={s:0,n:0,l:[]});x.s+=v;x.n++;x.l.push(t);});
   return {g:g,none:none};
 }

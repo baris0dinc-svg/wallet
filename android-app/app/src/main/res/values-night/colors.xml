@@ -1,1 +1,3 @@
-<resources><color name="bg">#0E1512</color></resources>
+<resources><color name="bg">#0E1512</color>
+    <color name="w_bg">#16201B</color><color name="w_ink">#E7EEEA</color><color name="w_ink2">#93A39B</color>
+    <color name="w_accent">#3FBF9F</color><color name="w_accent_ink">#06130F</color><color name="w_soft">#1C2A24</color></resources>

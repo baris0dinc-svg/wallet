@@ -27,6 +27,7 @@ function alertItems0(){
     items.push([diff<0?'exp':'warn',u.name+' '+(diff<0?(-diff)+' gün gecikti':(diff===0?'bugün':diff+' gün sonra'))+' · '+moneyIn(u.amt,u.acct,1),u.kind==='rec'?['al-pay',u.id,u.per,'Ödendi']:['acct-trf',u.acct,null,'Öde']]);});}
   if(A.rec)items=items.concat(yAlerts(+A.days||0));
   items=items.concat(mTgtAlerts());
+  try{items=items.concat(wrAlerts());}catch(e){}
   if(A.budget){var sp=spentByCat(cur);EXPC().forEach(function(c){var lim=budLim(c,cur);if(lim>0){var s=sp[c]||0,r=s/lim*100;
     if(r>=100)items.push(['exp',c+' bütçesi aşıldı, '+TRY0.format(s-lim)+' fazla',['cat-tx',null,c,'Gör']]);
     else if(r>=A.thr)items.push(['warn',c+': bütçenin %'+Math.round(r)+' kullanıldı',['cat-tx',null,c,'Gör']]);}});}
@@ -220,7 +221,7 @@ function hesapBody(){
     var s=r2(l.reduce(function(x,a){return x+toTL(acctBal(a),a);},0));
     h+='<div class="card" style="padding-top:12px"><div class="ghead"><span class="sic sm" style="--c:'+gp[3]+'">'+ic(gp[2])+'</span><h2 style="margin:0;flex:1">'+gp[1]+'</h2><span class="num'+(s<0?' exp':'')+'">'+TRY0.format(s)+'</span></div><div class="list">'+l.map(acctLine).join('')+'</div></div>';});
   if(arc.length){var arcT=arc.reduce(function(s,a){return s+toTL(acctBal(a),a);},0);h+='<details class="card"><summary><b>Arşivlenen hesaplar</b><span class="small muted"> · '+arc.length+(Math.abs(arcT)>0.5?' · '+TRY0.format(arcT)+' (net servete dahil)':'')+'</span></summary>';}if(arc.length)h+='<div class="list">'+arc.map(acctLine).join('')+'</div></details>';
-  return h+'<button class="btn ghost" data-act="new-a">'+ic('plus')+' Hesap ekle</button>';
+  return h+wrCard()+'<button class="btn ghost" data-act="new-a">'+ic('plus')+' Hesap ekle</button>';
 }
 /* başlangıç bakiyeleri tek pencerede (ilk kurulum) */
 /* kurulum: hesaplar, bakiyelerin tarihi ve maaş günü tek pencerede.
@@ -302,7 +303,7 @@ function budgetBody(){
     var okLeft=0,over=[];lims.forEach(function(c){var d=budLim(c,ui.month)-(sp[c]||0);if(d>=0)okLeft+=d;else over.push([c,-d]);});okLeft=r2(okLeft);
     h='<div class="card"><div class="lbl">'+(over.length?'Aşılmayan kategorilerde kalan':'Bütçeden kalan')+'</div><p class="big">'+TRY0.format(okLeft)+'</p><div class="small muted">Harcanan '+TRY0.format(spSum)+' / '+TRY0.format(limSum)+' · '+lims.length+' kategoride limit var</div>'
       +(over.length?'<div class="small exp" style="margin-top:6px">Aşıldı: '+over.map(function(x){return esc(x[0])+' '+TRY0.format(x[1]);}).join(' · ')+'</div>':'')+'<div class="bar'+(spSum>limSum?' over':(spSum>limSum*.8?' warn':''))+'" style="margin-top:10px"><i style="width:'+Math.min(spSum/limSum*100,100)+'%"></i></div>'
-      +(okLeft>0&&days>0?'<div class="small" style="margin-top:8px">Bütçede kalmak için günde en fazla <b>~'+TRY0.format(okLeft/days)+'</b> · '+days+' gün kaldı</div>':'')+'</div>';
+      +(okLeft>0&&days>0?'<div class="small" style="margin-top:8px">Bütçede kalmak için günde en fazla <b>~'+TRY0.format(okLeft/days)+'</b> · '+days+' gün kaldı</div>':'')+unassignedLine(limSum)+'</div>';
     h+='<div class="card"><h2>Limitler</h2>'+lims.map(function(c){return catRow(c,sp);}).join('')+'<button class="row-tgl" data-act="bud-roll" role="switch" aria-checked="'+!!S.budRoll+'"><span class="mid"><div class="t">Artanı sonraki döneme devret</div><div class="small muted">Geçen dönemden artan limit bu döneme eklenir, aşım düşülür</div></span><span class="sw"></span></button></div>';
   }else{
     h='<div class="card"><div class="lbl">Bütçe</div><p class="small muted" style="margin:6px 0 0">Harcadığın kategorilere aylık limit koy; ne kadar kaldığını ve günde ne kadar harcayabileceğini burada görürsün.</p>'+(sug.length?'<button class="btn small" style="margin-top:10px" data-act="bud-sug">Son 3 dönemin ortalamasıyla doldur</button><div class="small muted" style="margin-top:6px">'+esc(sug.slice(0,4).map(function(x){return x[0]+' '+TRY0.format(x[1]);}).join(' · '))+'</div>':'')+'</div>';

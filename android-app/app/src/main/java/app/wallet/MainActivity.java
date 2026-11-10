@@ -791,6 +791,38 @@ public class MainActivity extends Activity {
             });
         }
 
+        /** 4.28: ikili dosya (Excel .xlsx) — base64 metin olarak gelir, İndirilenler'e yazılır */
+        @JavascriptInterface
+        public String saveB64(String name, String b64) {
+            try {
+                byte[] data = android.util.Base64.decode(b64, android.util.Base64.DEFAULT);
+                String lower = name.toLowerCase();
+                String mime = lower.endsWith(".xlsx") ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" : "application/octet-stream";
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.Downloads.DISPLAY_NAME, name);
+                v.put(MediaStore.Downloads.MIME_TYPE, mime);
+                v.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                Uri u = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                if (u == null) return "err";
+                try (OutputStream o = getContentResolver().openOutputStream(u)) {
+                    if (o == null) return "err";
+                    o.write(data);
+                }
+                return "ok";
+            } catch (Exception e) { return "err"; }
+        }
+
+        /** 4.28: ana ekran bileşeninin özeti (web tarafı her kayıttan sonra gönderir) */
+        @JavascriptInterface
+        public String widget(String json) {
+            try {
+                new JSONObject(json);
+                getSharedPreferences(WalletWidget.PREFS, MODE_PRIVATE).edit().putString("d", json).apply();
+                WalletWidget.refresh(MainActivity.this);
+                return "ok";
+            } catch (Exception e) { return "err"; }
+        }
+
         @JavascriptInterface
         public String copyText(String text) {
             try {

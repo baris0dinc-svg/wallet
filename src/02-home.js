@@ -51,10 +51,12 @@ function mvLabel(t){
   if(t.type==='adj')return 'Bakiye düzeltmesi';
   return t.cat||'';
 }
+/* 4.21: transfer, borç, yatırım ve düzeltme satırlarında da simge (liste hizası aynı olsun) */
+function mvIc(k,c){return '<span class="cic" style="color:var(--'+c+');background:color-mix(in srgb,var(--'+c+') 15%,transparent)" aria-hidden="true">'+ic(k)+'</span>';}
 function txRow(t){
-  if(t.type==='trf')return '<button class="item" data-act="edit-tx" data-id="'+t.id+'"><span class="dot" style="background:var(--ink2)"></span><span class="mid"><div class="t">'+(t.note?esc(t.note):(acctType(t.to)==='kart'?'Kart borcu ödemesi':'Transfer'))+'</div><div class="small muted ell">'+(t.note?(acctType(t.to)==='kart'?'Kart borcu ödemesi · ':'Transfer · '):'')+esc(t.acct)+' → '+esc(t.to)+'</div></span><span class="amt"><span class="num">'+moneyIn(t.amt,t.acct)+'</span>'+(t.amt2>0?'<span class="small muted num">→ '+moneyIn(t.amt2,t.to)+'</span>':'')+'</span></button>';
+  if(t.type==='trf')return '<button class="item" data-act="edit-tx" data-id="'+t.id+'">'+mvIc(acctType(t.to)==='kart'?'card':'swap','ink2')+'<span class="mid"><div class="t">'+(t.note?esc(t.note):(acctType(t.to)==='kart'?'Kart borcu ödemesi':'Transfer'))+'</div><div class="small muted ell">'+(t.note?(acctType(t.to)==='kart'?'Kart borcu ödemesi · ':'Transfer · '):'')+esc(t.acct)+' → '+esc(t.to)+'</div></span><span class="amt"><span class="num">'+moneyIn(t.amt,t.acct)+'</span>'+(t.amt2>0?'<span class="small muted num">→ '+moneyIn(t.amt2,t.to)+'</span>':'')+'</span></button>';
   if(t.type==='inv'||t.type==='dbt'||t.type==='adj'){var lb=mvLabel(t),up=txDelta(t,t.acct)>0;
-    return '<button class="item" data-act="edit-tx" data-id="'+t.id+'"><span class="dot" style="background:var(--'+(t.type==='dbt'?'warn':(t.type==='inv'?'blue':'ink2'))+')"></span><span class="mid"><div class="t">'+esc(t.note||lb)+'</div><div class="small muted ell">'+esc((t.note?lb+' · ':'')+t.acct)+'</div></span><span class="num'+(up?' inc':'')+'">'+(up?'+':'−')+moneyIn(Math.abs(t.amt),t.acct)+'</span></button>';}
+    return '<button class="item" data-act="edit-tx" data-id="'+t.id+'">'+(t.type==='dbt'?mvIc('bank','warn'):(t.type==='inv'?mvIc('trend','blue'):mvIc('scale','ink2')))+'<span class="mid"><div class="t">'+esc(t.note||lb)+'</div><div class="small muted ell">'+esc((t.note?lb+' · ':'')+t.acct)+'</div></span><span class="num'+(up?' inc':'')+'">'+(up?'+':'−')+moneyIn(Math.abs(t.amt),t.acct)+'</span></button>';}
   var inc=t.type==='inc';
   return '<button class="item" data-act="edit-tx" data-id="'+t.id+'">'+cic(t.cat)+'<span class="mid"><div class="t">'+(t.rc?'<span class="rcm" title="Fiş fotoğrafı var">'+ic('camera')+'</span>':'')+esc(t.note||t.sub||t.cat)+'</div><div class="small muted ell">'+(t.note?esc(catLabel(t.cat,t.sub))+' · ':(t.sub?esc(t.cat)+' · ':''))+esc(t.acct)+(t.split?' · bölünmüş':'')+(t.inst?' · taksitli':'')+'</div></span><span class="num '+(inc?'inc':'exp')+'">'+(inc?'+':'−')+moneyIn(t.amt,t.acct)+'</span></button>';
 }
@@ -145,7 +147,12 @@ function recentCard(){
 /* 4.4: ikinci görünüm takvim (başlıktaki düğme); dönem kartı iki görünümde ortak. Takvim eskiden Analiz'deydi */
 function rangeTx(){var t=todayS();if(ui.rng==='gun')return S.tx.filter(function(x){return x.date===t;});
   if(ui.rng==='hafta'){var s=wkStart(),e=new Date(pdate(s));e.setDate(e.getDate()+6);e=isoDate(e);return S.tx.filter(function(x){return x.date>=s&&x.date<=e;});}
+  /* 4.21: bu yıl ve iki tarih arası */
+  if(ui.rng==='yil'){var y=t.slice(0,4);return S.tx.filter(function(x){return x.date.slice(0,4)===y;});}
+  if(ui.rng==='ozel'){var rf=rngFrom(),rt=rngTo();return S.tx.filter(function(x){return x.date>=rf&&x.date<=rt;});}
   return monthTx(ui.month);}
+function rngFrom(){return /^\d{4}-\d{2}-\d{2}$/.test(ui.rf||'')?ui.rf:addD(todayS(),-30);}
+function rngTo(){var v=/^\d{4}-\d{2}-\d{2}$/.test(ui.rt||'')?ui.rt:todayS();return v<rngFrom()?rngFrom():v;}
 function vIslem(){
   if(ui.txv==='cal'){ui.rng='ay';return periodHead(true)+calBody();}
   var r=RNG.some(function(x){return x[0]===ui.rng;})?ui.rng:'ay';ui.rng=r;
@@ -329,18 +336,19 @@ function duzenliBody(){
   if(!S.recurring.length)return '<div class="empty">Henüz düzenli ödeme yok. Kira, fatura, kredi taksiti ve abonelikleri ekle; hatırlatıcı ödeme gününü kaçırmamanı sağlar.</div>'+addBtn('new-r','Düzenli ödeme ekle',1);
   var tot=0,rem=0,cur=curP(),t0=todayS(),h='';
   tot=recMonthlyTot();rem=recDue(ui.month).tot;
-  h+='<div class="card"><div class="row3" style="margin-top:0;grid-template-columns:1fr 1fr"><div><div class="lbl">Aylık toplam</div><span class="num">'+TRY0.format(tot)+'</span></div><div><div class="lbl">Bu dönem ödenecek</div><span class="num">'+TRY0.format(rem)+'</span></div></div></div>';
+  h+='<div class="card"><div class="row3" style="margin-top:0;grid-template-columns:1fr 1fr"><div><div class="lbl">Aylık toplam</div><span class="num">'+TRY0.format(tot)+'</span><div class="small muted">yılda '+compactT(tot*12)+'</div></div><div><div class="lbl">Bu dönem ödenecek</div><span class="num">'+TRY0.format(rem)+'</span></div></div></div>';
   var list=S.recurring.slice().sort(function(a,b){return dueDate(a,recShow(a,ui.month)).localeCompare(dueDate(b,recShow(b,ui.month)));});
   h+='<div class="card" style="padding-top:4px"><div class="list">'+list.map(function(r){
     var q=recShow(r,ui.month),paid=recPaid(r,q),st,dd=dueDate(r,q),dbt=r.debt&&byId(S.debts,r.debt),on=recOn(r,ui.month),inc=!!r.inc,wq=isWk(r)?occs(r,ui.month):null;
     var fq=recFq(r),no=+r.n>0&&on?recNo(r,q)+'/'+r.n:'',wp=wq&&wq.length>1?wq.filter(function(x){return recPaid(r,x);}).length+'/'+wq.length+' '+(inc?'geldi':'ödendi'):'';
     var sub=esc([on?pdate(dd).toLocaleDateString('tr-TR',{day:'numeric',month:'long'}):'',fq,no?(isWk(r)?'':'taksit ')+no:'',wp,dbt?'Borç: '+dbt.name:catLabel(r.cat,r.sub),r.acct].filter(Boolean).join(' · '));
-    if(!on){return '<div class="item"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-r" data-id="'+r.id+'">'+cic(r.cat)+'<span class="mid"><div class="t">'+esc(r.name)+'</div><div class="small muted">'+sub+'</div></span></button><div class="rcol"><span class="num">'+moneyIn(r.amt,r.acct,1)+'</span><span class="pill">'+(recDone(r)?'Tamamlandı':'Bu dönem yok')+'</span></div></div>';}
+    var head=function(am){return '<button class="rmain" data-act="edit-r" data-id="'+r.id+'">'+cic(r.cat)+'<span class="mid"><span class="rtop"><span class="t ell">'+esc(r.name)+'</span>'+am+'</span><span class="small muted rsub">'+sub+'</span></span></button>';};
+    if(!on){return '<div class="ritem">'+head('<span class="num">'+moneyIn(r.amt,r.acct,1)+'</span>')+'<div class="rfoot"><span class="pill">'+(recDone(r)?'Tamamlandı':'Bu dönem yok')+'</span></div></div>';}
     if(paid)st='<span class="pill ok">'+(inc?'Geldi':'Ödendi')+'</span>';
     else if(ui.month===cur){var diff=daysBetween(t0,dd);st=diff<0?'<span class="pill late">'+(-diff)+' gün gecikti</span>':(diff===0?'<span class="pill late">Bugün</span>':'<span class="pill">'+diff+' gün sonra</span>');}
     else if(ui.month<cur)st='<span class="pill late">Ödenmedi</span>';
     else st='<span class="pill">Bekliyor</span>';
-    return '<div class="item"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-r" data-id="'+r.id+'">'+cic(r.cat)+'<span class="mid"><div class="t">'+esc(r.name)+'</div><div class="small muted">'+sub+'</div></span></button><div class="rcol"><span class="num'+(inc?' inc':'')+'">'+(inc?'+':'')+moneyIn(r.amt,r.acct,1)+'</span>'+st+'<button class="btn small ghost" data-act="'+(paid?'rundo':'rpay')+'" data-id="'+r.id+'" data-v="'+q+'">'+(paid?'Geri al':(inc?'Geldi':'Ödendi'))+'</button></div></div>';}).join('')+'</div></div>';
+    return '<div class="ritem">'+head('<span class="num'+(inc?' inc':'')+'">'+(inc?'+':'')+moneyIn(r.amt,r.acct,1)+'</span>')+'<div class="rfoot">'+st+'<button class="btn small '+(paid?'ghost':'')+'" data-act="'+(paid?'rundo':'rpay')+'" data-id="'+r.id+'" data-v="'+q+'">'+(paid?'Geri al':(inc?'Geldi':'Ödendi'))+'</button></div></div>';}).join('')+'</div></div>';
   return h+addBtn('new-r','Düzenli ödeme ya da gelir ekle');
 }
 
@@ -375,11 +383,12 @@ function fireCard(){
    +'<span class="bar"><i style="width:'+m.prog+'%"></i></span>'
    +'<span class="small muted">'+(m.n<=0?'Hedefe ulaştın':'Tahmini süre: <b>'+esc(fmtYears(m.n))+'</b>'+(fireDate(m.n)?' · '+esc(fireDate(m.n)):''))+'</span></button>';
 }
-var RNG=[['ay','Bu dönem'],['gun','Bugün'],['hafta','Bu hafta']];
+var RNG=[['ay','Dönem'],['gun','Bugün'],['hafta','Hafta'],['yil','Yıl'],['ozel','Tarih']];
 function wkStart(){var d=today0(),w=(d.getDay()+6)%7;d.setDate(d.getDate()-w);return isoDate(d);}
 function rangeHead(){
-  var l=rangeTx(),inc=sum(l,'inc'),exp=sum(l,'exp'),net=inc-exp,lb=ui.rng==='gun'?today0().toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'}):(function(){var s=pdate(wkStart()),e=new Date(s);e.setDate(e.getDate()+6);return s.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})+' – '+e.toLocaleDateString('tr-TR',{day:'numeric',month:'short'});})();
-  return '<div class="card period"><div class="lbl" style="text-align:center">'+esc(lb)+'</div><div class="row3" style="margin-top:6px"><div><div class="lbl">Gelir</div><span class="num inc">'+compactT(inc)+'</span></div><div><div class="lbl">Gider</div><span class="num exp">'+compactT(exp)+'</span></div><div><div class="lbl">Fark</div><span class="num '+(net<0?'exp':'')+'">'+(net<=-0.5?'−':'+')+compactT(Math.abs(net))+'</span></div></div></div>';
+  var l=rangeTx(),inc=sum(l,'inc'),exp=sum(l,'exp'),net=inc-exp,lb=ui.rng==='yil'?todayS().slice(0,4)+' yılı':ui.rng==='ozel'?'':ui.rng==='gun'?today0().toLocaleDateString('tr-TR',{day:'numeric',month:'long',weekday:'long'}):(function(){var s=pdate(wkStart()),e=new Date(s);e.setDate(e.getDate()+6);return s.toLocaleDateString('tr-TR',{day:'numeric',month:'short'})+' – '+e.toLocaleDateString('tr-TR',{day:'numeric',month:'short'});})();
+  var hd=ui.rng==='ozel'?'<div class="two rngd"><div class="field"><label for="rf">Başlangıç</label><input id="rf" type="date" value="'+rngFrom()+'" max="'+rngTo()+'"></div><div class="field"><label for="rt">Bitiş</label><input id="rt" type="date" value="'+rngTo()+'" min="'+rngFrom()+'"></div></div>':'<div class="lbl" style="text-align:center">'+esc(lb)+'</div>';
+  return '<div class="card period">'+hd+'<div class="row3" style="margin-top:6px"><div><div class="lbl">Gelir</div><span class="num inc">'+compactT(inc)+'</span></div><div><div class="lbl">Gider</div><span class="num exp">'+compactT(exp)+'</span></div><div><div class="lbl">Fark</div><span class="num '+(net<0?'exp':'')+'">'+(net<=-0.5?'−':'+')+compactT(Math.abs(net))+'</span></div></div></div>';
 }
 ACT.rng=function(el,id,v){ui.rng=v;persistUi();render();};
 /* hızlı işlemler: en çok kullanılan 4 + Tümü */

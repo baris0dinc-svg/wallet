@@ -28,7 +28,7 @@ const MOCK=()=>{
     smsQueue:()=>L.getItem('__q')||'[]',smsAck:()=>L.setItem('__q','[]'),smsState:()=>'granted',smsSet:()=>{},schedule:()=>'ok'};
 };
 (async()=>{const b=await chromium.launch();const F=[],O={};const chk=(c,m)=>{if(!c)F.push(m);};
-const ctx=await b.newContext({viewport:{width:320,height:740}});await ctx.addInitScript(MOCK);
+const ctx=await b.newContext({viewport:{width:320,height:740}});await ctx.addInitScript(MOCK);/* 4.21: Binance bu testte kapalı; kripto CoinGecko taklidinden gelir (sonuç belirli olsun) */await ctx.route('https://data-api.binance.vision/**',r=>r.abort());
 const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8766/index.html');await p.waitForTimeout(1200);
 const ACT='const act=(a,id,v)=>{const e=document.createElement("button");e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};const $=s=>document.querySelector(s);const wait=ms=>new Promise(r=>setTimeout(r,ms));const typ=(v)=>{const e=$("#mq");e.value=v;e.dispatchEvent(new Event("input",{bubbles:true}));};';
@@ -145,7 +145,7 @@ const dz=await p.evaluate(()=>{const T=__T;return [T.csvDate('02 Kasım 2026'),T
 chk(dz[0]==='2026-11-02'&&dz[1]==='2026-11-02'&&dz[2]==='2026-11-02'&&dz[3]==='ok'&&/^2025-12-/.test(dz[4]),'tarih biçimleri '+JSON.stringify(dz));
 await ctx.close();
 /* 10 tarayıcı (yerel köprü yok): yalnızca tarayıcının alabildikleri */
-const c2=await b.newContext({viewport:{width:390,height:800}});const p2=await c2.newPage();p2.on('pageerror',e=>errs.push(e.message));
+const c2=await b.newContext({viewport:{width:390,height:800}});/* 4.21: Binance bu testte kapalı; kripto CoinGecko taklidinden gelir (sonuç belirli olsun) */await c2.route('https://data-api.binance.vision/**',r=>r.abort());const p2=await c2.newPage();p2.on('pageerror',e=>errs.push(e.message));
 await p2.route('https://api.coingecko.com/**',rt=>{const u=rt.request().url();rt.fulfill({status:200,headers:{'access-control-allow-origin':'*','content-type':'application/json'},body:/simple\/price/.test(u)?JSON.stringify({bitcoin:{try:3808230,try_24h_change:-1.5}}):JSON.stringify({coins:[{id:'bitcoin',name:'Bitcoin',symbol:'BTC'}]})});});
 await p2.route(/yahoo|isyatirim|tefas/,rt=>{F.push('tarayıcıda yasak adrese istek: '+rt.request().url());rt.abort();});
 await p2.goto('http://localhost:8767/index.html');await p2.waitForTimeout(1000);

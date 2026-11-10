@@ -41,7 +41,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('#tabbar [data-v="ev"]');
  chk($$q('.list [data-act="edit-tx"]').length===5,'son 5 işlem');click('.linkbtn[data-v="islem"]');chk(T.ui.sub==='islem','son işlemler Tümü');
  // işlemler: 4.2'de Bugün / Bu hafta kaldırıldı; tek zaman denetimi dönem kartı, liste gün gün (gün toplamlarıyla)
- chk(document.querySelectorAll('[data-act="rng"]').length===3&&!!$('.period .mnav')&&!$('header [data-act="eye"]'),'dönem görünümü ve zaman çipleri');click('[data-act="rng"][data-v="gun"]');chk(T.ui.rng==='gun'&&!$('.period .mnav'),'Bugün görünümü');click('[data-act="rng"][data-v="ay"]');
+ chk(document.querySelectorAll('[data-act="rng"]').length===5&&!!$('.period .mnav')&&!$('header [data-act="eye"]'),'dönem görünümü ve zaman çipleri');click('[data-act="rng"][data-v="gun"]');chk(T.ui.rng==='gun'&&!$('.period .mnav'),'Bugün görünümü');click('[data-act="rng"][data-v="ay"]');
  const td=T.todayS();T.S.tx.push({id:'tdy',type:'exp',amt:12,cat:'Market',acct:'Nakit',date:td});T.ui.month=T.curP();T.render();
  chk(!!$('#txlist [data-act="edit-tx"][data-id="tdy"]')&&$('#txlist .day').innerText.includes(new Date().getDate()),'bugünün işlemi en üstteki gün başlığında');T.S.tx=T.S.tx.filter(t=>t.id!=='tdy');T.render();
  // 4.4: takvim İşlemler'in ikinci görünümü (başlıktaki düğme); dönem kartı iki görünümde ortak

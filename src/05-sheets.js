@@ -189,10 +189,14 @@ function catSheet(c){
   var k=ui.month,l=monthTx(k).filter(function(t){return t.type==='exp'&&t.cat===c||t.type==='inc'&&t.cat===c;}).sort(function(a,b){return b.date.localeCompare(a.date);});
   var tot=r2(l.reduce(function(a,t){return a+(t.type==='exp'?txTL(t):0);},0)),inc=r2(l.reduce(function(a,t){return a+(t.type==='inc'?txTL(t):0);},0)),avg=catAvg(k)[c]||0,lim=+S.budgets[c]||0;
   var info=[];if(avg>0)info.push('3 dönem ort. '+TRY0.format(avg));if(lim>0)info.push('limit '+TRY0.format(lim)+(tot>lim?' · '+TRY0.format(tot-lim)+' aşıldı':' · '+TRY0.format(lim-tot)+' kaldı'));
+  /* 4.21: son 6 dönemin eğilimi (seçili dönem vurgulu) */
+  var isInc=!tot&&inc>0,tr=[],trH='';for(var ti=5;ti>=0;ti--){var pk6=addMonth(k,-ti),sv=0;monthTx(pk6).forEach(function(t){if(t.cat===c&&t.type===(isInc?'inc':'exp'))sv+=txTL(t);});tr.push([pk6,sv]);}
+  var trMax=Math.max.apply(null,tr.map(function(x){return x[1];}));
+  if(tr.filter(function(x){return x[1]>0;}).length>=2)trH='<div class="lbl" style="margin-top:4px">Son 6 dönem</div><div class="ctrend" role="img" aria-label="Son 6 dönem '+esc(c)+'">'+tr.map(function(x){var hh=trMax>0?Math.max(x[1]/trMax*100,x[1]>0?4:0):0;return '<div class="cb'+(x[0]===k?' on':'')+'"><span class="small num">'+(x[1]>0?compactT(x[1]).replace('₺',''):'')+'</span><i style="height:'+hh.toFixed(0)+'%;background:'+color(c)+'"></i><span class="small muted">'+esc(mlabel(x[0],true))+'</span></div>';}).join('')+'</div>';
   /* alt kategori kırılımı: alt kategorisi olan işlem varsa çubuklarla */
   var bySub={},subH='';l.forEach(function(t){var x=t.sub||'';bySub[x]=(bySub[x]||0)+txTL(t);});var sk=Object.keys(bySub);
   if(sk.length>1||(sk.length===1&&sk[0])){var st=sk.reduce(function(a,x){return a+bySub[x];},0);subH='<div class="subbrk">'+sk.sort(function(a,b){return bySub[b]-bySub[a];}).map(function(x){var p=st>0?bySub[x]/st*100:0;return '<div class="sb"><div class="sbt"><span class="ell">'+esc(x||'Alt kategorisiz')+'</span><span class="num">'+TRY0.format(bySub[x])+' · %'+Math.round(p)+'</span></div><div class="bar"><i style="width:'+p.toFixed(1)+'%;background:'+color(c)+'"></i></div></div>';}).join('')+'</div>';}
-  openSheet('<div class="ghead">'+cic(c,'lg')+'<h2 style="margin:0;flex:1">'+esc(c)+'</h2></div><div><div class="lbl">'+esc(plabel(k))+'</div><p class="big" style="margin:0">'+TRY0.format(tot||inc)+'</p>'+(info.length?'<div class="small muted">'+esc(info.join(' · '))+'</div>':'')+'</div>'+subH
+  openSheet('<div class="ghead">'+cic(c,'lg')+'<h2 style="margin:0;flex:1">'+esc(c)+'</h2></div><div><div class="lbl">'+esc(plabel(k))+'</div><p class="big" style="margin:0">'+TRY0.format(tot||inc)+'</p>'+(info.length?'<div class="small muted">'+esc(info.join(' · '))+'</div>':'')+'</div>'+trH+subH
    +(l.length?'<div class="list">'+l.map(txRow).join('')+'</div>':'<div class="small muted">Bu dönemde bu kategoride işlem yok.</div>')
    +'<button class="btn ghost" data-act="cat-new" data-v="'+esc(c)+'">Bu kategoriye ekle</button>');
 }

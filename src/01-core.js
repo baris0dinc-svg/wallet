@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.20';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.21';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -356,6 +356,11 @@ function txDelta(t,a){
 /* tüm hesap bakiyeleri tek geçişte; işlem listesi, açılış bakiyeleri ya da çizim sürümü değişince yeniden hesaplanır */
 var BALC={v:-1};
 function instLeft(r){if(!r.auto||!(+r.n>0))return 0;var done=Object.keys(r.paid||{}).filter(function(k){return byId(S.tx,r.paid[k]);}).length;return r2(Math.max(+r.n-done,0)*(+r.amt||0));}
+/* 4.21: D günü itibarıyla taksitli alışverişin henüz işlenmemiş taksitleri (net servet geçmişi bugünkü değerle tutarlı olsun diye).
+   Alışveriş günü ilk taksitin tarihidir; o günden önce borç yoktur */
+function instAt(r,D){if(!r.auto||!(+r.n>0))return 0;var first='',done=0;Object.keys(r.paid||{}).forEach(function(k){var t=byId(S.tx,r.paid[k]);if(!t)return;if(!first||t.date<first)first=t.date;if(t.date<=D)done++;});
+  if(!first)first=r.start?dueDate(r,r.start):'';if(!first||first>D)return 0;return r2(Math.max(+r.n-done,0)*(+r.amt||0));}
+function instAtTL(D){var s=0,A=ACCS();S.recurring.forEach(function(r){if(r.auto&&A.indexOf(r.acct)>=0)s+=toTL(instAt(r,D),r.acct);});return s;}
 function instSig(){return S.recurring.filter(function(r){return r.auto;}).map(function(r){return r.id+':'+Object.keys(r.paid||{}).length+':'+r.n+':'+r.amt;}).join(',');}
 function balAll(){
   var A=ACCS(),os=JSON.stringify(S.opening)+JSON.stringify(S.openD||{})+instSig();
@@ -503,6 +508,7 @@ function nwAt(D){
   S.tx.forEach(function(t){if(t.type==='inv'&&t.side==='buy'&&t.hold&&(!firstBuy[t.hold]||t.date<firstBuy[t.hold]))firstBuy[t.hold]=t.date;if(t.type==='dbt'&&t.side==='in'&&t.debt&&(!inD[t.debt]||t.date<inD[t.debt]))inD[t.debt]=t.date;});
   S.holdings.forEach(function(h){if(!(firstBuy[h.id]&&firstBuy[h.id]>D))tot+=hVal(h);});
   S.debts.forEach(function(d){if(inD[d.id]&&inD[d.id]>D)return;var paid=0;S.tx.forEach(function(t){if(t.type==='dbt'&&t.side==='out'&&t.debt===d.id&&t.date<=D)paid+=txTL(t);});tot-=Math.max((+d.amt||0)-paid,0);});
+  tot-=instAtTL(D);
   return r2(tot);
 }
 /* nwAt'ın birçok tarih için tek taramalı hâli (tarihler artan sırada): işlemler bir kez sıralanır, bakiyeler birikir */
@@ -520,6 +526,7 @@ function nwAtMany(ends){
     var tot=0;A.forEach(function(a){tot+=toTL(bal[a],a);});
     S.holdings.forEach(function(h){if(!(firstBuy[h.id]&&firstBuy[h.id]>D))tot+=hVal(h);});
     S.debts.forEach(function(d){if(inD[d.id]&&inD[d.id]>D)return;tot-=Math.max((+d.amt||0)-(paid[d.id]||0),0);});
+    tot-=instAtTL(D);
     out[D]=r2(tot);});
   return out;
 }

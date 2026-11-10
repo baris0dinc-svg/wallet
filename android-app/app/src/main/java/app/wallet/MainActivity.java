@@ -112,6 +112,13 @@ public class MainActivity extends Activity {
                 return true;
             }
 
+            /** İlk açılışta (ya da önbellek yokken) internet yoksa tarayıcının hata sayfası yerine uygulamanın renklerinde
+             *  "bağlantı yok" ekranı gösterilir; birkaç saniyede bir kendiliğinden yeniden denenir. */
+            @Override
+            public void onReceivedError(WebView v, WebResourceRequest req, android.webkit.WebResourceError err) {
+                if (req != null && req.isForMainFrame()) showOffline(v);
+            }
+
             /** Telefon belleği azalınca WebView işlemi kapanırsa uygulama çökmez, sayfa yeniden kurulur (veriler cihazda). */
             @Override
             public boolean onRenderProcessGone(WebView v, android.webkit.RenderProcessGoneDetail d) {
@@ -196,6 +203,25 @@ public class MainActivity extends Activity {
         setIntent(i);
         String a = intentAction(i);
         if (a != null) { pendIntent = a; sendIntent(); }
+    }
+
+    private int offTries = 0;
+
+    /** Sayfa indirilemedi: bağlantı yok ekranı. Uygulama bir kez indirildikten sonra çevrimdışı da açılır. */
+    private void showOffline(WebView v) {
+        offTries++;
+        int wait = offTries < 3 ? 3 : (offTries < 8 ? 6 : 15);
+        String html = "<!doctype html><html lang='tr'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+            + "<style>body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;box-sizing:border-box;"
+            + "font:16px/1.45 system-ui,sans-serif;background:#F2F4F1;color:#13201B;text-align:center}h1{font-size:22px;margin:0}p{margin:0;color:#5A6862;max-width:300px}"
+            + "a{display:inline-block;margin-top:8px;padding:12px 22px;border-radius:12px;background:#0E6B58;color:#fff;font-weight:600;text-decoration:none}"
+            + "@media (prefers-color-scheme:dark){body{background:#0E1512;color:#E7EEEA}p{color:#93A39B}a{background:#3FBF9F;color:#06130F}}</style></head>"
+            + "<body><h1>Wallet</h1><p>İnternet bağlantısı kurulamadı. Uygulama ilk açılışta bir kez indirilir, sonra çevrimdışı da çalışır. Verilerin telefonda duruyor.</p>"
+            + "<p id='t'>Yeniden deneniyor…</p><a href='" + URL_APP + "'>Yeniden dene</a>"
+            + "<script>var n=" + wait + ";(function f(){document.getElementById('t').textContent=n>0?n+' sn sonra yeniden denenecek':'Yeniden deneniyor…';"
+            + "if(n--<=0){location.replace('" + URL_APP + "');return;}setTimeout(f,1000);})();</script></body></html>";
+        try { v.loadDataWithBaseURL(null, html, "text/html", "UTF-8", URL_APP); } catch (Exception ignored) { }
+        endSplash();
     }
 
     private void endSplash() {
@@ -389,7 +415,7 @@ public class MainActivity extends Activity {
         /** Web açılış ekranı kapanırken çağrılır. */
         @JavascriptInterface
         public void splashDone() {
-            runOnUiThread(new Runnable() { public void run() { endSplash(); } });
+            runOnUiThread(new Runnable() { public void run() { offTries = 0; endSplash(); } });
         }
 
         /** Yedek ve CSV dosyalarını İndirilenler klasörüne kaydeder. */

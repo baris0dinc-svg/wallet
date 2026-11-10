@@ -29,7 +29,7 @@ const r=await p.evaluate(()=>{const T=window.__T,o={};const $=s=>document.queryS
  const im=S.tx.slice(-2);o.bank={r5,acct:im.map(t=>t.acct),cat:im.map(t=>t.cat),type:im.map(t=>t.type)};
  // 6) para birimi sütunu: boş kurulumda dolar hesabı açılır
  S.accx['Banka']={ccy:'USD'};S.tx=S.tx.filter(t=>t.acct!=='Banka');S.tx.push({id:'u1',type:'exp',amt:10.5,cat:'Market',acct:'Banka',date:'2026-11-01'});
- const csv=T.csvAll();o.hasCcy=/;Para birimi/.test(csv.split('\r\n')[0])&&/;USD(\r|$)/m.test(csv);
+ const csv=T.csvAll();o.hasCcy=/;Para birimi/.test(csv.split('\r\n')[0])&&/;USD;(\r|$)/m.test(csv);
  T.S=T.norm({tx:[]});const r6=T.csvImport(csv.replace(/;Banka;/g,';ABD Hesabı;'),'Nakit');o.newAcctCcy=T.ccyOf('ABD Hesabı');o.r6=r6;
  // 7) eksi sıfır yok, gerçek eksi işareti
  o.neg0=T.TRY2.format(-0.001)+' '+T.TRY2.format(-12.5)+' '+T.moneyIn(-3,'ABD Hesabı');

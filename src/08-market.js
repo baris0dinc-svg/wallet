@@ -75,7 +75,23 @@ function isIdx(s){return /^X[A-Z0-9]{2,5}$/.test(s)&&!(BISTM&&BISTM[s]);}
 function qBist(s){
   if(!canNet())return bistList().then(function(j){var x=BISTM&&BISTM[s];if(!x||!(x[3]>0))throw new Error('yalnızca uygulamada');return {p:x[3],c:null,ccy:'TRY',at:isoTs(j.u),site:1};});
   return njson(ISY+'OneEndeks?endeks='+encodeURIComponent(s)).then(function(a){var x=a&&a[0];if(!x||!(+x.last>0))throw new Error('bulunamadı');var pv=+x.dayClose||0;
-    return {p:+x.last,prev:pv,c:pv>0?(x.last/pv-1)*100:null,hi:+x.high||0,lo:+x.low||0,ccy:isIdx(s)?'pt':'TRY',at:isoTs(x.updateDate)};});}
+    return {p:+x.last,prev:pv,c:pv>0?(x.last/pv-1)*100:null,hi:+x.high||0,lo:+x.low||0,ccy:isIdx(s)?'pt':'TRY',at:isoTs(x.updateDate)};})
+   /* 4.21: İş Yatırım'a ulaşılamazsa hisse fiyatı Yahoo Finance'ten (.IS) alınır */
+   .catch(function(e){if(isIdx(s))throw e;return qYh(s+'.IS').then(function(q){if(q.ccy!=='TRY')throw e;q.n='';q.alt='Yahoo Finance';return q;},function(){throw e;});});}
+/* 4.21: kripto. Büyük coinler Binance'in herkese açık piyasa verisinden (anlık, TL paritesi; anahtarsız ve sınırı geniş);
+   Binance'te olmayanlar ve Binance'e ulaşılamadığında hepsi CoinGecko'dan (anahtarsız kullanımda dakikada birkaç istekle sınırlı).
+   Yalnız kimliği bilinen coinler eşlenir: aynı kısaltmayı kullanan başka bir coinin fiyatı gösterilmesin */
+var BN='https://data-api.binance.vision/api/v3/',BNSYM={bitcoin:'BTC',ethereum:'ETH',binancecoin:'BNB',solana:'SOL',ripple:'XRP',dogecoin:'DOGE',cardano:'ADA','avalanche-2':'AVAX',tron:'TRX',chainlink:'LINK',polkadot:'DOT',litecoin:'LTC','shiba-inu':'SHIB',stellar:'XLM',uniswap:'UNI',near:'NEAR',aptos:'APT',sui:'SUI',pepe:'PEPE',arbitrum:'ARB',optimism:'OP',cosmos:'ATOM',filecoin:'FIL','internet-computer':'ICP','ethereum-classic':'ETC','bitcoin-cash':'BCH','the-open-network':'TON',tether:'USDT','usd-coin':'USDC','polygon-ecosystem-token':'POL','hedera-hashgraph':'HBAR',algorand:'ALGO',vechain:'VET',aave:'AAVE'};
+function bnTick(pair){return njson(BN+'ticker/24hr?symbol='+pair,{cors:1,web:1,timeout:12000}).then(function(x){if(!x||!(+x.lastPrice>0))throw new Error('bulunamadı');return x;});}
+function qBn(id){var sy=BNSYM[id];if(!sy)return Promise.reject(new Error('eşleşme yok'));
+  var mk1=function(x,k){k=k||1;return {p:+x.lastPrice*k,prev:(+x.prevClosePrice||0)*k,c:x.priceChangePercent!=null?+x.priceChangePercent:null,hi:(+x.highPrice||0)*k,lo:(+x.lowPrice||0)*k,ccy:'TRY',at:+x.closeTime||Date.now(),alt:'Binance'};};
+  if(sy==='USDT')return bnTick('USDTTRY').then(function(x){return mk1(x);});
+  return bnTick(sy+'TRY').then(function(x){return mk1(x);},function(){return Promise.all([bnTick(sy+'USDT'),bnTick('USDTTRY')]).then(function(r){var q=mk1(r[0],+r[1].lastPrice);q.usdt=1;return q;});});}
+function bnHist(id,days){var sy=BNSYM[id];if(!sy||sy==='USDT')return Promise.reject(new Error('grafik yok'));
+  return njson(BN+'klines?symbol='+sy+'TRY&interval=1d&limit='+Math.min(days+1,400),{cors:1,web:1,timeout:12000}).then(function(a){var p=(Array.isArray(a)?a:[]).map(function(k){return [+k[0],+k[4]];}).filter(function(x){return x[1]>0;});if(p.length<2)throw new Error('grafik yok');return p;});}
+function qCrypto(ids){var o={},rest=[];
+  return Promise.all(ids.map(function(id){return BNSYM[id]?qBn(id).then(function(q){o[id]=q;},function(){rest.push(id);}):(rest.push(id),null);})).then(function(){
+    if(!rest.length)return o;return qCg(rest).then(function(c){rest.forEach(function(id){if(c[id])o[id]=c[id];});return o;},function(e){if(Object.keys(o).length)return o;throw e;});});}
 function qCg(ids){return njson(CG+'simple/price?ids='+ids.map(encodeURIComponent).join(',')+'&vs_currencies=try&include_24hr_change=true&include_last_updated_at=true',{cors:1}).then(function(j){var o={};
   ids.forEach(function(id){var x=j&&j[id];if(x&&+x['try']>0)o[id]={p:+x['try'],c:x.try_24h_change!=null?+x.try_24h_change:null,ccy:'TRY',at:(+x.last_updated_at||0)*1000||Date.now()};});return o;});}
 function yhCcy(c){return c==='GBp'?{c:'GBP',d:100}:(c==='ZAc'?{c:'ZAR',d:100}:(c==='ILA'?{c:'ILS',d:100}:{c:c||'USD',d:1}));}
@@ -103,7 +119,16 @@ function fonParse(t,s){
   var cs=after(/Günlük Getiri\s*(\(%\))?\s*:?/i),c=cs!=null?num(cs.replace(/[%\s]/g,'')):null,nm='';
   for(var i=0;i<L.length;i++){var x=L[i];if(/\bFON(U|LARI)?\b/.test(x)&&x.length>12&&x.length<160&&x===x.toLocaleUpperCase('tr-TR')){nm=x.replace(new RegExp('^'+s+'\\s*[-–]\\s*'),'');break;}}
   return {p:p,c:c,ccy:'TRY',at:Date.now(),n:nm?titleTr(nm):''};}
-function qFon(s){return nweb('https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod='+encodeURIComponent(s),'Son Fiyat',25000).then(function(o){return fonParse(o.t,s);});}
+/* 4.21: TEFAS'ın 2026'da yenilenen JSON servisi: son fiyat, önceki güne göre değişim, fon adı ve fiyat geçmişi tek istekte.
+   periyod ay sayısıdır (1, 3, 6, 12, 36, 60). Servise ulaşılamazsa eski yöntem (sayfayı görünmez pencerede açıp okuma) denenir */
+var TEF='https://www.tefas.gov.tr/api/funds/fonFiyatBilgiGetir';
+function tefHist(s,months){return njson(TEF,{method:'POST',body:JSON.stringify({fonKodu:s,dil:'TR',periyod:months||1}),headers:{'Content-Type':'application/json','Origin':'https://www.tefas.gov.tr','Referer':'https://www.tefas.gov.tr/','X-Requested-With':'XMLHttpRequest'},timeout:20000}).then(function(j){
+  var l=(j&&j.resultList)||[],m={};l.forEach(function(x){var d=String(x&&x.tarih||'').slice(0,10),p=+(x&&x.fiyat);if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&p>0)m[d]={p:p,n:x.fonUnvan||''};});
+  var ds=Object.keys(m).sort();if(!ds.length)throw new Error('fon bulunamadı');return ds.map(function(d){return {d:d,p:m[d].p,n:m[d].n};});});}
+function fonPts(l){return l.map(function(x){return [pdate(x.d).getTime(),x.p];});}
+function qFon(s){return tefHist(s,1).then(function(l){var a=l[l.length-1],b=l.length>1?l[l.length-2]:null,at=pdate(a.d).getTime()+18*36e5;
+    return {p:a.p,prev:b?b.p:0,c:b?(a.p/b.p-1)*100:null,ccy:'TRY',at:Math.min(at,Date.now()),day:a.d,n:a.n?titleTr(a.n):'',hs:fonPts(l)};},
+  function(){return nweb('https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod='+encodeURIComponent(s),'Son Fiyat',25000).then(function(o){return fonParse(o.t,s);});});}
 
 /* ---------- küçük grafik için yerel geçmiş: gün başına son fiyat, en çok 30 gün ---------- */
 function qHist(h,day,p){h=Array.isArray(h)?h.filter(function(x){return Array.isArray(x)&&x[1]>0;}):[];if(!(p>0))return h;
@@ -134,7 +159,7 @@ function refreshMarket(opt){
     if(!MSRC[src])return false;if(src==='fon'&&!opt.fon&&!opt.keys&&age<3*36e5)return false;return opt.force||age>60000;});
   if(!ks.length)return Promise.resolve({ok:true,n:0,bad:0});
   var by={},n=0,bad=0,errs={};ks.forEach(function(k){var m=mk(k);(by[m.src]=by[m.src]||[]).push(m.sym);});
-  var put=function(k,q){var o=S.quotes[k]||{};q.ts=Date.now();if(!q.n&&o.n)q.n=o.n;q.h=qHist(o.h,isoDate(new Date(q.at||q.ts)),q.p);delete q.err;S.quotes[k]=q;n++;
+  var put=function(k,q){var o=S.quotes[k]||{},hs=q.hs;delete q.hs;q.ts=Date.now();if(!q.n&&o.n)q.n=o.n;q.h=qHist(o.h,q.day||isoDate(new Date(q.at||q.ts)),q.p);delete q.err;S.quotes[k]=q;n++;if(hs)qSeed(k,hs);
     S.holdings.forEach(function(h){if(h.mk===k){var tl=mTL(k);if(tl>0)h.price=r2(tl*1e4)/1e4;}});};
   var fail=function(k,e){var q=S.quotes[k];if(q)q.err=1;errs[k]=String(e&&e.message||e||'hata');bad++;};
   var jobs=[];
@@ -142,7 +167,7 @@ function refreshMarket(opt){
   var fxBack=function(s){var f=MFXK[s];if(f&&+S.fx[f]>0&&S.fxTs&&Date.now()-S.fxTs<36e5){put('fx:'+s,{p:+S.fx[f],c:S.fxChg?S.fxChg[f]:null,ccy:'TRY',at:S.fxTs,src:S.fxSrc||''});return true;}return false;};
   if(by.fx)jobs.push(fxAll(opt.force).then(function(a){by.fx.forEach(function(s){var o=a&&a[s],p=rPrice(o);if(p>0)put('fx:'+s,{p:p,c:rChg(o),ccy:MUNIT[s]||'TRY',at:FXALLT||Date.now()});else if(!fxBack(s))fail('fx:'+s,'kur yok');});},function(e){by.fx.forEach(function(s){if(!fxBack(s))fail('fx:'+s,e);});}));
   if(by.bist)jobs.push(bistList().then(function(){return Promise.all(by.bist.map(function(s){return qBist(s).then(function(q){put('bist:'+s,q);},function(e){fail('bist:'+s,e);});}));}));
-  if(by.cg)jobs.push(qCg(by.cg).then(function(o){by.cg.forEach(function(s){if(o[s])put('cg:'+s,o[s]);else fail('cg:'+s,'bulunamadı');});},function(e){by.cg.forEach(function(s){fail('cg:'+s,e);});}));
+  if(by.cg)jobs.push(qCrypto(by.cg).then(function(o){by.cg.forEach(function(s){if(o[s])put('cg:'+s,o[s]);else fail('cg:'+s,'bulunamadı');});},function(e){by.cg.forEach(function(s){fail('cg:'+s,e);});}));
   if(by.yh)jobs.push(Promise.all(by.yh.map(function(s){return qYh(s).then(function(q){put('yh:'+s,q);},function(e){fail('yh:'+s,e);});})));
   /* fonlar sırayla: her biri görünmez bir sayfa açar */
   if(by.fon)jobs.push(by.fon.reduce(function(pr,s){return pr.then(function(){return qFon(s).then(function(q){put('fon:'+s,q);},function(e){fail('fon:'+s,e);});});},Promise.resolve()));
@@ -207,7 +232,7 @@ function mWatch(){
   var sug=MSUG.filter(function(x){return !mW(x[0]);});
   if(sug.length&&!ui.medit)h+='<div class="lbl" style="margin:4px 2px 0">Hızlı ekle</div><div class="chips">'+sug.map(function(x){return '<button class="chip" data-act="m-sug" data-id="'+x[0]+'">+ '+esc(x[1])+'</button>';}).join('')+'</div>';
   var t=mLast();h+='<div class="small muted" id="m-ts">'+(t?'Veri zamanı: '+esc(fmtTs(t))+' ('+esc(ago(t))+')':'')+(S.fxSrc==='ecb'?' · döviz yedek kaynaktan (ECB günlük referans kuru)':'')+'</div>';
-  h+='<details class="msrc"><summary class="small">Kaynaklar ve gecikmeler</summary><p class="small muted" style="margin:6px 0 0">Döviz, altın ve BIST 100: Truncgil (ulaşılamazsa döviz Avrupa Merkez Bankası günlük kuru, Frankfurter üzerinden). Borsa İstanbul hisseleri: İş Yatırım (yaklaşık 15 dk gecikmeli). Kripto: CoinGecko. Yabancı borsalar: Yahoo Finance. Fonlar: TEFAS (fon fiyatı günde bir açıklanır). Küçük grafikler son 30 günün cihazda tutulan kapanışlarıdır. Bilgi amaçlıdır, yatırım tavsiyesi değildir.</p></details>';
+  h+='<details class="msrc"><summary class="small">Kaynaklar ve gecikmeler</summary><p class="small muted" style="margin:6px 0 0">Döviz, altın ve BIST 100: Truncgil (ulaşılamazsa döviz Avrupa Merkez Bankası günlük kuru, Frankfurter üzerinden). Borsa İstanbul hisseleri: İş Yatırım, ulaşılamazsa Yahoo Finance (yaklaşık 15 dk gecikmeli). Kripto: büyük coinler Binance (anlık, TL), diğerleri CoinGecko. Yabancı borsalar: Yahoo Finance. Fonlar: TEFAS (fiyat günde bir açıklanır; grafik TEFAS fiyat geçmişidir). Küçük grafikler son 30 günün cihazda tutulan kapanışlarıdır. Bilgi amaçlıdır, yatırım tavsiyesi değildir.</p></details>';
   return h;}
 function mBody(){return (ui.mq||'').trim()?mResults():mWatch();}
 function offBanner(){if(!offline())return '';var t=mLast();return '<div class="banner"><span>Çevrimdışısın. '+(t?'Gösterilen fiyatlar '+esc(fmtTs(t))+' tarihli.':'Fiyatlar internet gelince alınır.')+'</span></div>';}
@@ -233,7 +258,9 @@ function dmy(d){return pad(d.getDate())+'-'+pad(d.getMonth()+1)+'-'+d.getFullYea
 function mHist(k,r){
   var m=mk(k),days={'1H':8,'1A':31,'3A':92,'1Y':366}[r]||31,yr={'1H':'5d','1A':'1mo','3A':'3mo','1Y':'1y'}[r]||'1mo';
   if(m.src==='bist'&&!isIdx(m.sym)){var e=new Date(),s=new Date();s.setDate(s.getDate()-days);
-    return njson(ISY+'HisseTekil?hisse='+encodeURIComponent(m.sym)+'&startdate='+dmy(s)+'&enddate='+dmy(e)).then(function(j){return ((j&&j.value)||[]).map(function(x){var p=String(x.HGDG_TARIH||'').split('-');return [new Date(+p[2],+p[1]-1,+p[0]).getTime(),+x.HGDG_KAPANIS];}).filter(function(x){return x[1]>0&&!isNaN(x[0]);});});}
+    return njson(ISY+'HisseTekil?hisse='+encodeURIComponent(m.sym)+'&startdate='+dmy(s)+'&enddate='+dmy(e)).then(function(j){return ((j&&j.value)||[]).map(function(x){var p=String(x.HGDG_TARIH||'').split('-');return [new Date(+p[2],+p[1]-1,+p[0]).getTime(),+x.HGDG_KAPANIS];}).filter(function(x){return x[1]>0&&!isNaN(x[0]);});}).then(function(p){if(p.length<2)throw new Error('boş');return p;}).catch(function(){return yhChart(m.sym+'.IS',yr).then(yhCloses);});}
+  if(m.src==='fon')return tefHist(m.sym,{'1H':1,'1A':1,'3A':3,'1Y':12}[r]||1).then(function(l){var p=fonPts(l);if(r==='1H')p=p.slice(-6);if(p.length<2)throw new Error('grafik yok');return p;});
+  if(m.src==='cg'&&BNSYM[m.sym])return bnHist(m.sym,days).catch(function(){return njson(CG+'coins/'+encodeURIComponent(m.sym)+'/market_chart?vs_currency=try&days='+days+'&interval=daily',{cors:1}).then(function(j){return ((j&&j.prices)||[]).filter(function(x){return x[1]>0;});});});
   if(m.src==='cg')return njson(CG+'coins/'+encodeURIComponent(m.sym)+'/market_chart?vs_currency=try&days='+days+'&interval=daily',{cors:1}).then(function(j){return ((j&&j.prices)||[]).filter(function(x){return x[1]>0;});});
   if(m.src==='fx'&&FRKC.indexOf(m.sym)>=0)return frkHist(m.sym,days).then(function(p){if(p.length<2)throw new Error('grafik yok');return p;});
   var ys=m.src==='yh'?m.sym:(m.src==='bist'?m.sym+'.IS':(m.src==='fx'?YHFX[m.sym]:''));
@@ -257,7 +284,7 @@ function mDet(k){
   var when=q.at||q.ts;
   return '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><p class="big num" style="margin:0">'+fmtPx(q.p,u,k)+'</p>'+(q.c!=null&&isFinite(q.c)?'<span class="num '+(q.c>=0?'inc':'exp')+'">'+(abs!=null?(abs>=0?'+':'−')+pxf(Math.abs(abs)<1?4:2).format(Math.abs(abs))+' ':'')+'('+pctTxt(q.c)+')</span>':'')+'</div>'
    +(rows.length?'<div class="list">'+rows.map(function(r){return '<div class="item" style="padding:7px 0"><span class="mid small muted">'+r[0]+'</span><span class="num small">'+r[1]+'</span></div>';}).join('')+'</div>':'')
-   +'<div class="small muted" id="m-st">'+(when?'Veri zamanı '+esc(fmtTs(when))+' ('+esc(ago(when))+')'+(q.ts&&q.at&&q.ts-q.at>36e5?' · '+esc(ago(q.ts))+' denetlendi':''):'')+(q.src==='ecb'?' · ECB günlük referans kuru':'')+(q.site?' · yayın sunucusundan, gecikmeli kapanış':'')+(m.src==='bist'&&!q.site?' · yaklaşık 15 dk gecikmeli':'')+(m.src==='fon'?' · fon fiyatı günde bir açıklanır':'')+(q.err?' · son yenileme başarısız, eski veri':'')+'</div>';}
+   +'<div class="small muted" id="m-st">'+(when?'Veri zamanı '+esc(fmtTs(when))+' ('+esc(ago(when))+')'+(q.ts&&q.at&&q.ts-q.at>36e5?' · '+esc(ago(q.ts))+' denetlendi':''):'')+(q.src==='ecb'?' · ECB günlük referans kuru':'')+(q.site?' · yayın sunucusundan, gecikmeli kapanış':'')+(m.src==='bist'&&!q.site?' · yaklaşık 15 dk gecikmeli':'')+(m.src==='fon'?' · '+(q.day?pdate(q.day).toLocaleDateString('tr-TR',{day:'numeric',month:'long'})+' fiyatı; ':'')+'fon fiyatı günde bir açıklanır':'')+(q.alt?' · kaynak: '+esc(q.alt)+(q.usdt?' (USDT üzerinden)':''):'')+(q.err?' · son yenileme başarısız, eski veri':'')+'</div>';}
 function mHoldType(k){var m=mk(k);if(m.src==='bist')return 'Hisse';if(m.src==='fon')return 'Fon';if(m.src==='cg')return 'Kripto';if(m.src==='yh')return 'Hisse';
   if(m.sym==='GUMUS')return 'Gümüş';return MGOLD[m.sym]?'Altın':'Döviz';}
 function mSheet(k){
@@ -274,7 +301,6 @@ function mSheet(k){
 function mErrTxt(k,e){var m=mk(k);if(/uygulamada/.test(e))return 'Bu veri yalnızca Android uygulamasında alınabiliyor.';if(m.src==='fon')return 'Fon fiyatı TEFAS’tan alınamadı ('+e+'). Fon kodunu kontrol et ya da TEFAS sayfasını aç.';return 'Fiyat alınamadı ('+e+'). İnternet bağlantını kontrol edip tekrar dene.';}
 function mAfterQuiet(){if(ui.page&&ui.page.k==='piyasa')mUpd();}
 function mDraw(){var c=mCur;if(!c)return;var k=c.k,r=c.r,box=document.getElementById('mchart');if(!box)return;
-  if(mk(k).src==='fon'){box.innerHTML='<div class="small muted">Fon getiri grafiği için TEFAS sayfasını aç.</div>';return;}
   box.innerHTML='<div class="small muted">Grafik yükleniyor…</div>';
   mHist(k,r).then(function(p){/* aynı kaynaktan gelen geçmiş küçük grafiğe eklenir (döviz grafiği ECB'den geldiğinden eklenmez: kaynaklar karışmasın) */if(mW(k)&&!(mk(k).src==='fx')){qSeed(k,p);save();}var b=document.getElementById('mchart');if(!b||!mCur||mCur.k!==k||mCur.r!==r)return;var q=mQ(k);mCur.pts=p;b.innerHTML=mChart(p,q&&q.ccy||'TRY',k)+(mk(k).src==='fx'&&FRKC.indexOf(mk(k).sym)>=0?'<div class="small muted">Grafik: Avrupa Merkez Bankası günlük referans kuru (Frankfurter).</div>':'');mScrubOn();},
     function(e){var b=document.getElementById('mchart');if(!b||!mCur||mCur.k!==k)return;

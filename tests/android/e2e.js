@@ -21,13 +21,16 @@ async function connect(){
           const me=ws;me.on('close',()=>{if(ws!==me)return;Object.keys(pend).forEach(k=>{pend[k]({result:{exceptionDetails:'bağlantı kapandı'}});delete pend[k];});ws=null;});
           for(let k=0;k<40;k++){if(await ev('return !!(document.getElementById("hdr")&&document.getElementById("hdr").innerHTML)')===true)return true;await sleep(500);}
           /* tanı: sayfa yüklendi ama uygulama çizilmediyse nedenini yaz (bir kez) */
-          if(!connect.diag){connect.diag=1;const dg=await ev('return JSON.stringify({rs:document.readyState,url:location.href,app:typeof window.walletBack,nb:!!window.AndroidBridge,hdr:!!document.getElementById("hdr"),body:(document.body&&document.body.innerText||"").slice(0,160),err:localStorage.getItem("wallet-err"),scripts:[...document.scripts].map(x=>x.src||"inline").join(",")})');console.log('ℹ tanı: '+JSON.stringify(dg));}
+          if(!connect.diag){connect.diag=1;const dg=await ev('return JSON.stringify({rs:document.readyState,url:location.href,app:typeof window.walletBack,nb:!!window.AndroidBridge,hdr:!!document.getElementById("hdr"),body:(document.body&&document.body.innerText||"").slice(0,160),err:(()=>{try{return localStorage.getItem("wallet-err");}catch(e){return "depo: "+e.message;}})(),scripts:[...document.scripts].map(x=>x.src||"inline").join(",")})');console.log('ℹ tanı: '+JSON.stringify(dg));}
           ws&&ws.close();}}catch(e){}}
     await sleep(1500);}
   return false;
 }
 /* sayfada async fonksiyon gövdesi çalıştırır; değer 'return' ile döner */
-function ev(body){if(!ws)return Promise.resolve({__err:'bağlantı yok'});return new Promise(res=>{const id=++seq;pend[id]=o=>{const r=o.result&&o.result.result;res(o.result&&o.result.exceptionDetails?{__err:JSON.stringify(o.result.exceptionDetails).slice(0,300)}:(r?r.value:undefined));};
+/* bağlantı koptuysa (sayfa yenilendiyse) bir kez yeniden bağlanır */
+let recon=false;
+async function ev(body){if(!ws&&!recon){recon=true;try{await connect();}catch(e){}finally{recon=false;}}return ev0(body);}
+function ev0(body){if(!ws)return Promise.resolve({__err:'bağlantı yok'});return new Promise(res=>{const id=++seq;pend[id]=o=>{const r=o.result&&o.result.result;res(o.result&&o.result.exceptionDetails?{__err:JSON.stringify(o.result.exceptionDetails).slice(0,300)}:(r?r.value:undefined));};
   ws.send(JSON.stringify({id,method:'Runtime.evaluate',params:{expression:'(async()=>{'+body+'\n})()',awaitPromise:true,returnByValue:true}}));setTimeout(()=>{if(pend[id]){delete pend[id];res({__err:'zaman aşımı'});}},60000);});}
 const ACTJS='const act=(a,id,v)=>{const e=document.createElement("button");e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};const setv=(id,v)=>{const e=document.getElementById(id);e.value=v;e.dispatchEvent(new Event("input",{bubbles:true}));e.dispatchEvent(new Event("change",{bubbles:true}));};';
 async function restart(){ws&&ws.close();sh('adb shell am force-stop '+PKG);await sleep(1500);sh('adb shell am start -n '+ACT);await sleep(6000);return connect();}
@@ -130,25 +133,19 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   const yh=await hx('https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d');ok('yabancı hisse fiyatı alındı (Yahoo)',yh&&yh[0]===200&&/"currency"/.test(yh[1]||''),JSON.stringify(yh).slice(0,160));
   const ys=await hx('https://query1.finance.yahoo.com/v1/finance/search?q=apple&quotesCount=6&newsCount=0&lang=tr-TR');ok('yabancı borsada arama (Yahoo)',ys&&ys[0]===200&&/AAPL/.test(ys[1]||''),JSON.stringify(ys).slice(0,160));
   const bad=await hx('https://example.com/');ok('izin listesi dışındaki adrese istek gönderilmedi',bad&&bad[0]===0,JSON.stringify(bad));
-  // API keşfi (yalnız bilgi, sonucu etkilemez): yeni kaynakların erişilebilirliği ve yanıt biçimi
-  {const hp=(u,body,hd)=>ev('return await new Promise(r=>{const id="p"+Math.random();const o=window.walletHttp;window.walletHttp=(i,c,t)=>{if(i===id){window.walletHttp=o;r([c,(t||"").slice(0,700)]);}else o&&o(i,c,t);};AndroidBridge.http(id,'+JSON.stringify(u)+',"POST",'+JSON.stringify(body)+','+JSON.stringify(JSON.stringify(hd))+');setTimeout(()=>r(["süre",""]),25000);})');
-   const JH={'Content-Type':'application/json','Origin':'https://www.tefas.gov.tr','Referer':'https://www.tefas.gov.tr/','X-Requested-With':'XMLHttpRequest'};
-   for(const [nm,u,b] of [['fiyat www','https://www.tefas.gov.tr/api/funds/fonFiyatBilgiGetir','{"fonKodu":"AFT","dil":"TR","periyod":1}'],['fiyat yalın','https://tefas.gov.tr/api/funds/fonFiyatBilgiGetir','{"fonKodu":"AFT","dil":"TR","periyod":3}'],['genel','https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir','{"fonKodu":"AFT","dil":"TR"}']]){
-     try{console.log('ℹ KEŞİF TEFAS '+nm+': '+JSON.stringify(await hp(u,b,JH)).slice(0,900));}catch(e){console.log('ℹ KEŞİF TEFAS '+nm+' hata '+e.message);}}
-   const nf=async(nm,u,opt)=>{try{const r=await fetch(u,Object.assign({signal:AbortSignal.timeout(20000)},opt||{}));const t=await r.text();console.log('ℹ KEŞİF '+nm+': '+r.status+' acao='+r.headers.get('access-control-allow-origin')+' '+t.slice(0,500).replace(/\s+/g,' '));}catch(e){console.log('ℹ KEŞİF '+nm+' hata '+e.message);}};
-   await nf('binance vision ticker','https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCTRY',{headers:{Origin:'https://baris0dinc-svg.github.io'}});
-   await nf('binance vision klines','https://data-api.binance.vision/api/v3/klines?symbol=BTCTRY&interval=1d&limit=3',{headers:{Origin:'https://baris0dinc-svg.github.io'}});
-   await nf('binance vision usdttry','https://data-api.binance.vision/api/v3/ticker/24hr?symbols=%5B%22USDTTRY%22,%22ETHTRY%22%5D');
-   await nf('binance com','https://api.binance.com/api/v3/ticker/price?symbol=BTCTRY');
-   await nf('tefas node','https://www.tefas.gov.tr/api/funds/fonFiyatBilgiGetir',{method:'POST',headers:Object.assign({'User-Agent':'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36'},JH),body:'{"fonKodu":"AFT","dil":"TR","periyod":1}'});
-   await nf('isyatirim yahoo yedek','https://query1.finance.yahoo.com/v8/finance/chart/THYAO.IS?range=5d&interval=1d',{headers:{'User-Agent':'Mozilla/5.0'}});
-   await nf('truncgil v5','https://finans.truncgil.com/v5/today.json');}
+  // 4.21 veri kaynakları: TEFAS'ın yeni JSON servisi (yerel köprü), Binance herkese açık piyasa verisi (sayfadan, güvenlik politikası ve CORS dahil)
+  {const hp=(u,body,hd)=>ev('return await new Promise(r=>{const id="p"+Math.random();const o=window.walletHttp;window.walletHttp=(i,c,t)=>{if(i===id){window.walletHttp=o;r([c,(t||"").slice(0,400)]);}else o&&o(i,c,t);};AndroidBridge.http(id,'+JSON.stringify(u)+',"POST",'+JSON.stringify(body)+','+JSON.stringify(JSON.stringify(hd))+');setTimeout(()=>r(["süre",""]),25000);})');
+   const tfj=await hp('https://www.tefas.gov.tr/api/funds/fonFiyatBilgiGetir','{"fonKodu":"AFT","dil":"TR","periyod":1}',{'Content-Type':'application/json','Origin':'https://www.tefas.gov.tr','Referer':'https://www.tefas.gov.tr/','X-Requested-With':'XMLHttpRequest'});
+   ok('fon fiyat geçmişi alındı (TEFAS JSON servisi)',tfj&&tfj[0]===200&&/"fiyat":\d/.test(tfj[1]||'')&&/"tarih":"\d{4}-\d{2}-\d{2}"/.test(tfj[1]||''),JSON.stringify(tfj).slice(0,200));
+   const bn=await ev('try{const r=await fetch("https://data-api.binance.vision/api/v3/ticker/24hr?symbol=BTCTRY",{cache:"no-store"});const j=await r.json();return [r.status,+j.lastPrice,j.priceChangePercent];}catch(e){return ["hata",String(e)];}');
+   ok('kripto fiyatı alındı (Binance, sayfadan)',bn&&bn[0]===200&&bn[1]>0,JSON.stringify(bn));}
   const tf=await ev('return await new Promise(r=>{const id="t"+Math.random();const o=window.walletHttp;window.walletHttp=(i,c,t)=>{if(i===id){window.walletHttp=o;r([c,(t||"").slice(0,6000)]);}else o&&o(i,c,t);};AndroidBridge.webText(id,"https://www.tefas.gov.tr/FonAnaliz.aspx?FonKod=AFT","Son Fiyat",20000);setTimeout(()=>r(["süre",""]),40000);})');
   console.log('ℹ TEFAS metni: '+JSON.stringify(tf).slice(0,700));ok('TEFAS okuyucusu zamanında döndü, uygulama çökmedi',tf&&tf[0]!=='süre'&&!!sh('adb shell pidof '+PKG).trim(),tf&&tf[0]);
   const wbad=await ev('return await new Promise(r=>{const id="t2";const o=window.walletHttp;window.walletHttp=(i,c,t)=>{if(i===id){window.walletHttp=o;r(c);}else o&&o(i,c,t);};AndroidBridge.webText(id,"https://example.com/","x",5000);setTimeout(()=>r("süre"),9000);})');
   ok('görünmez sayfa yalnızca izinli sitelerde açılır',wbad===0,wbad);
   const mk=await ev(ACTJS+'act("open-mkt");await new Promise(r=>setTimeout(r,500));const b=document.createElement("button");b.dataset.act="m-sug";b.dataset.id="bist:THYAO";document.body.appendChild(b);b.click();b.remove();for(let i=0;i<30;i++){await new Promise(r=>setTimeout(r,500));const q=JSON.parse(localStorage.getItem("kumbara-v1")).quotes||{};if(q["bist:THYAO"]&&q["bist:THYAO"].p>0&&q["fx:USD"]&&q["fx:USD"].p>0)break;}const q=JSON.parse(localStorage.getItem("kumbara-v1")).quotes||{};return [q["fx:USD"]&&q["fx:USD"].p,q["bist:THYAO"]&&q["bist:THYAO"].p,document.getElementById("mres").innerText.slice(0,200)]');
   ok('Piyasalar: takip listesi canlı fiyatlarla doldu',mk&&mk[0]>0&&mk[1]>0,JSON.stringify(mk));
+  {const dq=await data();const qb=dq&&dq.quotes&&dq.quotes['cg:bitcoin'];ok('Bitcoin fiyatı Binance’ten (olmazsa CoinGecko)',qb&&qb.p>0,JSON.stringify(qb||null).slice(0,160));console.log('ℹ bitcoin kaynağı: '+(qb&&qb.alt||'CoinGecko'));}
   const fon=await ev(ACTJS+'const e=document.getElementById("mq");e.value="AFT";e.dispatchEvent(new Event("input",{bubbles:true}));await new Promise(r=>setTimeout(r,300));document.querySelector("[data-act=\\"m-pick\\"][data-id=\\"fon:AFT\\"]").click();for(let i=0;i<60;i++){await new Promise(r=>setTimeout(r,500));const q=(JSON.parse(localStorage.getItem("kumbara-v1")).quotes||{})["fon:AFT"];if(q&&q.p>0)break;}const q=(JSON.parse(localStorage.getItem("kumbara-v1")).quotes||{})["fon:AFT"];const t=document.querySelector(".sheet")?document.querySelector(".sheet").innerText.slice(0,300):"";act("close");return [q||null,t]');
   /* TEFAS yurt dışındaki sunuculardan (GitHub) gelen istekleri sık sık reddediyor; bu denetim bilgi amaçlı, testi düşürmez.
      Uygulamanın hata mesajı göstermesi (çökmeden) yine denetlenir. */
@@ -183,6 +180,12 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
   ok('otomatik yedek dosyası da silindi',!/Wallet-otomatik-yedek\.json/.test(dl2),dl2.trim());
   const na2=(sh('adb shell dumpsys alarm').match(new RegExp(PKG.replace(/\./g,'\\.'),'g'))||[]).length;ok('hatırlatmalar iptal edildi',na2<na,na+' → '+na2);
   ok('yeniden başlatıldı (silme sonrası)',await restart());d=await data();ok('silme sonrası açılış boş',d.tx&&d.tx.length===0&&!d.tx.some(t=>t.sample));
+  // 4.21 ilk açılışta internet yoksa: tarayıcı hata sayfası yerine uygulamanın "bağlantı yok" ekranı, internet gelince kendiliğinden açılır
+  {ws&&ws.close();ws=null;sh('adb shell am force-stop '+PKG);sh('adb shell pm clear '+PKG);sh('adb shell svc wifi disable');sh('adb shell svc data disable');await sleep(4000);
+   sh('adb shell am start -n '+ACT);await sleep(9000);sh('adb shell uiautomator dump /sdcard/u.xml');const ux=sh('adb shell cat /sdcard/u.xml');
+   ok('internetsiz ilk açılışta bağlantı yok ekranı',/bağlantısı kurulamadı/.test(ux)&&/Yeniden dene/.test(ux),(ux.match(/text="[^"]{3,80}"/g)||[]).slice(0,6).join(' '));
+   sh('adb shell svc wifi enable');sh('adb shell svc data enable');await sleep(8000);
+   ok('internet gelince uygulama kendiliğinden açıldı',await connect());}
   const fail=results.filter(r=>!r[0]);
   console.log(fail.length?'E2E BAŞARISIZ: '+fail.map(r=>r[1]).join(', '):'E2E ALL PASS ('+results.length+' kontrol)');
   ws&&ws.close();process.exit(fail.length?1:0);

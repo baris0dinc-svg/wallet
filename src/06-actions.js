@@ -437,6 +437,7 @@ function csvKey(h){h=fold(h).replace(/\s*\([^)]*\)\s*/g,' ').replace(/[*:.]+$/,'
   if(/^(para birimi|currency|doviz cinsi)/.test(h))return 'ccy';
   if(/^(islem tarihi|tarih|date)/.test(h))return 'date';
   if(/^(tur|islem turu|type)$/.test(h))return 'type';
+  if(/^(alt kategori|subcategory)/.test(h))return 'sub';
   if(/^(kategori|category)/.test(h))return 'cat';
   if(/^(islem tutari|tutar|miktar|amount)/.test(h))return 'amt';
   if(/^(karsi hesap|to)$/.test(h))return 'to';
@@ -475,7 +476,7 @@ function csvImport(text,defAcct0){
     var amt=type==='adj'?r2(raw):r2(Math.abs(raw)),acct=g('acct')||defA,to=g('to'),nt=g('note');
     if(badName(acct)||(to&&badName(to))||(type==='trf'&&(!to||to===acct))){bad++;return;}
     var t={id:uid(),type:type,amt:amt,acct:acct,date:date};if(side)t.side=side;
-    if(type==='inc'||type==='exp')t.cat=g('cat')||smsCat(nt,type);else if(type==='trf')t.cat='Transfer';
+    if(type==='inc'||type==='exp'){t.cat=g('cat')||smsCat(nt,type);var sb=g('sub');if(sb&&!badName(sb))t.sub=sb.slice(0,30);}else if(type==='trf')t.cat='Transfer';
     if(type==='trf')t.to=to;var a2=r2(num(g('amt2')));if(type==='trf'&&a2>0)t.amt2=a2;if(nt)t.note=nt;
     if(type==='inv')t.hname=(g('cat')||'').replace(/^Yatırım (alımı|satışı) · /,'');if(type==='dbt')t.dname=(g('cat')||'').replace(/^Borç (alındı|ödemesi) · /,'');
     var cc=g('ccy').toUpperCase();if(CCYS.indexOf(cc)>=0&&!aCcy[acct])aCcy[acct]=cc;
@@ -487,6 +488,8 @@ function csvImport(text,defAcct0){
     if(t.type==='inc'||t.type==='exp'){var l=t.type==='inc'?INCC():EXPC();if(l.indexOf(t.cat)<0&&newC.indexOf(t.type+'|'+t.cat)<0)newC.push(t.type+'|'+t.cat);}});
   newA.forEach(function(a){S.accounts.push(a);S.opening[a]=0;if(aCcy[a]&&aCcy[a]!=='TRY'){S.accx[a]=S.accx[a]||{};S.accx[a].ccy=aCcy[a];}});
   newC.forEach(function(c){var p=c.split('|');S.cats[p[0]==='inc'?'inc':'exp'].push(p.slice(1).join('|'));});
+  /* 4.21: içe aktarılan alt kategoriler kategorinin listesine eklenir */
+  add.forEach(function(t){if(t.sub){S.subs[t.cat]=subsOf(t.cat);if(S.subs[t.cat].indexOf(t.sub)<0)S.subs[t.cat].push(t.sub);}});
   var imp=uid();add.forEach(function(t){t.imp=imp;});S.lastImp={id:imp,n:add.length,accts:newA,cats:newC,ts:Date.now()};
   S.tx=S.tx.concat(add);
   return {imp:imp,added:add.length,dup:dup,bad:bad,accts:newA.length,cats:newC.length};}
@@ -650,7 +653,7 @@ document.addEventListener('change',function(e){
   if(t.id==='f-acct'||t.id==='f-to'){syncCcy();}
   if(t.id==='f-date')dateChips();
   if(t.id==='r-acct'){var lr=document.getElementById('lb-ramt');if(lr)lr.textContent='Tutar ('+CSYM[ccyOf(t.value)]+')';}
-  if(t.id==='h-ccy'){delete t.dataset.auto;syncH();}if(t.id==='h-acct')syncH();if(t.id==='h-type'){autoSrc();ySync();}if(t.id==='h-vd'||t.id==='h-yr'||t.id==='h-tax')ySync();if(t.id==='r-kind')syncRKind();if(t.id==='r-every')syncREvery();if(t.id==='r-startd')syncRWd();if(t.id==='r-cat')subSync('r');
+  if(t.id==='h-ccy'){delete t.dataset.auto;syncH();}if(t.id==='h-acct')syncH();if(t.id==='h-type'){autoSrc();ySync();}if(t.id==='h-vd'||t.id==='h-yr'||t.id==='h-tax')ySync();if(t.id==='rf'||t.id==='rt'){if(/^\d{4}-\d{2}-\d{2}$/.test(t.value)){ui[t.id]=t.value;render();}return;}if(t.id==='r-kind')syncRKind();if(t.id==='r-every')syncREvery();if(t.id==='r-startd')syncRWd();if(t.id==='r-cat')subSync('r');
   if(t.id==='g-acct')syncG();
   if(t.id==='a-type')syncA();
   if(t.id==='a-ccy')syncA(true);

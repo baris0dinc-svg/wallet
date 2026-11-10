@@ -9,7 +9,7 @@ const MOCK=()=>{const of=window.fetch;window.__frk=[];
       return J([{date:'2026-11-06',base:'TRY',quote:'USD',rate:0.025},{date:'2026-11-06',base:'TRY',quote:'EUR',rate:0.02},{date:'2026-11-06',base:'TRY',quote:'GBP',rate:0.0175},{date:'2026-11-06',base:'TRY',quote:'CHF',rate:0.019}]);}
     if(/coingecko/.test(u))return J({bitcoin:{try:3800000,try_24h_change:1.2,last_updated_at:1793600000}});
     return of.apply(this,arguments);};};
-(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:360,height:780}});await ctx.addInitScript(MOCK);
+(async()=>{const b=await chromium.launch();const ctx=await b.newContext({viewport:{width:360,height:780}});await ctx.addInitScript(MOCK);/* 4.21: Binance bu testte kapalı; kripto CoinGecko taklidinden gelir (sonuç belirli olsun) */await ctx.route('https://data-api.binance.vision/**',r=>r.abort());
 const p=await ctx.newPage();const errs=[];p.on('pageerror',e=>errs.push(e.message));
 await p.goto('http://localhost:8766/index.html');await p.waitForTimeout(1200);
 const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(!c)F.push(m);};const wait=ms=>new Promise(r=>setTimeout(r,ms));const $=s=>document.querySelector(s);

@@ -153,8 +153,8 @@ function decText(o,pw){var salt=unb64(o.s),iv=unb64(o.i);return deriveKey(pw,sal
 function exportJson(){var c=JSON.parse(JSON.stringify(S));delete c.pin;delete c.bkKey;delete c.cloud;return JSON.stringify(c);}
 function csvCell(x){x=String(x==null?'':x);return /[;"\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}
 function txTypeName(t){return ({inc:'Gelir',exp:'Gider',trf:'Transfer',adj:'Bakiye düzeltmesi'})[t.type]||(t.type==='inv'?(t.side==='sell'?'Yatırım satışı':'Yatırım alımı'):(t.type==='dbt'?(t.side==='in'?'Borç alındı':'Borç ödemesi'):t.type));}
-function csvAll(){var rows=[['Tarih','Tür','Kategori','Tutar','Hesap','Karşı hesap','Not','Giriş tutarı','Para birimi']];
-  S.tx.slice().sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(t){rows.push([t.date,txTypeName(t),t.type==='inc'||t.type==='exp'||t.type==='trf'?(t.cat||''):mvLabel(t),nv(t.amt),t.acct,t.to||'',t.note||'',t.amt2?nv(t.amt2):'',ccyOf(t.acct)]);});
+function csvAll(){var rows=[['Tarih','Tür','Kategori','Tutar','Hesap','Karşı hesap','Not','Giriş tutarı','Para birimi','Alt kategori']];
+  S.tx.slice().sort(function(a,b){return a.date.localeCompare(b.date);}).forEach(function(t){rows.push([t.date,txTypeName(t),t.type==='inc'||t.type==='exp'||t.type==='trf'?(t.cat||''):mvLabel(t),nv(t.amt),t.acct,t.to||'',t.note||'',t.amt2?nv(t.amt2):'',ccyOf(t.acct),t.sub||'']);});
   return '﻿'+rows.map(function(r){return r.map(csvCell).join(';');}).join('\r\n');}
 function saveFile(name,data,okText,id){
   if(!dl&&NB&&nb('save')){var rr='err';try{rr=NB.save(name,String(data));}catch(e){}msg(rr==='ok'?(okText||'Kaydedildi.')+' İndirilenler klasörüne bakın.':'Dosya kaydedilemedi. Kopyala düğmesini dene.',rr==='ok',id);return;}

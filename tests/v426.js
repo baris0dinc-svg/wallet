@@ -33,7 +33,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,o=[],S=T.S;const c=(x,m)=>
   // ---- ekranda: hesaplar ----
   S.accounts.push('Ziraat Bankası','Dolar hesabı');if(S.accounts.indexOf('Nakit')<0)S.accounts.push('Nakit');S.opening['Ziraat Bankası']=1000;S.opening['Nakit']=50;S.opening['Dolar hesabı']=10;S.accx=S.accx||{};S.accx['Dolar hesabı']=Object.assign({},S.accx['Dolar hesabı'],{ccy:'USD'});T.save();
   T.ui.sub='servet';T.ui.sv='hesap';T.ui.page=null;T.render();await W(500);
-  const ar=a=>document.querySelector('.item[data-act="acct-open"][data-id="'+a+'"]');
+  const ar=a=>document.querySelector('[data-act="acct-open"][data-id="'+a+'"]');/* 4.36: ana sayfada hesap kartı (.acard) */
   c(!!ar('Ziraat Bankası')&&!!ar('Ziraat Bankası').querySelector('.aic.mlg.ok img'),'banka hesabında logo');
   c(!!ar('Nakit')&&!ar('Nakit').querySelector('img')&&!!ar('Nakit').querySelector('.aic .dot'),'nakitte eski renkli nokta');
   c(!!ar('Dolar hesabı')&&!!ar('Dolar hesabı').querySelector('.mbadge.flg.ok img'),'döviz hesabında bayrak');

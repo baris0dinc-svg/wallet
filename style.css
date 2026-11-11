@@ -838,3 +838,9 @@ body.has-tb .wrap{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
 .hlist .item{gap:6px}.hlist .icon-btn[data-v="-1"] .ic{transform:rotate(90deg)}.hlist .icon-btn[data-v="1"] .ic{transform:rotate(90deg)}
 .hlist .row-tgl{width:auto;padding:0;border:0;background:none;flex:0 0 auto}
 .hlist .icon-btn:disabled{opacity:.3}
+/* ---------- 4.36 ---------- */
+.bcard{display:grid;gap:12px}.bcard .bring .donut{margin:0}
+.bcard .bmini{background:none;border:0;padding:0;border-top:1px solid var(--line);padding-top:12px;border-radius:0}
+.gtot{margin:2px 2px 4px}.gtot b{margin-left:2px}
+.mlgadd summary{cursor:pointer;padding:6px 0}.mlgadd[open] summary{margin-bottom:8px}
+.acard .at .aic{width:30px;height:30px;flex-shrink:0}

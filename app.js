@@ -10,7 +10,7 @@ window.addEventListener('unhandledrejection',function(e){var r=e.reason;errLog('
 document.addEventListener('securitypolicyviolation',function(e){errLog('politika',e.violatedDirective,e.blockedURI);});
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.33';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.34';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -125,7 +125,9 @@ var ICONS={
 function ic(n){return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="'+ICONS[n]+'"/></svg>';}
 /* alt menü: Ana Sayfa, İşlemler (liste / takvim), Plan (Bütçe, Düzenli, Hedefler, Koç), Analiz (Özet, Kategoriler), Hesaplar (Hesaplar, Yatırımlar, Borçlar). Ayarlar başlıktaki çark simgesiyle açılır. */
 /* 4.31: alt menü dört sekme: Ana Sayfa (net servet + hesaplar, yatırımlar, borçlar), İşlemler, Gelişim (eski Plan ve Analiz), Ayarlar */
-var SECS=[['ev','Ana Sayfa','home'],['islem','İşlemler','list'],['gelisim','Gelişim','trend'],['ayar','Ayarlar','cog']];
+/* 4.34: alt menü üç sekme (yüzen, kaydırınca gizlenir); İşlemler ana sayfadan açılır (geri oku Ana Sayfa'ya döner) */
+var SECS=[['ev','Ana Sayfa','home'],['gelisim','Gelişim','trend'],['ayar','Ayarlar','cog']];
+var SUBS=SECS.concat([['islem','İşlemler','list']]);
 /* 4.4: Varlıklar (ev, araba) Yatırımlar'ın altında ayrı bölüm; eski 'varlik' bağlantıları oraya gider */
 var WEALTH=[['hesap','Hesaplar'],['yatirim','Yatırımlar'],['borc','Borçlar']];
 /* 4.2: net servet gelişimi ve dağılımı Hesaplar sekmesinde (eski Analiz › Servet oraya gider).
@@ -698,11 +700,12 @@ function leftNow(){
 /* ana kart: önce net servet (büyük), altında bu dönem kalan ve günlük harcama sınırı */
 function heroCard(W){
   var L=leftNow(),ch=histChange(30);
-  var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
+  var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net Servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
   h+='<button class="nwbig" data-act="nw-jump" aria-label="Net servet: hesaplar ve yatırımlar"><span class="big num" data-n="'+r2(W.net)+'">'+DC0.format(W.net)+'</span>'+ic('r')+'</button>';
   if(S.dccy!=='TRY'&&dccy()==='TRY')h+='<div class="small exp">'+esc(CCYN[S.dccy])+' kuru henüz yok; TL gösteriliyor.</div>';
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
   if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">'+(ch.since?'ilk kayıttan beri':'son '+ch.days+' günde')+'</span></div>';
+  h+=nwRing();
   h+='<div class="leftblk"><div class="lbl">'+esc(plabel(L.k))+' · bu dönem kalan</div>';
   if(L.ok){
     h+='<p class="mid num'+(L.left<0?' exp':'')+'" id="left-now">'+TRY0.format(L.left)+'</p>';
@@ -728,7 +731,7 @@ function periodHead(withSum){
   return '<div class="card period">'+monthNav(true)+'<div class="row3" style="margin-top:6px"><div><div class="lbl">Gelir</div><span class="num inc">'+compactT(inc)+'</span></div><div><div class="lbl">Gider</div><span class="num exp">'+compactT(exp)+'</span></div><div><div class="lbl">Fark</div><span class="num '+(net<0?'exp':'')+'">'+(net<=-0.5?'−':'+')+compactT(Math.abs(net))+'</span></div></div>'+cmp+'</div>';
 }
 function vMain(){
-  var cur=SECS.some(function(x){return x[0]===ui.sub;})?ui.sub:'ev';ui.sub=cur;
+  var cur=SUBS.some(function(x){return x[0]===ui.sub;})?ui.sub:'ev';ui.sub=cur;
   var body={ev:vHome,islem:vIslem,gelisim:gelisimBody,ayar:vAyarlar}[cur];
   return '<section id="secbody" class="stack">'+body()+'</section>';
 }
@@ -857,7 +860,7 @@ ACT['save-bal']=function(){if(!balApply())return;S.setupHide=true;save();closeSh
    4.2: eski Analiz › Servet buraya taşındı; net servet tek yerde */
 function nwTop(){
   var W=wealth();
-  var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
+  var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net Servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
   h+='<p class="big">'+DC0.format(W.net)+'</p>';
   if(S.dccy!=='TRY'&&dccy()==='TRY')h+='<div class="small exp">'+esc(CCYN[S.dccy])+' kuru henüz yok; TL gösteriliyor. Yenile düğmesine dokun.</div>';
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
@@ -880,6 +883,17 @@ function nwChart(){
    +'<div class="small" id="nwpick"><b class="num '+(d>=0?'inc':'exp')+'">'+sgnD(d)+(Math.abs(p0)>0.5?' ('+(d>=0?'+':'−')+'%'+NUM1.format(Math.abs(d/Math.abs(p0)*100))+')':'')+'</b> <span class="muted">'+(R===3?'son 3 ayda':(R===12?'son 1 yılda':'ilk kayıttan bu yana'))+' · güne dokun</span></div>';
 }
 /* varlık dağılımı: artı bakiyeli hesaplar türüne göre, yatırım ve varlıklar cinsine göre */
+/* 4.34: varlıkların türe göre dağılımı (net servet kartındaki halka) */
+function distData(){
+  var by={},tot=0;ACCS().forEach(function(a){var b=r2(toTL(acctBal(a),a));if(b<=0)return;var n={nakit:'Nakit',banka:'Banka',kart:'Banka',birikim:'Birikim',diger:'Diğer hesaplar'}[acctType(a)];by[n]=(by[n]||0)+b;});
+  S.holdings.forEach(function(x){var v=hVal(x);if(v>0)by[x.type]=(by[x.type]||0)+v;});
+  var l=Object.keys(by).map(function(k){tot+=by[k];return [k,by[k]];}).sort(function(a,b){return b[1]-a[1];});
+  if(l.length>5){var rest=l.slice(4).reduce(function(a,x){return a+x[1];},0);l=l.slice(0,4).concat([['Diğer',rest]]);}
+  return {l:l,tot:tot};}
+function nwRing(){var D=distData(),l=D.l,tot=D.tot;if(!(tot>0)||!l.length)return '';
+  var R=52,C=2*Math.PI*R,off=0,seg=l.map(function(x,i){var f=x[1]/tot,len=Math.max(0,f*C-(l.length>1?2:0));var s='<circle r="'+R+'" cx="66" cy="66" fill="none" stroke="'+dcol(i)+'" stroke-width="16" stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'"/>';off+=f*C;return s;}).join('');
+  return '<button class="nwring" data-act="nw-jump" aria-label="Varlık dağılımı: hesaplar ve yatırımlar"><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="Varlık dağılımı"><g transform="rotate(-90 66 66)">'+seg+'</g></svg><span class="rc"><span class="small muted">Varlıklar</span><b class="num">'+compactT(tot)+'</b></span></span>'
+   +'<span class="rl">'+l.map(function(x,i){return '<span class="ri" style="--c:'+dcol(i)+'"><i></i><span class="ell">'+esc(x[0])+'</span><b class="num">'+compactT(x[1])+'</b><span class="small muted">%'+(x[1]/tot<0.01?'<1':Math.round(x[1]/tot*100))+'</span></span>';}).join('')+'</span></button>';}
 function distBar(){
   var by={},tot=0;ACCS().forEach(function(a){var b=r2(toTL(acctBal(a),a));if(b<=0)return;var n={nakit:'Nakit',banka:'Banka',kart:'Banka',birikim:'Birikim',diger:'Diğer hesaplar'}[acctType(a)];by[n]=(by[n]||0)+b;});
   S.holdings.forEach(function(x){var v=hVal(x);if(v>0)by[x.type]=(by[x.type]||0)+v;});
@@ -911,14 +925,16 @@ function acctCards(){var l=ACCS().filter(function(a){return !ax(a).arch;});if(!l
     return '<button class="acard" role="listitem" data-act="acct-open" data-id="'+esc(a)+'" style="--c:'+(ATC[t]||'var(--accent)')+'"><span class="at">'+ic(AGROUPS.filter(function(g){return g[0]===t;}).map(function(g){return g[2];})[0]||'wallet')+'<span class="ell">'+esc(a)+'</span></span>'
      +'<span class="ab num'+(b<0?' exp':'')+'">'+moneyIn(b,a)+'</span><span class="as small">'+esc(ATN[t]||'Hesap')+(ccyOf(a)!=='TRY'?' · '+esc(ccyOf(a)):'')+(t==='kart'&&x.due?' · son ödeme ayın '+x.due+sfx(x.due):'')+'</span>'
      +(u>=0?'<span class="bar"><i style="width:'+(u*100).toFixed(1)+'%"></i></span><span class="as small">Limitin %'+Math.round(u*100)+'’i kullanıldı</span>':'')+'</button>';}).join('')+'</div>';}
-function homeWealth(){if(ui.sv==='varlik')ui.sv='yatirim';var v=WEALTH.some(function(x){return x[0]===ui.sv;})?ui.sv:'hesap',ch=nwChart(),db=distBar();
+function homeWealth(){if(ui.sv==='varlik')ui.sv='yatirim';var v=WEALTH.some(function(x){return x[0]===ui.sv;})?ui.sv:'hesap',ch=nwChart(),db='';
   return '<div id="wealth" class="stack">'+(ch||db?'<div class="card nw">'+ch+db+'</div>':'')+segTabs(WEALTH,v,'sv','Hesaplar')+(v==='hesap'?acctCards():'')+({hesap:hesapBody,yatirim:yatirimBody,borc:borcBody}[v])()+'</div>';}
 ACT['nw-jump']=function(){var w=document.getElementById('wealth');if(w)w.scrollIntoView({behavior:'smooth',block:'start'});};
 /* Gelişim: Analiz (Özet, Kategoriler) ve Plan (Bütçe, Düzenli, Hedefler, Koç) tek sekmede; düğmeler eski eylemleriyle (an / plan) */
+/* 4.34: Gelişim alt sekmeleri simgeli kutucuklar */
+var GLIC={ozet:'pulse',harcama:'shapes',butce:'scale',duzenli:'repeat',hedef:'flag',koc:'sparkles'};
 function gelisimBody(){
   var v=GEL.some(function(x){return x[0]===ui.gl;})?ui.gl:'ozet';ui.gl=v;
   var isA=ANS.some(function(x){return x[0]===v;});
-  var tabs='<div class="seg grid3" id="glbar" role="tablist" aria-label="Gelişim">'+GEL.map(function(x){var a=ANS.some(function(y){return y[0]===x[0];})?'an':'plan';return '<button role="tab" data-act="'+a+'" data-v="'+x[0]+'" aria-pressed="'+(v===x[0])+'" aria-selected="'+(v===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
+  var tabs='<div class="seg grid3" id="glbar" role="tablist" aria-label="Gelişim">'+GEL.map(function(x){var a=ANS.some(function(y){return y[0]===x[0];})?'an':'plan';return '<button role="tab" data-act="'+a+'" data-v="'+x[0]+'" aria-pressed="'+(v===x[0])+'" aria-selected="'+(v===x[0])+'">'+ic(GLIC[x[0]]||'chart')+'<span>'+x[1]+'</span></button>';}).join('')+'</div>';
   if(isA){ui.an=v;return tabs+analizBody(true);}
   ui.plan=v;return tabs+planBody(true);
 }
@@ -1524,14 +1540,14 @@ function render0(){
     if(!CNTD&&!ui.page&&ui.sub==='ev'){CNTD=1;var ce=vw.querySelector('.nwbig .big[data-n]'),cn=ce&&+ce.dataset.n;
       if(ce&&/\d/.test(ce.textContent)&&isFinite(cn)&&cn!==0&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){var c0=performance.now(),fin=ce.textContent;
         (function st(t){var p=Math.min(1,(t-c0)/700),e=1-Math.pow(1-p,3);if(!ce.isConnected)return;ce.textContent=p<1?DC0.format(Math.round(cn*e)):fin;if(p<1)requestAnimationFrame(st);})(c0);}}
-    if(vk!==VKEY){VKEY=vk;vw.classList.remove('enter');void vw.offsetWidth;vw.classList.add('enter');clearTimeout(VKT);VKT=setTimeout(function(){vw.classList.remove('enter');},900);}
+    if(vk!==VKEY){VKEY=vk;var tbx=document.getElementById('tabbar');if(tbx)tbx.classList.remove('away');vw.classList.remove('enter');void vw.offsetWidth;vw.classList.add('enter');clearTimeout(VKT);VKT=setTimeout(function(){vw.classList.remove('enter');},900);}
   }
   applyNoteColor();
   var tb=document.getElementById('tabbar');
   if(tb){tb.hidden=!!ui.page;document.body.classList.toggle('has-tb',!ui.page);
     /* 4.33: + düğmesi alt menünün ortasında (yüzen düğme yok; listelerin üstüne binmez) */
-    if(!ui.page){var tbb=function(x){var on=ui.sub===x[0];return '<button data-act="sub" data-v="'+x[0]+'"'+(on?' aria-current="page"':'')+'>'+ic(x[2])+'<span>'+x[1]+'</span></button>';};
-      tb.innerHTML='<div class="tbin">'+SECS.slice(0,2).map(tbb).join('')+'<button class="tbadd" data-act="new-tx" aria-label="İşlem ekle" title="İşlem ekle">'+ic('plus')+'</button>'+SECS.slice(2).map(tbb).join('')+'</div>';}}
+    if(!ui.page){var tbb=function(x){var on=ui.sub===x[0]||(ui.sub==='islem'&&x[0]==='ev');return '<button data-act="sub" data-v="'+x[0]+'"'+(on?' aria-current="page"':'')+'>'+ic(x[2])+'<span>'+x[1]+'</span></button>';};
+      tb.innerHTML='<div class="tbin">'+SECS.map(tbb).join('')+'</div>';}}
   document.documentElement.style.setProperty('--hh',hd.offsetHeight+'px');
   /* işlem eklemek her sekmeden tek dokunuş: ana sayfada büyük kart, diğer sekmelerde + düğmesi */
   var fb=document.getElementById('fab');fb.hidden=true;document.body.classList.toggle('has-fab',!fb.hidden);
@@ -1545,10 +1561,11 @@ function tabHead(){
   var rf='<button class="icon-btn" id="rfb" data-act="refresh" aria-label="Yenile: güncel kurlar ve piyasalar" title="Yenile">'+ic('refresh')+'</button>';
   /* 4.31: Ayarlar alt menüde (çark yok); Ana Sayfa'da kur yenileme ve uyarılar */
   if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns">'+rf+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+'</span>';
-  var t=(SECS.filter(function(x){return x[0]===ui.sub;})[0]||SECS[0])[1],cal=ui.txv==='cal';
+  var t=(SUBS.filter(function(x){return x[0]===ui.sub;})[0]||SECS[0])[1],cal=ui.txv==='cal';
   /* İşlemler: liste ↔ takvim (4.4'e kadar Analiz › Takvim) */
   var tv='<button class="icon-btn" id="txv" data-act="tx-view" aria-pressed="'+cal+'" aria-label="'+(cal?'Liste görünümü':'Takvim görünümü')+'" title="'+(cal?'Liste':'Takvim')+'">'+ic(cal?'list':'cal')+'</button>';
-  return '<h1 class="tt">'+esc(t)+'</h1><span class="hbtns">'+(ui.sub==='islem'?tv:'')+'</span>';
+  if(ui.sub==='islem')return '<button class="icon-btn" data-act="sub" data-v="ev" aria-label="Ana Sayfa’ya dön">'+ic('back')+'</button><h1>'+esc(t)+'</h1><span class="hbtns">'+tv+'</span>';
+  return '<h1 class="tt">'+esc(t)+'</h1><span class="hbtns"></span>';
 }
 /* eski bölüm adları: Bütçe, Düzenli, Hedefler ve Koç Plan sekmesinin; Yatırımlar, Varlıklar, Borçlar Hesaplar sekmesinin alt sekmeleri */
 /* 4.31: eski sekmeler: Hesaplar (servet) → Ana Sayfa'daki Hesaplar bölümü; Plan ve Analiz → Gelişim */
@@ -1558,7 +1575,8 @@ function mapSec(s){if(s==='portfoy'||s==='varlik')s='yatirim';if(WEALTH.some(fun
   if(PLANS.some(function(x){return x[0]===s;})){ui.plan=s;ui.gl=s;return 'gelisim';}if(s==='planlama'||s==='plan'){ui.gl=PLANS.some(function(x){return x[0]===ui.plan;})?ui.plan:'butce';return 'gelisim';}
   if(ANS.some(function(x){return x[0]===s;})){ui.an=s;ui.gl=s;return 'gelisim';}if(s==='analiz'){ui.gl=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet';return 'gelisim';}
   if(s==='ayarlar')return 'ayar';
-  return SECS.some(function(x){return x[0]===s;})?s:'ev';}
+  if(s==='islemler')return 'islem';
+  return SUBS.some(function(x){return x[0]===s;})?s:'ev';}
 function restoreUi(){
   try{var u=JSON.parse(localStorage.getItem(UIKEY)||'{}');
     if(GEL.some(function(x){return x[0]===u.gl;}))ui.gl=u.gl;if(PLANS.some(function(x){return x[0]===u.plan;}))ui.plan=u.plan;if(WEALTH.some(function(x){return x[0]===u.sv;}))ui.sv=u.sv;else if(u.sv==='varlik')ui.sv='yatirim';if(ANS.some(function(x){return x[0]===u.an;}))ui.an=u.an;
@@ -2578,8 +2596,9 @@ document.addEventListener('input',function(e){
 /* net servet grafiğinde dokunma ve parmak kaydırma */
 ['pointerdown','pointermove'].forEach(function(ev){document.addEventListener(ev,function(e){var c=e.target.closest&&e.target.closest('.nwchart');if(!c)return;if(ev==='pointermove'&&!(e.buttons||e.pointerType==='touch'))return;nwScrub(c,e.clientX);},{passive:true});});
 /* 4.29: + düğmesi aşağı kaydırırken çekilir, yukarı kaydırınca ya da sayfa sonunda geri gelir; satırlardaki tutarları kapatmaz */
-var fabY=0;window.addEventListener('scroll',function(){var y=window.scrollY||0,fb=document.getElementById('fab');if(!fb)return;
-  var end=y+window.innerHeight>=document.documentElement.scrollHeight-40;fb.classList.toggle('away',y>fabY+4&&y>80&&!end);if(y<fabY-4||end||y<=80)fb.classList.remove('away');fabY=y;},{passive:true});
+/* 4.34: yüzen alt menü de aynı: aşağı kaydırırken çekilir, yukarı kaydırınca, sayfa başında ya da sonunda döner */
+var fabY=0;window.addEventListener('scroll',function(){var y=window.scrollY||0,end=y+window.innerHeight>=document.documentElement.scrollHeight-40;
+  ['fab','tabbar'].forEach(function(id){var fb=document.getElementById(id);if(!fb)return;if(y>fabY+4&&y>80&&!end)fb.classList.add('away');if(y<fabY-4||end||y<=80)fb.classList.remove('away');});fabY=y;},{passive:true});
 document.addEventListener('scroll',function(e){
   var t=e.target;if(!t||!t.id)return;
   if(t.id==='secbar')edgeFade('secbar','secwrap');

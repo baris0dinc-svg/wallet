@@ -82,11 +82,12 @@ function leftNow(){
 /* ana kart: önce net servet (büyük), altında bu dönem kalan ve günlük harcama sınırı */
 function heroCard(W){
   var L=leftNow(),ch=histChange(30);
-  var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
+  var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net Servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
   h+='<button class="nwbig" data-act="nw-jump" aria-label="Net servet: hesaplar ve yatırımlar"><span class="big num" data-n="'+r2(W.net)+'">'+DC0.format(W.net)+'</span>'+ic('r')+'</button>';
   if(S.dccy!=='TRY'&&dccy()==='TRY')h+='<div class="small exp">'+esc(CCYN[S.dccy])+' kuru henüz yok; TL gösteriliyor.</div>';
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
   if(ch&&!maskOn)h+='<div class="small"><b class="num '+(ch.d>=0?'inc':'exp')+'">'+sgnD(ch.d)+(ch.p!=null?' ('+(ch.p>=0?'+':'−')+'%'+NUM1.format(Math.abs(ch.p))+')':'')+'</b> <span class="muted">'+(ch.since?'ilk kayıttan beri':'son '+ch.days+' günde')+'</span></div>';
+  h+=nwRing();
   h+='<div class="leftblk"><div class="lbl">'+esc(plabel(L.k))+' · bu dönem kalan</div>';
   if(L.ok){
     h+='<p class="mid num'+(L.left<0?' exp':'')+'" id="left-now">'+TRY0.format(L.left)+'</p>';
@@ -112,7 +113,7 @@ function periodHead(withSum){
   return '<div class="card period">'+monthNav(true)+'<div class="row3" style="margin-top:6px"><div><div class="lbl">Gelir</div><span class="num inc">'+compactT(inc)+'</span></div><div><div class="lbl">Gider</div><span class="num exp">'+compactT(exp)+'</span></div><div><div class="lbl">Fark</div><span class="num '+(net<0?'exp':'')+'">'+(net<=-0.5?'−':'+')+compactT(Math.abs(net))+'</span></div></div>'+cmp+'</div>';
 }
 function vMain(){
-  var cur=SECS.some(function(x){return x[0]===ui.sub;})?ui.sub:'ev';ui.sub=cur;
+  var cur=SUBS.some(function(x){return x[0]===ui.sub;})?ui.sub:'ev';ui.sub=cur;
   var body={ev:vHome,islem:vIslem,gelisim:gelisimBody,ayar:vAyarlar}[cur];
   return '<section id="secbody" class="stack">'+body()+'</section>';
 }
@@ -241,7 +242,7 @@ ACT['save-bal']=function(){if(!balApply())return;S.setupHide=true;save();closeSh
    4.2: eski Analiz › Servet buraya taşındı; net servet tek yerde */
 function nwTop(){
   var W=wealth();
-  var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
+  var h='<div class="card hero nw"><div class="nwtop"><span class="lbl">Net Servetim</span><span class="nwctl"><button class="icon-btn sm" data-act="eye" aria-pressed="'+!!S.hide+'" aria-label="'+(S.hide?'Tutarları göster':'Tutarları gizle')+'">'+ic(S.hide?'eyeoff':'eye')+'</button>'+ccySel('dccy',S.dccy)+'</span></div>';
   h+='<p class="big">'+DC0.format(W.net)+'</p>';
   if(S.dccy!=='TRY'&&dccy()==='TRY')h+='<div class="small exp">'+esc(CCYN[S.dccy])+' kuru henüz yok; TL gösteriliyor. Yenile düğmesine dokun.</div>';
   else if(dccy()!=='TRY')h+='<div class="small muted">1 '+(dccy()==='XAU'?'gr altın':esc(dccy()))+' = '+TRY2.format(rateOf(dccy()))+' · '+TRY0.format(W.net)+'</div>';
@@ -264,6 +265,17 @@ function nwChart(){
    +'<div class="small" id="nwpick"><b class="num '+(d>=0?'inc':'exp')+'">'+sgnD(d)+(Math.abs(p0)>0.5?' ('+(d>=0?'+':'−')+'%'+NUM1.format(Math.abs(d/Math.abs(p0)*100))+')':'')+'</b> <span class="muted">'+(R===3?'son 3 ayda':(R===12?'son 1 yılda':'ilk kayıttan bu yana'))+' · güne dokun</span></div>';
 }
 /* varlık dağılımı: artı bakiyeli hesaplar türüne göre, yatırım ve varlıklar cinsine göre */
+/* 4.34: varlıkların türe göre dağılımı (net servet kartındaki halka) */
+function distData(){
+  var by={},tot=0;ACCS().forEach(function(a){var b=r2(toTL(acctBal(a),a));if(b<=0)return;var n={nakit:'Nakit',banka:'Banka',kart:'Banka',birikim:'Birikim',diger:'Diğer hesaplar'}[acctType(a)];by[n]=(by[n]||0)+b;});
+  S.holdings.forEach(function(x){var v=hVal(x);if(v>0)by[x.type]=(by[x.type]||0)+v;});
+  var l=Object.keys(by).map(function(k){tot+=by[k];return [k,by[k]];}).sort(function(a,b){return b[1]-a[1];});
+  if(l.length>5){var rest=l.slice(4).reduce(function(a,x){return a+x[1];},0);l=l.slice(0,4).concat([['Diğer',rest]]);}
+  return {l:l,tot:tot};}
+function nwRing(){var D=distData(),l=D.l,tot=D.tot;if(!(tot>0)||!l.length)return '';
+  var R=52,C=2*Math.PI*R,off=0,seg=l.map(function(x,i){var f=x[1]/tot,len=Math.max(0,f*C-(l.length>1?2:0));var s='<circle r="'+R+'" cx="66" cy="66" fill="none" stroke="'+dcol(i)+'" stroke-width="16" stroke-dasharray="'+len.toFixed(2)+' '+(C-len).toFixed(2)+'" stroke-dashoffset="'+(-off).toFixed(2)+'"/>';off+=f*C;return s;}).join('');
+  return '<button class="nwring" data-act="nw-jump" aria-label="Varlık dağılımı: hesaplar ve yatırımlar"><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="Varlık dağılımı"><g transform="rotate(-90 66 66)">'+seg+'</g></svg><span class="rc"><span class="small muted">Varlıklar</span><b class="num">'+compactT(tot)+'</b></span></span>'
+   +'<span class="rl">'+l.map(function(x,i){return '<span class="ri" style="--c:'+dcol(i)+'"><i></i><span class="ell">'+esc(x[0])+'</span><b class="num">'+compactT(x[1])+'</b><span class="small muted">%'+(x[1]/tot<0.01?'<1':Math.round(x[1]/tot*100))+'</span></span>';}).join('')+'</span></button>';}
 function distBar(){
   var by={},tot=0;ACCS().forEach(function(a){var b=r2(toTL(acctBal(a),a));if(b<=0)return;var n={nakit:'Nakit',banka:'Banka',kart:'Banka',birikim:'Birikim',diger:'Diğer hesaplar'}[acctType(a)];by[n]=(by[n]||0)+b;});
   S.holdings.forEach(function(x){var v=hVal(x);if(v>0)by[x.type]=(by[x.type]||0)+v;});
@@ -295,14 +307,16 @@ function acctCards(){var l=ACCS().filter(function(a){return !ax(a).arch;});if(!l
     return '<button class="acard" role="listitem" data-act="acct-open" data-id="'+esc(a)+'" style="--c:'+(ATC[t]||'var(--accent)')+'"><span class="at">'+ic(AGROUPS.filter(function(g){return g[0]===t;}).map(function(g){return g[2];})[0]||'wallet')+'<span class="ell">'+esc(a)+'</span></span>'
      +'<span class="ab num'+(b<0?' exp':'')+'">'+moneyIn(b,a)+'</span><span class="as small">'+esc(ATN[t]||'Hesap')+(ccyOf(a)!=='TRY'?' · '+esc(ccyOf(a)):'')+(t==='kart'&&x.due?' · son ödeme ayın '+x.due+sfx(x.due):'')+'</span>'
      +(u>=0?'<span class="bar"><i style="width:'+(u*100).toFixed(1)+'%"></i></span><span class="as small">Limitin %'+Math.round(u*100)+'’i kullanıldı</span>':'')+'</button>';}).join('')+'</div>';}
-function homeWealth(){if(ui.sv==='varlik')ui.sv='yatirim';var v=WEALTH.some(function(x){return x[0]===ui.sv;})?ui.sv:'hesap',ch=nwChart(),db=distBar();
+function homeWealth(){if(ui.sv==='varlik')ui.sv='yatirim';var v=WEALTH.some(function(x){return x[0]===ui.sv;})?ui.sv:'hesap',ch=nwChart(),db='';
   return '<div id="wealth" class="stack">'+(ch||db?'<div class="card nw">'+ch+db+'</div>':'')+segTabs(WEALTH,v,'sv','Hesaplar')+(v==='hesap'?acctCards():'')+({hesap:hesapBody,yatirim:yatirimBody,borc:borcBody}[v])()+'</div>';}
 ACT['nw-jump']=function(){var w=document.getElementById('wealth');if(w)w.scrollIntoView({behavior:'smooth',block:'start'});};
 /* Gelişim: Analiz (Özet, Kategoriler) ve Plan (Bütçe, Düzenli, Hedefler, Koç) tek sekmede; düğmeler eski eylemleriyle (an / plan) */
+/* 4.34: Gelişim alt sekmeleri simgeli kutucuklar */
+var GLIC={ozet:'pulse',harcama:'shapes',butce:'scale',duzenli:'repeat',hedef:'flag',koc:'sparkles'};
 function gelisimBody(){
   var v=GEL.some(function(x){return x[0]===ui.gl;})?ui.gl:'ozet';ui.gl=v;
   var isA=ANS.some(function(x){return x[0]===v;});
-  var tabs='<div class="seg grid3" id="glbar" role="tablist" aria-label="Gelişim">'+GEL.map(function(x){var a=ANS.some(function(y){return y[0]===x[0];})?'an':'plan';return '<button role="tab" data-act="'+a+'" data-v="'+x[0]+'" aria-pressed="'+(v===x[0])+'" aria-selected="'+(v===x[0])+'">'+x[1]+'</button>';}).join('')+'</div>';
+  var tabs='<div class="seg grid3" id="glbar" role="tablist" aria-label="Gelişim">'+GEL.map(function(x){var a=ANS.some(function(y){return y[0]===x[0];})?'an':'plan';return '<button role="tab" data-act="'+a+'" data-v="'+x[0]+'" aria-pressed="'+(v===x[0])+'" aria-selected="'+(v===x[0])+'">'+ic(GLIC[x[0]]||'chart')+'<span>'+x[1]+'</span></button>';}).join('')+'</div>';
   if(isA){ui.an=v;return tabs+analizBody(true);}
   ui.plan=v;return tabs+planBody(true);
 }

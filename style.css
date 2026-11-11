@@ -763,12 +763,6 @@ ol.steps{margin:0;padding-left:20px;display:grid;gap:6px}
 .bmini{display:grid;gap:12px;text-align:left;width:100%;color:inherit;font:inherit}.bmini .bm{display:grid;gap:6px}.bmini .row{display:flex;justify-content:space-between;gap:10px}
 
 /* ---------- 4.33: görsellik ve hareket ---------- */
-/* alt menünün ortasında + */
-.tbin{grid-template-columns:repeat(2,minmax(0,1fr)) 68px repeat(2,minmax(0,1fr))}
-.tbin .tbadd{align-self:start;justify-self:center;width:54px;height:54px;margin-top:-20px;padding:0;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;
-  box-shadow:0 6px 18px rgba(0,0,0,.28),0 0 0 5px var(--surface);transition:transform .15s ease}
-.tbin .tbadd .ic{width:26px;height:26px;stroke-width:2.4}
-.tbin .tbadd:active{transform:scale(.92)}
 /* sekme değişince kartlar sırayla belirir, çubuklar dolar */
 @keyframes vin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes barin{from{transform:scaleX(0)}to{transform:scaleX(1)}}
@@ -812,3 +806,27 @@ button.card:active,.acard:active,.setcard:active,.ut:active{transform:scale(.985
 .prof .mid{display:grid;gap:2px;min-width:0}.prof .mid b{font-size:1.125rem}
 .prof .pst{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .prof .pst>span{display:grid;justify-items:center;gap:1px;background:var(--soft);border-radius:12px;padding:10px 4px}.prof .pst b{font-size:1.125rem}
+
+/* ---------- 4.34 ---------- */
+/* yüzen alt menü (hap): ekranın altında, kenarlardan ayrık; kaydırırken çekilir */
+.tabbar{left:50%;right:auto;bottom:calc(10px + env(safe-area-inset-bottom,0px));width:min(calc(100% - 32px),420px);transform:translateX(-50%);
+  padding-bottom:0;border:1px solid var(--line);border-radius:24px;background:var(--surface);background:color-mix(in srgb,var(--surface) 88%,transparent);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:0 10px 30px rgba(0,0,0,.28);transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .25s ease}
+.tabbar.away{transform:translate(-50%,calc(100% + 24px));opacity:0;pointer-events:none}
+.tbin{grid-template-columns:repeat(3,minmax(0,1fr));padding:6px}
+.tbin button{border-radius:18px;padding:8px 0 6px}
+.tbin button[aria-current="page"]{background:var(--soft)}
+body.has-tb .wrap{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
+@media (prefers-reduced-motion:reduce){.tabbar{transition:none}}
+/* net servet kartında varlık halkası */
+.nwring{display:grid;grid-template-columns:132px 1fr;gap:16px;align-items:center;width:100%;margin-top:14px;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.nwring .rg{position:relative;width:132px;height:132px}
+.nwring svg{width:132px;height:132px;display:block}
+#view.enter .nwring svg{animation:ringin .6s cubic-bezier(.2,.8,.2,1) .1s both}
+.nwring .rc{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:1px}.nwring .rc b{font-size:1rem}
+.nwring .rl{display:grid;gap:7px;min-width:0}
+.nwring .ri{display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;align-items:center;gap:8px;font-size:.875rem}
+.nwring .ri i{width:10px;height:10px;border-radius:50%;background:var(--c)}
+.nwring .ri .small{min-width:30px;text-align:right}
+@media (max-width:359px){.nwring{grid-template-columns:110px 1fr}.nwring .rg,.nwring svg{width:110px;height:110px}}
+.seg.grid3 button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px}.seg.grid3 .ic{width:20px;height:20px}.seg.grid3 button[aria-pressed="true"] .ic{color:var(--accent)}

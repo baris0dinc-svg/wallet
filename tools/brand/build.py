@@ -141,7 +141,8 @@ def main():
         use(t)
         # 4.19: üst çubuktaki logo gibi, yazı rengiyle aynı (uygulama içindeki logo değişmez)
         # 4.20: tek açılış ekranı: Android'in kendi açılışında logo gösterilmez (yalnız zemin rengi); logo ve "Wallet" web açılışında
-        w(os.path.join(res, 'drawable%s/splash_icon.xml' % q), vec(288, 288, '<path android:fillColor="#00000000" android:pathData="M0,0h1v1h-1z"/>'))
+        # 4.34: logo Android'in kendi açılışında ilk andan görünür (geç gelmesin); web açılışındaki logoyla aynı boyut ve yerde (86 dp, ortada)
+        w(os.path.join(res, 'drawable%s/splash_icon.xml' % q), vec(288, 288, logo_vec(288, 86, '#FF' + t['ink'].lstrip('#').upper())))
         lt = 'true' if light else 'false'
         w(os.path.join(res, 'values%s/splash.xml' % q),
           '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="splash">%s</color>\n'
@@ -177,20 +178,21 @@ def main():
     def mask(vw, vh, d):
         svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %.1f %.1f"><path fill-rule="evenodd" d="%s"/></svg>' % (vw, vh, d)
         return 'url("data:image/svg+xml,%s")' % urllib.parse.quote(svg, safe=' /=:,.-#')
+    # 4.34: logo ilk karede, ekranın tam ortasında (Android açılışındaki logoyla aynı yer); yazı altında belirir.
     # 4.32: sade açılış: düz arayüz zemini (ışık, geçiş, çizgi yok), uygulama içindeki logo gibi yazı renginde logo ve "Wallet".
     # Telefonun teması yerine uygulamada seçilen temayı izler (wallet-theme); Android'in kendi açılış zeminiyle aynı renk.
     css = (
         '#splash{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:%(dbg)s;transition:opacity .3s ease}'
-        '#splash .sp-r{display:flex;flex-direction:column;align-items:center;gap:18px;animation:spIn .35s ease-out both}'
+        '#splash .sp-r{position:absolute;inset:0}'
         '/* yalnızca -webkit-mask: eski Android WebView içinde öneksiz mask öğeyi tümüyle gizler */'
-        '#splash .sp-l{display:block;width:86px;height:55px;background:%(dink)s;-webkit-mask:%(m1)s center/100%% 100%% no-repeat}'
-        "#splash .sp-w{font:700 30px/1 'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-.01em;color:%(dink)s}"
+        '#splash .sp-l{position:absolute;left:50%%;top:50%%;width:86px;height:55px;margin:-27.5px 0 0 -43px;background:%(dink)s;-webkit-mask:%(m1)s center/100%% 100%% no-repeat}'
+        "#splash .sp-w{position:absolute;left:0;right:0;top:calc(50%% + 44px);text-align:center;font:700 30px/1 'Manrope',system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:-.01em;color:%(dink)s;animation:spIn .3s ease-out both}"
         '@media (prefers-color-scheme:light){#splash{background:%(lbg)s}#splash .sp-l{background:%(link)s}#splash .sp-w{color:%(link)s}}'
         '#splash.d{background:%(dbg)s}#splash.d .sp-l{background:%(dink)s}#splash.d .sp-w{color:%(dink)s}'
         '#splash.l{background:%(lbg)s}#splash.l .sp-l{background:%(link)s}#splash.l .sp-w{color:%(link)s}'
         '#splash.out{opacity:0}'
         '@keyframes spIn{from{opacity:0}to{opacity:1}}'
-        '@media (prefers-reduced-motion:reduce){#splash .sp-r{animation:none}}'
+        '@media (prefers-reduced-motion:reduce){#splash .sp-w{animation:none}}'
     ) % dict(dbg=DARK['bg'], dink=DARK['ink'], lbg=LIGHT['bg'], link=LIGHT['ink'], m1=mask(BW, BH, logo_d))
     block = ('<!-- açılış:başla (tools/brand/build.py üretir) -->\n<style>%s</style>\n'
              '<div id="splash" aria-hidden="true"><div class="sp-r"><i class="sp-l"></i><span class="sp-w">Wallet</span></div></div>\n'

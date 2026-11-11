@@ -9,7 +9,7 @@ android {
         targetSdk 34
         // her derlemede artar: yeni APK eskisinin üstüne güncelleme olarak kurulur, veriler korunur
         versionCode 100 + (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
-        versionName '4.31'
+        versionName '4.34'
         // test derlemesi: gradle -PwebDebug=true → WebView uzaktan incelenebilir (emülatör testi için)
         buildConfigField 'boolean', 'WEB_DEBUG', (project.findProperty('webDebug') ?: 'false')
     }

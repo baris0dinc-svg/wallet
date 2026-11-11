@@ -7,7 +7,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  const click=s=>{const e=$(s);if(!e){F.push('bulunamadı '+s);return false;}e.click();return true;};
  const sheetT=()=>($('.sheet h2')||{}).innerText||'';const page=()=>T.ui.page&&T.ui.page.k;const back=()=>window.walletBack();const act=(a,id,v)=>{const e=document.createElement('button');e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};
  // alt menü: 5 sekme, her biri doğru bölüm ve başlık
- chk($$q('#tabbar button').length===4&&!$('#tabbar').hidden,'4.31: alt menüde 4 sekme');
+ chk($$q('#tabbar button[data-act="sub"]').length===4&&$$q('#tabbar .tbadd').length===1&&!$('#tabbar').hidden,'4.33: alt menüde 4 sekme ve ortada +');
  chk(!!$('#wealth [data-act="sv"][data-v="yatirim"]')&&!!$('#wealth .nwchart'),'4.31: Hesaplar ana sayfada (sekmeler ve gelişim grafiği)');
  click('#tabbar [data-v="gelisim"]');chk($$q('#glbar button').length===6&&/Özet/.test($('#glbar').innerText)&&/Koç/.test($('#glbar').innerText),'4.31: Gelişim’de Analiz ve Plan bölümleri tek satırda');click('#tabbar [data-v="ev"]');
  for(const [k,t] of [['islem','İşlemler'],['gelisim','Gelişim'],['ayar','Ayarlar'],['ev','Wallet']]){click('#tabbar [data-v="'+k+'"]');chk(T.ui.sub===k&&$('header h1').innerText.includes(t)&&$('#tabbar [aria-current="page"]').dataset.v===k,'sekme '+k);}
@@ -32,9 +32,9 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('#qa [data-act="qa-more"]');click('#qaall [data-act="qa-notes"]');chk(page()==='notlar'&&location.hash==='#notlar','Tümü › Notlar');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan geri');
  click('#tabbar [data-v="gelisim"]');click('[data-act="plan"][data-v="koc"]');click('#view .homelinks [data-act="qa-calc"]');chk(page()==='araclar','Koç › Hesaplayıcılar');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='gelisim','hesaplayıcılardan geri Plan’a');
  // işlem ekle her sekmeden tek dokunuş: ana sayfada kart, diğerlerinde + düğmesi
- for(const k of ['islem','gelisim']){click('#tabbar [data-v="'+k+'"]');chk(!$('#fab').hidden,'+ düğmesi '+k);}
- click('#fab');chk(/Yeni işlem/.test(sheetT()),'+ düğmesi işlem penceresi');back();
- click('#tabbar [data-v="ev"]');chk($('#fab').hidden,'ana sayfada + düğmesi yerine kart');
+ for(const k of ['islem','gelisim','ayar','ev']){click('#tabbar [data-v="'+k+'"]');chk(!!$('#tabbar .tbadd')&&$('#fab').hidden,'4.33: + alt menüde '+k);}
+ click('#tabbar .tbadd');chk(/Yeni işlem/.test(sheetT()),'+ düğmesi işlem penceresi');back();
+ click('#tabbar [data-v="ev"]');chk(!!$('#wealth .acards .acard')&&!!$('.card .donut'),'4.33: ana sayfada hesap kartları ve harcama halkası');
  click('#tabbar [data-v="ayar"]');chk(!page()&&T.ui.sub==='ayar'&&$$q('#setlist .setcard').length===5&&!$('#setlist .setgrp')&&$('#tabbar [aria-current="page"]').dataset.v==='ayar','4.32: Ayarlar sekmesi, beş başlık, grup yok');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','ayarlardan geri');
  // Plan sekmesi: Koç, Bütçe, Düzenli, Hedefler
  click('#tabbar [data-v="gelisim"]');click('[data-act="plan"][data-v="hedef"]');chk(T.ui.plan==='hedef'&&!!$('#view [data-act="new-g"]'),'Plan › Hedefler');

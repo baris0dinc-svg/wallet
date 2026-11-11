@@ -74,7 +74,7 @@ const data=()=>ev('return JSON.parse(localStorage.getItem("kumbara-v1")||"{}")')
    for(const i of [1,2,3,4])console.log('ℹ AÇILIŞ'+i+'PNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/sp'+i+'.png')).toString('base64'));
    ok('açılıştan sonra bağlanıldı',await connect());}
   // yeni yapı: alt menü, ana sayfa kartları, sesle ekleme düğmesi (telefonda ses tanıma varsa)
-  {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button").length,left:!!document.querySelector("#left-now"),gear:!!document.querySelector("#tabbar [data-v=ayar]"),add:!!document.querySelector("#qa [data-act=qa-exp]"),voice:!!document.querySelector("header [data-act=voice]"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
+  {const h=await ev('return JSON.stringify({tb:document.querySelectorAll("#tabbar button[data-act=sub]").length,left:!!document.querySelector("#left-now"),gear:!!document.querySelector("#tabbar [data-v=ayar]"),add:!!document.querySelector("#qa [data-act=qa-exp]"),voice:!!document.querySelector("header [data-act=voice]"),vok:window.AndroidBridge&&AndroidBridge.voiceOk&&AndroidBridge.voiceOk()})');
    console.log('ℹ ana sayfa: '+h);const j=JSON.parse(h||'{}');ok('alt menü ve ana sayfa kartları',j.tb===4&&j.left&&j.gear&&j.add,h);ok('başlıkta sesle ekle yok (4.15)',!j.voice,h);
    sh('adb shell screencap -p /sdcard/home.png');sh('adb pull /sdcard/home.png /tmp/home.png');try{console.log('ℹ ANASAYFAPNG '+require('zlib').gzipSync(require('fs').readFileSync('/tmp/home.png')).toString('base64'));}catch(e){}}
   // 3 WebView deposu silinirse yerel kopyadan döner

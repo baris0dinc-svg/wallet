@@ -761,3 +761,54 @@ ol.steps{margin:0;padding-left:20px;display:grid;gap:6px}
 /* 4.32: ana sayfa: yaklaşan ödemeler (yana kayar) ve bütçe özeti */
 .upc{display:flex;gap:10px;margin-top:10px;padding-bottom:2px}.upc .ut{flex:0 0 148px;display:grid;gap:4px;align-content:start;background:var(--soft);border-radius:14px;padding:12px;min-width:0}.upc .ut.late>span:first-child{color:var(--exp)}.upc .ut .btn{margin-top:6px}
 .bmini{display:grid;gap:12px;text-align:left;width:100%;color:inherit;font:inherit}.bmini .bm{display:grid;gap:6px}.bmini .row{display:flex;justify-content:space-between;gap:10px}
+
+/* ---------- 4.33: görsellik ve hareket ---------- */
+/* alt menünün ortasında + */
+.tbin{grid-template-columns:repeat(2,minmax(0,1fr)) 68px repeat(2,minmax(0,1fr))}
+.tbin .tbadd{align-self:start;justify-self:center;width:54px;height:54px;margin-top:-20px;padding:0;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;
+  box-shadow:0 6px 18px rgba(0,0,0,.28),0 0 0 5px var(--surface);transition:transform .15s ease}
+.tbin .tbadd .ic{width:26px;height:26px;stroke-width:2.4}
+.tbin .tbadd:active{transform:scale(.92)}
+/* sekme değişince kartlar sırayla belirir, çubuklar dolar */
+@keyframes vin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes barin{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes ringin{from{opacity:0;transform:rotate(-90deg) scale(.85)}to{opacity:1;transform:none}}
+#view.enter>*{animation:vin .38s cubic-bezier(.2,.8,.2,1) both}
+#view.enter>*:nth-child(2){animation-delay:.04s}#view.enter>*:nth-child(3){animation-delay:.08s}#view.enter>*:nth-child(4){animation-delay:.12s}
+#view.enter>*:nth-child(5){animation-delay:.16s}#view.enter>*:nth-child(6){animation-delay:.2s}#view.enter>*:nth-child(n+7){animation-delay:.24s}
+#view.enter .bar i{transform-origin:left;animation:barin .7s cubic-bezier(.2,.8,.2,1) .15s both}
+#view.enter .donut svg{animation:ringin .6s cubic-bezier(.2,.8,.2,1) .1s both}
+.card,.acard,.ut,.setcard{transition:transform .12s ease}
+button.card:active,.acard:active,.setcard:active,.ut:active{transform:scale(.985)}
+@media (prefers-reduced-motion:reduce){#view.enter>*,#view.enter .bar i,#view.enter .donut svg{animation:none}.tbin .tbadd,.card,.acard{transition:none}}
+/* hesap kartları: cüzdandaki kartlar gibi, türün renginde, yana kayar */
+.acards{display:flex;gap:12px;padding:2px 2px 6px;scroll-snap-type:x mandatory}
+.acard{position:relative;overflow:hidden;flex:0 0 78%;max-width:300px;min-height:150px;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;text-align:left;
+  padding:16px;border-radius:18px;border:1px solid var(--line);color:var(--ink);font:inherit;cursor:pointer;
+  background:var(--surface);background:linear-gradient(140deg,color-mix(in srgb,var(--c) 42%,var(--surface)) 0%,color-mix(in srgb,var(--c) 12%,var(--surface)) 70%)}
+.acard::after{content:"";position:absolute;right:-40px;top:-50px;width:170px;height:170px;border-radius:50%;background:color-mix(in srgb,var(--c) 22%,transparent);pointer-events:none}
+.acard .at{display:flex;align-items:center;gap:8px;font-weight:700;min-width:0;position:relative}.acard .at .ic{width:20px;height:20px;flex-shrink:0}
+.acard .ab{margin-top:auto;font-size:1.6rem;font-weight:800;letter-spacing:-.01em;position:relative}
+.acard .as{color:var(--ink2);position:relative}
+.acard .bar{position:relative;background:color-mix(in srgb,var(--ink) 14%,transparent)}.acard .bar i{background:var(--c)}
+/* Düzenli: ödeme takvimi */
+.rcal .cgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center;margin-top:4px}
+.rcal .cgrid b{font-size:.6875rem;color:var(--ink2);font-weight:600;padding:2px 0 4px}
+.rcal .rc{display:grid;place-items:center;width:36px;height:36px;margin:0 auto;border-radius:50%;font-size:.875rem;color:var(--ink);background:none;border:0;font-family:inherit;padding:0}
+.rcal button.rc{cursor:pointer;font-weight:700}
+.rcal .rc.due{background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent)}
+.rcal .rc.late{background:color-mix(in srgb,var(--exp) 22%,transparent);color:var(--exp)}
+.rcal .rc.paid{background:var(--soft);color:var(--ink2)}
+.rcal .rc.today{box-shadow:inset 0 0 0 1.5px var(--ink2)}
+.rcal .rc.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+.rcal .ckey{display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap}.rcal .ckey i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:-1px}
+.rcal .ckey i.due{background:var(--accent)}.rcal .ckey i.late{background:var(--exp)}.rcal .ckey i.paid{background:var(--ink2)}
+.rcal .rsel{margin-top:8px;border-top:1px solid var(--line)}
+/* Ayarlar: profil kartı */
+.prof{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;width:100%;text-align:left;color:inherit;font:inherit;cursor:pointer}
+.prof .pav{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:1.5rem;font-weight:800;color:var(--accent-ink);
+  background:linear-gradient(140deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--surface)))}
+.prof .pav .logo{width:30px;height:19px;background:var(--accent-ink)}
+.prof .mid{display:grid;gap:2px;min-width:0}.prof .mid b{font-size:1.125rem}
+.prof .pst{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.prof .pst>span{display:grid;justify-items:center;gap:1px;background:var(--soft);border-radius:12px;padding:10px 4px}.prof .pst b{font-size:1.125rem}

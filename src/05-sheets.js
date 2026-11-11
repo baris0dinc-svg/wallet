@@ -37,16 +37,25 @@ function render0(){
     var kb=document.getElementById('n-body');if(kb)kGrow(kb);
   }else{
     hd.innerHTML=tabHead();
-    vw.innerHTML=vMain();
+    var vk=(ui.page?'p:'+ui.page.k:ui.sub+':'+(ui.sub==='gelisim'?ui.gl:''));vw.innerHTML=vMain();
+    /* 4.33: sekme ya da sayfa değişince kartlar sırayla belirir; aynı ekranda yeniden çizimde (yazarken, kur gelince) hareket yok */
+    /* 4.33: açılışta net servet sıfırdan sayarak gelir (bir kez; hareket azaltılmışsa yok) */
+    if(!CNTD&&!ui.page&&ui.sub==='ev'){CNTD=1;var ce=vw.querySelector('.nwbig .big[data-n]'),cn=ce&&+ce.dataset.n;
+      if(ce&&/\d/.test(ce.textContent)&&isFinite(cn)&&cn!==0&&!(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)){var c0=performance.now(),fin=ce.textContent;
+        (function st(t){var p=Math.min(1,(t-c0)/700),e=1-Math.pow(1-p,3);if(!ce.isConnected)return;ce.textContent=p<1?DC0.format(Math.round(cn*e)):fin;if(p<1)requestAnimationFrame(st);})(c0);}}
+    if(vk!==VKEY){VKEY=vk;vw.classList.remove('enter');void vw.offsetWidth;vw.classList.add('enter');clearTimeout(VKT);VKT=setTimeout(function(){vw.classList.remove('enter');},900);}
   }
   applyNoteColor();
   var tb=document.getElementById('tabbar');
   if(tb){tb.hidden=!!ui.page;document.body.classList.toggle('has-tb',!ui.page);
-    if(!ui.page)tb.innerHTML='<div class="tbin">'+SECS.map(function(x){var on=ui.sub===x[0];return '<button data-act="sub" data-v="'+x[0]+'"'+(on?' aria-current="page"':'')+'>'+ic(x[2])+'<span>'+x[1]+'</span></button>';}).join('')+'</div>';}
+    /* 4.33: + düğmesi alt menünün ortasında (yüzen düğme yok; listelerin üstüne binmez) */
+    if(!ui.page){var tbb=function(x){var on=ui.sub===x[0];return '<button data-act="sub" data-v="'+x[0]+'"'+(on?' aria-current="page"':'')+'>'+ic(x[2])+'<span>'+x[1]+'</span></button>';};
+      tb.innerHTML='<div class="tbin">'+SECS.slice(0,2).map(tbb).join('')+'<button class="tbadd" data-act="new-tx" aria-label="İşlem ekle" title="İşlem ekle">'+ic('plus')+'</button>'+SECS.slice(2).map(tbb).join('')+'</div>';}}
   document.documentElement.style.setProperty('--hh',hd.offsetHeight+'px');
   /* işlem eklemek her sekmeden tek dokunuş: ana sayfada büyük kart, diğer sekmelerde + düğmesi */
-  var fb=document.getElementById('fab');fb.hidden=!!ui.page||ui.sub==='ev'||ui.sub==='ayar';document.body.classList.toggle('has-fab',!fb.hidden);
+  var fb=document.getElementById('fab');fb.hidden=true;document.body.classList.toggle('has-fab',!fb.hidden);
 }
+var VKEY='',VKT=0,CNTD=0;
 function persistUi(){try{localStorage.setItem(UIKEY,JSON.stringify({nv:ui.nv,plan:ui.plan,sv:ui.sv,an:ui.an,gl:ui.gl}));}catch(e){}}
 /* sekme başlığı: Ana Sayfa'da logo, ara ve uyarılar (4.15: sesle ekleme kaldırıldı, Notlar ana sayfadaki kısayolda); Hesaplar'da kur yenileme; ayarlar her sekmede sağdaki çark simgesinde.
    Uyarılar ana sayfadaki Gündem kartında (ayrı zil yok); tutarları gizleme ana sayfa ve Hesaplar kartındaki gözde. */

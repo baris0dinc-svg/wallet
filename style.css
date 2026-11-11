@@ -830,3 +830,11 @@ body.has-tb .wrap{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
 .nwring .ri .small{min-width:30px;text-align:right}
 @media (max-width:359px){.nwring{grid-template-columns:110px 1fr}.nwring .rg,.nwring svg{width:110px;height:110px}}
 .seg.grid3 button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px}.seg.grid3 .ic{width:20px;height:20px}.seg.grid3 button[aria-pressed="true"] .ic{color:var(--accent)}
+
+/* ---------- 4.35: düzen ---------- */
+.pcard .leftblk{margin-top:0;padding-top:0;border-top:0}
+.sech{margin:6px 2px -2px;font-size:1.125rem}
+.hedit{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px auto 0;padding:10px 14px}.hedit .ic{width:18px;height:18px}
+.hlist .item{gap:6px}.hlist .icon-btn[data-v="-1"] .ic{transform:rotate(90deg)}.hlist .icon-btn[data-v="1"] .ic{transform:rotate(90deg)}
+.hlist .row-tgl{width:auto;padding:0;border:0;background:none;flex:0 0 auto}
+.hlist .icon-btn:disabled{opacity:.3}

@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.34';
+var KEY='kumbara-v1',UIKEY='wallet-ui',VER='4.35';
 var D_EXP=['Market','Fatura','Kira','Ulaşım','Yeme-İçme','Sağlık','Eğlence','Giyim','Eğitim','Diğer'];
 var D_INC=['Maaş','Ek gelir','Yatırım getirisi','Diğer gelir'];
 var D_ACC=['Nakit','Banka','Kredi kartı'];
@@ -132,7 +132,7 @@ var SETS=[
  {g:'',id:'genel',t:'Genel',d:'Adın, maaş günü, tema, para birimi ve kurlar',i:'user',c:'var(--inc)'},
  {g:'',id:'kat',t:'Kategoriler ve kurallar',d:'Gelir ve gider kategorileri, otomatik kurallar',i:'shapes',c:'var(--warn)'},
  {g:'',id:'bild',t:'Bildirimler ve otomatik işlemler',d:'Ödeme hatırlatıcısı, bütçe uyarıları, banka SMS’leri',i:'bell',c:'var(--accent)'},
- {g:'',id:'guv',t:'Güvenlik ve gizlilik',d:'PIN kilidi, parmak izi, ekran gizliliği',i:'shield',c:'var(--inc)'},
+ {g:'',id:'guv',t:'Güvenlik ve gizlilik',d:'PIN kilidi, parmak izi, tutarları gizleme',i:'shield',c:'var(--inc)'},
  {g:'',id:'veri',t:'Veri ve yedek',d:'Yedek, geri yükleme, ekstre ve CSV, sıfırlama',i:'server',c:'var(--blue)'}
 ];
 /* eski ayar sayfası adları birleştirilenlere gider */

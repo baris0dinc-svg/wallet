@@ -8,7 +8,8 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  const sheetT=()=>($('.sheet h2')||{}).innerText||'';const page=()=>T.ui.page&&T.ui.page.k;const back=()=>window.walletBack();const act=(a,id,v)=>{const e=document.createElement('button');e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};
  // alt menü: 5 sekme, her biri doğru bölüm ve başlık
  chk($$q('#tabbar button[data-act="sub"]').length===3&&!$('#tabbar .tbadd')&&!$('#tabbar').hidden,'4.34: alt menüde 3 sekme, + yok');
- chk(!!$('#wealth [data-act="sv"][data-v="yatirim"]')&&!!$('#wealth .nwchart'),'4.31: Hesaplar ana sayfada (sekmeler ve gelişim grafiği)');
+ chk(!!$('#wealth [data-act="sv"][data-v="yatirim"]')&&!!$('#wealth .acards')&&!$('#wealth .nwchart')&&!!$('.pcard #left-now')&&!$('.hero #left-now'),'4.35: Hesaplar ana sayfada; Bu dönem ayrı kart; grafik Gelişim’de');
+ {const ks=()=>$$q('#secbody > .card, #secbody > #wealth').length;const n0=ks();act('home-edit');act('hl-tog','piyasa');act('close');chk(!$('.mstrip')&&T.S.homeOff.piyasa===1,'4.35: ana sayfa kartı gizlenir');act('hl-mv','islem','1');act('hl-reset');act('close');chk(!!$('.mstrip')&&!T.S.homeOff,'4.35: varsayılan düzen');}
  click('#tabbar [data-v="gelisim"]');chk($$q('#glbar button').length===6&&/Özet/.test($('#glbar').innerText)&&/Koç/.test($('#glbar').innerText),'4.31: Gelişim’de Analiz ve Plan bölümleri tek satırda');click('#tabbar [data-v="ev"]');
  click('#tabbar [data-v="ev"]');click('.linkbtn[data-act="tx-all"]');chk(T.ui.sub==='islem'&&/İşlemler/.test($('header h1').innerText)&&!!$('header [data-act="sub"][data-v="ev"]')&&$('#tabbar [aria-current="page"]').dataset.v==='ev','4.34: İşlemler ana sayfadan açılır, geri oku ve Ana Sayfa seçili');click('header [data-act="sub"][data-v="ev"]');chk(T.ui.sub==='ev','İşlemler’den geri Ana Sayfa');
  for(const [k,t] of [['gelisim','Gelişim'],['ayar','Ayarlar'],['ev','Wallet']]){click('#tabbar [data-v="'+k+'"]');chk(T.ui.sub===k&&$('header h1').innerText.includes(t)&&$('#tabbar [aria-current="page"]').dataset.v===k,'sekme '+k);}
@@ -61,7 +62,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('#tabbar [data-v="gelisim"]');click('[data-act="plan"][data-v="butce"]');chk(!page()&&T.ui.sub==='gelisim'&&T.ui.plan==='butce','Plan › Bütçe');
  chk(!$('#view .linkbtn[data-act="an-go"]'),'4.30: Bütçe’de Analiz’e dönen bağlantı yok (alt menüde var)');
  click('#tabbar [data-v="gelisim"]');chk($$q('[data-act="an"]').length===2&&!$('[data-act="an"][data-v="takvim"]')&&/Kategoriler/.test($('[data-act="an"][data-v="harcama"]').innerText),'Analiz: Özet, Kategoriler (Takvim İşlemler’de)');
- act('an',null,'servet');chk(T.ui.sub==='ev'&&!!$('#secbody .nwchart'),'eski Analiz › Servet Hesaplar’daki net servet grafiğine gider');
+ act('an',null,'servet');chk(T.ui.sub==='ev'&&!!$('#wealth'),'eski Analiz › Servet Ana Sayfa’daki Hesaplar’a gider');act('an',null,'ozet');chk(T.ui.sub==='gelisim'&&!!$('#secbody .nwchart'),'4.35: net servet grafiği Gelişim › Özet’te');
  click('#secbody [data-act="nwr"][data-v="12"]');chk(T.ui.nwr===12&&!!$('#secbody [data-act="nwr"][data-v="12"][aria-pressed="true"]'),'grafik süresi 1 yıl');
  // hesaplar: piyasa kartı → Piyasalar → geri
  click('#tabbar [data-v="ev"]');click('[data-act="sv"][data-v="yatirim"]');click('#secbody .setcard[data-act="open-mkt"]');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa kartı Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev'&&T.ui.sv==='yatirim','Piyasalar’dan geri yatırımlara');

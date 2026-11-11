@@ -96,7 +96,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
    recurring:[{id:'r',name:'İnternet',amt:2000,day:+T.pEnd(cur).slice(8),cat:'Fatura',acct:'Banka',paid:{}}]});T.save();
  const L=T.leftNow();chk(L.left===28000&&L.rec===2000&&L.spent===10000&&!L.assumed,'L: kalan 40.000−10.000−2.000=28.000 '+JSON.stringify(L));
  T.ui.sub='ev';T.render();chk(document.getElementById('left-now').innerText.indexOf(Tf(28000))>=0,'L: ana sayfada kalan');
- T.S.tx=T.S.tx.filter(t=>t.type!=='inc');T.save();T.render();chk(/Gelirini eklersen/.test(document.querySelector('.hero').innerText),'L: gelir yoksa yalnızca harcanan');
+ T.S.tx=T.S.tx.filter(t=>t.type!=='inc');T.save();T.render();chk(/Gelirini eklersen/.test(document.querySelector('.pcard').innerText),'L: gelir yoksa yalnızca harcanan (4.35: Bu dönem kartı)');
  // M. bütçe önerisi: son 3 dönem ortalaması, 100'e yuvarlanır, var olan limit değişmez
  mk({inc:40000,exp:3000,liquid:0,cats:{Market:1}});T.S.tx.forEach(t=>{if(t.cat==='Market'&&t.id==='e0_0')t.amt=1050;});T.S.budgets={};T.save();
  const sg=T.budgetSuggest();chk(sg.length===1&&sg[0][0]==='Market'&&sg[0][1]===2400,'M: öneri (1050+3000+3000)/3=2350 → 2400: '+JSON.stringify(sg));

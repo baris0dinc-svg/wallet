@@ -104,7 +104,8 @@ ACT['cal-add']=function(el,id,v){txSheet(null,null,{date:v});};
 function analizBody(noTabs){
   var v=ANS.some(function(x){return x[0]===ui.an;})?ui.an:'ozet',k=ui.month,m=monthTx(k),h=noTabs?'':segTabs(ANS,v,'an','Analiz');
   if(v==='ozet'){
-    h+=monthNav()+(k===curP()?brainCard()+insights():'')+flowCard();
+    /* 4.35: net servet gelişimi Ana Sayfa'dan buraya (zamanla değişim Gelişim'in işi) */
+    var nc=nwChart();h+=monthNav()+(k===curP()?brainCard()+insights():'')+(nc?'<div class="card nw">'+nc+'</div>':'')+flowCard();
     if(!S.tx.some(function(t){return t.type==='inc'||t.type==='exp';}))return h;
     h+='<div class="card"><div class="ghead" style="margin-bottom:8px"><h2 style="margin:0;flex:1">Gelir ve gider</h2><div class="seg mini" role="group" aria-label="Süre"><button data-act="trn" data-v="6" aria-pressed="'+(ui.tr===6)+'">6 ay</button><button data-act="trn" data-v="12" aria-pressed="'+(ui.tr===12)+'">12 ay</button></div></div>'+trendSvg(ui.tr)+'</div>';
     /* 4.30: FIRE kartı yalnız Plan › Koç'ta (Özgürlük göstergesi ve yol haritası) */

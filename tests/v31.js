@@ -26,7 +26,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  act('sub',null,'analiz');act('an',null,'ozet');const g=document.querySelector('g[data-act="trend-pick"][data-v="'+m2+'"]');chk(!!g,'trend grubu');g.dispatchEvent(new MouseEvent('click',{bubbles:true}));
  o.pick=$('.pickbox').innerText;chk(T.ui.trPick===m2&&/Gider/.test(o.pick),'trend seçimi '+o.pick);act('go-month',null,m2);chk(T.ui.month===m2,'döneme git');
  act('an',null,'harcama');const crow=document.querySelector('button.crow[data-v="Market"]');chk(!!crow,'kategori satırı düğme');crow.click();chk(/Market/.test(($('.sheet h2')||{}).innerText||'')&&document.querySelectorAll('.sheet [data-act="edit-tx"]').length===1,'kategori işlemleri penceresi');act('close');
- T.ui.month=cur;act('an',null,'servet');act('nwr',null,'1');const ch=$('#secbody .nwchart');chk(!!ch&&T.ui.sub==='ev','net servet grafiği (Hesaplar)');const bx=ch.getBoundingClientRect();
+ T.ui.month=cur;act('an',null,'ozet');act('nwr',null,'1');const ch=$('#secbody .nwchart');chk(!!ch&&T.ui.sub==='gelisim','4.35: net servet grafiği (Gelişim › Özet)');const bx=ch.getBoundingClientRect();
  ch.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:bx.left+2,clientY:bx.top+10}));o.scrub=$('#nwpick').innerText;chk(/hesaplandı/.test(o.scrub),'ilk nokta tahmini '+o.scrub);
  ch.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,clientX:bx.right-1,clientY:bx.top+10}));chk(new RegExp(new Date().getFullYear()).test($('#nwpick').innerText)&&!$('.nwdot').hidden,'son nokta');
  act('an',null,'harcama');const wk=document.querySelector('[data-act="wk-pick"][data-v="0"]');if(wk){wk.click();chk(/pazartesi/.test(document.body.innerText),'gün seçimi');}

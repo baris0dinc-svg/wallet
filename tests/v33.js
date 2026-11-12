@@ -82,7 +82,7 @@ r=await ev(`const T=__T,F=[],chk=(c,m)=>{if(!c)F.push(m);};
  const m1=T.S.holdings.find(x=>x.id==='m1');chk(m1.mk==='cg:bitcoin'&&m1.mks==='BTC'&&T.hPrice(m1)===3808230&&!T.ui.page,'sonradan bağlandı '+JSON.stringify(m1));
  /* servetim > yatırımlar */
  act('sub',null,'servet');act('sv',null,'yatirim');const card=$('#secbody [data-act="open-mkt"]');chk(card&&/Piyasalar ve takip listem/.test(card.innerText),'yatırımlar piyasa bağlantısı');
- act('sub',null,'ev');const ms=$('.mstrip');chk(ms&&ms.querySelectorAll('.rt').length===4,'ana sayfa piyasa şeridi 4 kalem');act('sub',null,'servet');
+ chk(!$('.mstrip'),'sade: Piyasalar kartı ilk düzende kapalı');T.S.homeOff={};act('sub',null,'ev');const ms=$('.mstrip');chk(ms&&ms.querySelectorAll('.rt').length===4,'ana sayfa piyasa şeridi 4 kalem');act('sub',null,'servet');
  chk([...document.querySelectorAll('.hcard')].some(c=>/THYAO/.test(c.innerText)&&!c.querySelector('[data-price]')),'bağlı yatırım kartında elle fiyat yok');
  /* elle fiyata geri dön */
  T.hSheet(h.id);$('#h-ccy').value='';$('#h-ccy').dispatchEvent(new Event('change',{bubbles:true}));$('#h-price').value='300';$('.sheet [data-act="save-h"]').click();

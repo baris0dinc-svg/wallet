@@ -55,7 +55,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const chk=(c,m)=>{if(
  chk(!/2026-10-10|2026-10-20/.test(JSON.stringify(T.S.quotes['fx:USD'].h)),'ECB geçmişi küçük grafiğe eklenmedi '+JSON.stringify(T.S.quotes['fx:USD'].h));T.ACT.close();
  chk(window.__frk.some(u=>/v2\/rates\?base=USD&quotes=TRY&from=/.test(u)),'ECB geçmiş isteği');
  // 10 ana sayfa şeridi ve çevrimdışı
- window.walletBack();T.ui.sub='ev';T.render();chk(document.querySelectorAll('.mstrip .rt').length===4,'ana sayfa şeridi 4 kalem');
+ window.walletBack();T.S.homeOff={};T.ui.sub='ev';T.render();chk(document.querySelectorAll('.mstrip .rt').length===4,'ana sayfa şeridi 4 kalem (Ana sayfayı düzenle ile açık)');
  Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});T.render();chk(/Çevrimdışı/.test($('.mstrip').innerText),'şeritte çevrimdışı');
  T.ACT['open-mkt']();await wait(50);chk(/Çevrimdışısın/.test($('#view').innerText),'Piyasalar çevrimdışı bandı');
  Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>true});T.render();chk(!/Çevrimdışısın/.test($('#view').innerText),'çevrimiçi olunca band kalkar');

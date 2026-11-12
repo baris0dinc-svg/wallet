@@ -9,8 +9,8 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  // alt menü: 5 sekme, her biri doğru bölüm ve başlık
  chk($$q('#tabbar button[data-act="sub"]').length===3&&!$('#tabbar .tbadd')&&!$('#tabbar').hidden,'4.34: alt menüde 3 sekme, + yok');
  chk(!!$('#wealth [data-act="sv"][data-v="yatirim"]')&&!!$('#wealth .acards')&&!$('#wealth .nwchart')&&!!$('.pcard #left-now')&&!$('.hero #left-now'),'4.35: Hesaplar ana sayfada; Bu dönem ayrı kart; grafik Gelişim’de');
- {const ks=()=>$$q('#secbody > .card, #secbody > #wealth').length;const n0=ks();act('home-edit');act('hl-tog','piyasa');act('close');chk(!$('.mstrip')&&T.S.homeOff.piyasa===1,'4.35: ana sayfa kartı gizlenir');act('hl-mv','islem','1');act('hl-reset');act('close');chk(!!$('.mstrip')&&!T.S.homeOff,'4.35: varsayılan düzen');}
- click('#tabbar [data-v="gelisim"]');chk($$q('#glbar button').length===6&&/Özet/.test($('#glbar').innerText)&&/Koç/.test($('#glbar').innerText),'4.31: Gelişim’de Analiz ve Plan bölümleri tek satırda');click('#tabbar [data-v="ev"]');
+ {const ks=()=>$$q('#secbody > .card, #secbody > #wealth').length;const n0=ks();act('home-edit');chk(!$('.mstrip'),'sade: Piyasalar ilk düzende kapalı');act('hl-tog','piyasa');act('close');chk(!!$('.mstrip')&&!T.S.homeOff.piyasa,'Ana sayfayı düzenle ile kart açılır');act('hl-tog','islem');chk(!$('#secbody .recent, #secbody [data-act="tx-all"]'),'kart gizlenir');act('hl-mv','donem','1');act('hl-reset');act('close');chk(!$('.mstrip')&&!T.S.homeOff&&!!$('[data-act="tx-all"]'),'4.35: varsayılan düzen');}
+ click('#tabbar [data-v="gelisim"]');chk($$q('#glbar button').length===4&&/Özet/.test($('#glbar').innerText)&&/Hedefler/.test($('#glbar').innerText),'sade: Gelişim dört kutucuk');click('#glbar [data-g="butce"]');chk(!!$('.glsub [data-v="duzenli"]')&&T.ui.gl==='butce','Bütçe’de Düzenli ödemeler alt seçimi');click('#tabbar [data-v="ev"]');
  click('#tabbar [data-v="ev"]');click('.linkbtn[data-act="tx-all"]');chk(T.ui.sub==='islem'&&/İşlemler/.test($('header h1').innerText)&&!!$('header [data-act="sub"][data-v="ev"]')&&$('#tabbar [aria-current="page"]').dataset.v==='ev','4.34: İşlemler ana sayfadan açılır, geri oku ve Ana Sayfa seçili');click('header [data-act="sub"][data-v="ev"]');chk(T.ui.sub==='ev','İşlemler’den geri Ana Sayfa');
  for(const [k,t] of [['gelisim','Gelişim'],['ayar','Ayarlar'],['ev','Wallet']]){click('#tabbar [data-v="'+k+'"]');chk(T.ui.sub===k&&$('header h1').innerText.includes(t)&&$('#tabbar [aria-current="page"]').dataset.v===k,'sekme '+k);}
  // hızlı işlemler (pencereler)
@@ -19,20 +19,20 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  // ana sayfa: kalan kartı, işlem ekle, Koç, piyasa şeridi, notlar ve hesaplayıcılar, ayarlar
  chk(!!$('#left-now'),'bu dönem kalan');
  // 4.12: İşlem ekle kartı kaldırıldı (Gelir/Gider/Transfer düğmeleri yeter); sesle ekleme başlıkta
- chk(!$('.addmain')&&!$('.addcard'),'işlem ekle kartı yok');chk(!$('header [data-act="voice"]')&&!$('header [data-v="notlar"]')&&$$q('header .icon-btn').length===2,'4.30: başlıkta yalnız uyarılar ve ayarlar');
+ chk(!$('.addmain')&&!$('.addcard'),'işlem ekle kartı yok');chk(!$('header [data-act="voice"]')&&!$('header [data-v="notlar"]')&&$$q('header .icon-btn').length===1,'sade: başlıkta yalnız uyarılar');
  click('#qa [data-act="qa-exp"]');chk(/Gider ekle/.test(sheetT()),'Gider düğmesi işlem penceresi');back();
  click('.nwbig');chk(T.ui.sub==='ev'&&!!$('.nw .big'),'net servet Hesaplar’a');click('#tabbar [data-v="ev"]');
  // 4.30: Gündem kartı yok; uyarılar zilde, Koç Plan › Koç'ta
  chk(!$('.gundem')&&!$('.cochome'),'4.30: ana sayfada Gündem yok');
- click('#tabbar [data-v="gelisim"]');click('[data-act="plan"][data-v="koc"]');chk(T.ui.sub==='gelisim'&&T.ui.plan==='koc'&&!!$('#view .kocnow'),'Plan › Koç');
+ click('#tabbar [data-v="gelisim"]');click('#glbar [data-g="hedef"]');click('.glsub [data-v="koc"]');chk(T.ui.sub==='gelisim'&&T.ui.plan==='koc'&&!!$('#view .kocnow'),'Plan › Koç');
  {const tl=$('#view .homelinks'),rm=[...document.querySelectorAll('#view .card h2')].find(e=>/Yol haritan/.test(e.innerText));chk(tl&&rm&&(tl.compareDocumentPosition(rm)&4)&&($('#view .kocnow').compareDocumentPosition(tl)&4),'Koç: Hesaplayıcılar ve Claude’a sor şu anki adımın hemen altında');}
  click('#view .kt[data-act="an-go"][data-v="ozet"]');chk(T.ui.sub==='gelisim'&&T.ui.an==='ozet','Koç › Tasarruf oranı Analiz › Özet’e');
  click('#tabbar [data-v="ev"]');
- click('.mstrip');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa şeridi Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','piyasadan geri');
+ T.S.homeOff={};T.render();click('.mstrip');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa şeridi Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','piyasadan geri');
  // 4.2: Notlar ana sayfa başlığındaki simgede (tek dokunuş); Hesaplayıcılar Plan › Koç'ta (ana sayfadaki kutucuklar kaldırıldı)
  chk(!!$('header .bellb')&&!!$('#qa')&&!$('.scg'),'4.29: ana sayfada zil ve hızlı işlemler; kısayol kutucukları kalktı (sekmelerde var)');
  click('#qa [data-act="qa-more"]');click('#qaall [data-act="qa-notes"]');chk(page()==='notlar'&&location.hash==='#notlar','Tümü › Notlar');back();await new Promise(r=>setTimeout(r,50));chk(!page(),'notlardan geri');
- click('#tabbar [data-v="gelisim"]');click('[data-act="plan"][data-v="koc"]');click('#view .homelinks [data-act="qa-calc"]');chk(page()==='araclar','Koç › Hesaplayıcılar');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='gelisim','hesaplayıcılardan geri Plan’a');
+ click('#tabbar [data-v="gelisim"]');click('#glbar [data-g="hedef"]');click('.glsub [data-v="koc"]');click('#view .homelinks [data-act="qa-calc"]');chk(page()==='araclar','Koç › Hesaplayıcılar');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='gelisim','hesaplayıcılardan geri Plan’a');
  // işlem ekle her sekmeden tek dokunuş: ana sayfada kart, diğerlerinde + düğmesi
  for(const k of ['gelisim','ayar','ev']){click('#tabbar [data-v="'+k+'"]');chk($('#fab').hidden,'4.34: yüzen + yok '+k);}
  act('new-tx');chk(/Yeni işlem/.test(sheetT()),'işlem penceresi');back();chk(!!$('.nwring svg')&&/Net Servetim/.test($('.hero').innerText),'4.34: Net Servetim kartında varlık halkası');
@@ -40,8 +40,8 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('#tabbar [data-v="ayar"]');chk(!page()&&T.ui.sub==='ayar'&&$$q('#setlist .setcard').length===5&&!$('#setlist .setgrp')&&$('#tabbar [aria-current="page"]').dataset.v==='ayar','4.32: Ayarlar sekmesi, beş başlık, grup yok');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev','ayarlardan geri');
  // Plan sekmesi: Koç, Bütçe, Düzenli, Hedefler
  click('#tabbar [data-v="gelisim"]');click('[data-act="plan"][data-v="hedef"]');chk(T.ui.plan==='hedef'&&!!$('#view [data-act="new-g"]'),'Plan › Hedefler');
- click('[data-act="plan"][data-v="duzenli"]');chk(!!$('#view [data-act="new-r"]'),'Plan › Düzenli');
- click('[data-act="plan"][data-v="koc"]');click('#view .kt[data-act="open-fire"]');chk(page()==='fire','Koç › FIRE');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='gelisim','FIRE’dan geri Plan’a');
+ click('#glbar [data-g="butce"]');click('.glsub [data-v="duzenli"]');chk(!!$('#view [data-act="new-r"]'),'Plan › Düzenli');
+ click('#glbar [data-g="hedef"]');click('.glsub [data-v="koc"]');click('#view .kt[data-act="open-fire"]');chk(page()==='fire','Koç › FIRE');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='gelisim','FIRE’dan geri Plan’a');
  click('#tabbar [data-v="ev"]');
  chk($$q('.list [data-act="edit-tx"]').length===5,'son 5 işlem');click('.linkbtn[data-v="islem"]');chk(T.ui.sub==='islem','son işlemler Tümü');
  // işlemler: 4.2'de Bugün / Bu hafta kaldırıldı; tek zaman denetimi dönem kartı, liste gün gün (gün toplamlarıyla)
@@ -61,7 +61,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  click('#tabbar [data-v="gelisim"]');click('[data-act="an"][data-v="harcama"]');chk(!$('#secbody [data-act="plan-go"]')&&!/En büyük harcamalar|Dağılım/.test($('#secbody').innerText),'4.30: Kategoriler’de tekrar eden pasta, Bütçeler kartı ve En büyük harcamalar yok');
  click('#tabbar [data-v="gelisim"]');click('[data-act="plan"][data-v="butce"]');chk(!page()&&T.ui.sub==='gelisim'&&T.ui.plan==='butce','Plan › Bütçe');
  chk(!$('#view .linkbtn[data-act="an-go"]'),'4.30: Bütçe’de Analiz’e dönen bağlantı yok (alt menüde var)');
- click('#tabbar [data-v="gelisim"]');chk($$q('[data-act="an"]').length===2&&!$('[data-act="an"][data-v="takvim"]')&&/Kategoriler/.test($('[data-act="an"][data-v="harcama"]').innerText),'Analiz: Özet, Kategoriler (Takvim İşlemler’de)');
+ click('#tabbar [data-v="gelisim"]');click('#glbar [data-g="ozet"]');chk(!$('[data-act="an"][data-v="takvim"]')&&/Harcamalar/.test($('#glbar [data-g="harcama"]').innerText),'Gelişim: Özet, Harcamalar (Takvim İşlemler’de)');
  act('an',null,'servet');chk(T.ui.sub==='ev'&&!!$('#wealth'),'eski Analiz › Servet Ana Sayfa’daki Hesaplar’a gider');act('an',null,'ozet');chk(T.ui.sub==='gelisim'&&!!$('#secbody .nwchart'),'4.35: net servet grafiği Gelişim › Özet’te');
  click('#secbody [data-act="nwr"][data-v="12"]');chk(T.ui.nwr===12&&!!$('#secbody [data-act="nwr"][data-v="12"][aria-pressed="true"]'),'grafik süresi 1 yıl');
  // hesaplar: piyasa kartı → Piyasalar → geri

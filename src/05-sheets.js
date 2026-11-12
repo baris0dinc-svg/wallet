@@ -63,7 +63,7 @@ function tabHead(){
   var gear='<button class="icon-btn" data-act="open-settings" aria-label="Ayarlar" title="Ayarlar">'+ic('cog')+'</button>';
   var rf='<button class="icon-btn" id="rfb" data-act="refresh" aria-label="Yenile: güncel kurlar ve piyasalar" title="Yenile">'+ic('refresh')+'</button>';
   /* 4.31: Ayarlar alt menüde (çark yok); Ana Sayfa'da kur yenileme ve uyarılar */
-  if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns">'+rf+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+'</span>';
+  if(ui.sub==='ev')return '<h1><span class="logo" role="img" aria-label="Wallet logosu"></span>Wallet</h1><span class="hbtns">'+(function(){var n=alertItems().length;return '<button class="icon-btn bellb" data-act="alerts" aria-label="Uyarılar'+(n?': '+n:'')+'" title="Uyarılar">'+ic('bell')+(n?'<i class="badge">'+(n>9?'9+':n)+'</i>':'')+'</button>';})()+'</span>';
   var t=(SUBS.filter(function(x){return x[0]===ui.sub;})[0]||SECS[0])[1],cal=ui.txv==='cal';
   /* İşlemler: liste ↔ takvim (4.4'e kadar Analiz › Takvim) */
   var tv='<button class="icon-btn" id="txv" data-act="tx-view" aria-pressed="'+cal+'" aria-label="'+(cal?'Liste görünümü':'Takvim görünümü')+'" title="'+(cal?'Liste':'Takvim')+'">'+ic(cal?'list':'cal')+'</button>';

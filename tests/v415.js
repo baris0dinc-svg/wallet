@@ -7,7 +7,7 @@ const F=[];
 const r=await p.evaluate(async()=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x)o.push(m);};const W=ms=>new Promise(r=>setTimeout(r,ms));
   // ---- üst çubuk ve ana sayfa ----
   T.ui.sub='ev';T.ui.page=null;T.render();
-  const hb=[...document.querySelectorAll('header .icon-btn')].map(b=>b.dataset.act);c(hb.length===2&&hb.join()==='refresh,alerts','4.31: başlıkta kur yenileme ve uyarılar (Ayarlar alt menüde): '+hb.join());
+  const hb=[...document.querySelectorAll('header .icon-btn')].map(b=>b.dataset.act);c(hb.length===1&&hb.join()==='alerts','sade: başlıkta yalnız uyarılar (kurlar kendiliğinden yenilenir): '+hb.join());
   c(!document.querySelector('[data-act="voice"]'),'sesle ekleme yok');c(!T.ACT.voice,'ses eylemi kaldırıldı');
   c(!document.querySelector('.scg')&&T.ACT['qa-notes'],'4.29: Notlar Tümü penceresinde');
   c(!/Dönem sonu tahmini/.test(document.querySelector('.hero').innerText),'4.29: ana kartta tahmin yok (Analiz › Nakit akışı)');

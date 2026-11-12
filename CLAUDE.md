@@ -8,6 +8,8 @@ sürüm dosyasını bozduğu için geri alınmak zorunda kalındı. Bu kurallar 
   yalnızca rapor ister; koda dokunma.
 - **Kodu yeniden biçimlendirme.** Prettier, ESLint --fix, toplu girinti/tırnak değişikliği yok. Diff yalnızca istenen değişikliği içersin.
   `.prettierrc`, biçim denetimi ya da yeni araç ekleme.
+  (4.37'de sahibinin açık isteğiyle `src/*.js` bir kez TypeScript yazıcısıyla okunur biçime getirildi; sözdizim ağacı birebir aynı,
+  36 ekranın görüntüsü öncesiyle aynı. Bundan sonra bu biçim korunur; yeniden toplu biçimlendirme yine yasak.)
 - **Android imzasına, `applicationId`'ye, keystore'a ve `apk.yml`'deki imza adımlarına dokunma.** İmza değişirse yeni APK eskisinin
   üstüne kurulmaz; kaldırıp kurmak telefondaki bütün veriyi siler.
 - `app.js`'i elle düzenleme; kaynak `src/*.js`, derleme `python3 tools/build.py`.

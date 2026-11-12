@@ -45,7 +45,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,o=[],S=T.S;const c=(x,m)=>
   // ---- yatırım ----
   S.quotes['bist:THYAO']={p:300,c:1,ccy:'TRY',ts:Date.now()};S.quotes['fx:USD']={p:41,c:0.1,ccy:'TRY',ts:Date.now()};
   S.holdings.push({id:'hh1',name:'THY',type:'Hisse',qty:10,cost:250,mk:'bist:THYAO'},{id:'hh2',name:'Altın',type:'Altın',qty:5,cost:3000,ccy:'XAU'},{id:'hh3',name:'Enpara mevduat',type:'Mevduat',qty:1,cost:1000},{id:'hh4',name:'Ev',type:'Gayrimenkul',qty:1,cost:100});T.save();
-  T.ui.sv='yatirim';T.render();await W(500);
+  T.ui.sub='portfoy';T.ui.page=null;T.render();await W(500);
   const hr=id=>{const e=document.querySelector('[data-act="edit-h"][data-id="'+id+'"]');return e;};
   c(!!hr('hh1')&&!!hr('hh1').querySelector('.mbadge.mlg.ok img'),'hissede şirket logosu');
   c(!!hr('hh2')&&!!hr('hh2').querySelector('.mbadge.art svg'),'altında çizim');

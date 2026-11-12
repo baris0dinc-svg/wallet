@@ -354,8 +354,10 @@
     var pf = pfTotals('inv'), pl = pf.v - pf.c, plp = pf.c ? pl / pf.c * 100 : 0, h = '', dist = '', inv = S.holdings.filter(function (x) {
       return hKind(x) === 'inv';
     });
-    /* yatırım türlerinin dağılımı yukarıdaki net servet kartındaki "Varlık dağılımı"nda */
-    h += '<div class="card"><div class="lbl">Yatırımlarının değeri</div><p class="big">' + TRY0.format(pf.v) + '</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">' + TRY0.format(pf.c) + '</span></div><div><div class="lbl">Kâr / zarar</div><span class="num ' + (pl >= 0.5 ? 'inc' : (pl <= -0.5 ? 'exp' : '')) + '">' + sgn(pl) + '</span>' + (pf.c ? '<div class="small ' + (plp >= 0 ? 'inc' : 'exp') + '">' + (plp >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(plp)) + '</div>' : '') + '</div></div>' + (S.realized.length ? (function () {
+    /* 4.37: Portföy modülü: değer, bugünkü değişim, maliyet, kâr/zarar ve tür dağılımı tek kartta */
+    var dd = pfDay();
+    dist = (dd ? '<div class="small" style="margin-top:8px"><span class="muted">Bugün</span> <b class="num ' + (dd.d >= 0 ? 'inc' : 'exp') + '">' + sgn(dd.d) + '</b> <span class="muted">· piyasaya bağlı ' + dd.n + ' yatırım</span></div>' : '') + pfRing();
+    h += '<div class="card pfcard"><div class="lbl">Portföyümün değeri</div><p class="big">' + TRY0.format(pf.v) + '</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">' + TRY0.format(pf.c) + '</span></div><div><div class="lbl">Kâr / zarar</div><span class="num ' + (pl >= 0.5 ? 'inc' : (pl <= -0.5 ? 'exp' : '')) + '">' + sgn(pl) + '</span>' + (pf.c ? '<div class="small ' + (plp >= 0 ? 'inc' : 'exp') + '">' + (plp >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(plp)) + '</div>' : '') + '</div></div>' + (S.realized.length ? (function () {
       var rp = r2(S.realized.reduce(function (a, x) {
         return a + (+x.pl || 0);
       }, 0));
@@ -363,7 +365,7 @@
     })() : '') + dist + '</div>';
     /* 4.4: önce elindekiler (Al / Sat satırları), "Yatırım ekle" listenin altında; ev, araba gibi varlıklar ayrı bölümde; en altta Piyasalar */
     h += inv.length ? inv.map(holdCard).join('') + addBtn('new-h', 'Yatırım ekle', 0, 'inv') : '<div class="empty">Hisse, fon, altın, gümüş, döviz, kripto ya da mevduat ekle. Hisse, fon ve kriptoyu aşağıdaki Piyasalar’dan eklersen fiyatları kendiliğinden güncellenir.</div>' + addBtn('new-h', 'Yatırım ekle', 1, 'inv');
-    return h + varlikSec() + mCard();
+    return h + mCard() + varlikSec();
   }
   /* ev, araba gibi varlıklar: 4.4'e kadar ayrı "Varlıklar" alt sekmesiydi (üstteki "Varlıklar" toplamıyla karışıyordu); şimdi Yatırımlar'ın altında */
   function varlikSec() {

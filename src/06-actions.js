@@ -62,7 +62,13 @@
   }
   ACT.sv = function (el, id, v) {
     var va = v === 'varlik';
-    ui.sv = va ? 'yatirim' : v;
+    /* 4.37: Yatırımlar alt menüdeki Portföy'de */
+    if (va || v === 'yatirim') {
+      ui.page = null;
+      ui.sub = 'portfoy';
+    }
+    else
+      ui.sv = v;
     persistUi();
     render();
     if (va)

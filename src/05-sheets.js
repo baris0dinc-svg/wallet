@@ -163,8 +163,8 @@
   /* eski bölüm adları: Bütçe, Düzenli, Hedefler ve Koç Plan sekmesinin; Yatırımlar, Varlıklar, Borçlar Hesaplar sekmesinin alt sekmeleri */
   /* 4.31: eski sekmeler: Hesaplar (servet) → Ana Sayfa'daki Hesaplar bölümü; Plan ve Analiz → Gelişim */
   function mapSec(s) {
-    if (s === 'portfoy' || s === 'varlik')
-      s = 'yatirim';
+    if (s === 'portfoy' || s === 'varlik' || s === 'yatirim' || s === 'yatirimlar')
+      return 'portfoy';
     if (WEALTH.some(function (x) {
       return x[0] === s;
     })) {

@@ -7,8 +7,8 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  const click=s=>{const e=$(s);if(!e){F.push('bulunamadı '+s);return false;}e.click();return true;};
  const sheetT=()=>($('.sheet h2')||{}).innerText||'';const page=()=>T.ui.page&&T.ui.page.k;const back=()=>window.walletBack();const act=(a,id,v)=>{const e=document.createElement('button');e.dataset.act=a;if(id!=null)e.dataset.id=id;if(v!=null)e.dataset.v=v;document.body.appendChild(e);e.click();e.remove();};
  // alt menü: 5 sekme, her biri doğru bölüm ve başlık
- chk($$q('#tabbar button[data-act="sub"]').length===3&&!$('#tabbar .tbadd')&&!$('#tabbar').hidden,'4.34: alt menüde 3 sekme, + yok');
- chk(!!$('#wealth [data-act="sv"][data-v="yatirim"]')&&!!$('#wealth .acards')&&!$('#wealth .nwchart')&&!!$('.pcard #left-now')&&!$('.hero #left-now'),'4.35: Hesaplar ana sayfada; Bu dönem ayrı kart; grafik Gelişim’de');
+ chk($$q('#tabbar button[data-act="sub"]').length===4&&!!$('#tabbar [data-v="portfoy"]')&&!$('#tabbar .tbadd')&&!$('#tabbar').hidden,'4.37: alt menüde 4 sekme (Portföy), + yok');
+ chk(!$('#wealth [data-act="sv"][data-v="yatirim"]')&&!!$('#wealth [data-act="sv"][data-v="borc"]')&&!!$('#wealth .acards')&&!$('#wealth .nwchart')&&!!$('.pcard #left-now')&&!$('.hero #left-now'),'4.35: Hesaplar ana sayfada; Bu dönem ayrı kart; grafik Gelişim’de');
  {const ks=()=>$$q('#secbody > .card, #secbody > #wealth').length;const n0=ks();act('home-edit');chk(!$('.mstrip'),'sade: Piyasalar ilk düzende kapalı');act('hl-tog','piyasa');act('close');chk(!!$('.mstrip')&&!T.S.homeOff.piyasa,'Ana sayfayı düzenle ile kart açılır');act('hl-tog','islem');chk(!$('#secbody .recent, #secbody [data-act="tx-all"]'),'kart gizlenir');act('hl-mv','donem','1');act('hl-reset');act('close');chk(!$('.mstrip')&&!T.S.homeOff&&!!$('[data-act="tx-all"]'),'4.35: varsayılan düzen');}
  click('#tabbar [data-v="gelisim"]');chk($$q('#glbar button').length===4&&/Özet/.test($('#glbar').innerText)&&/Hedefler/.test($('#glbar').innerText),'sade: Gelişim dört kutucuk');click('#glbar [data-g="butce"]');chk(!!$('.glsub [data-v="duzenli"]')&&T.ui.gl==='butce','Bütçe’de Düzenli ödemeler alt seçimi');click('#tabbar [data-v="ev"]');
  click('#tabbar [data-v="ev"]');click('.linkbtn[data-act="tx-all"]');chk(T.ui.sub==='islem'&&/İşlemler/.test($('header h1').innerText)&&!!$('header [data-act="sub"][data-v="ev"]')&&$('#tabbar [aria-current="page"]').dataset.v==='ev','4.34: İşlemler ana sayfadan açılır, geri oku ve Ana Sayfa seçili');click('header [data-act="sub"][data-v="ev"]');chk(T.ui.sub==='ev','İşlemler’den geri Ana Sayfa');
@@ -65,19 +65,19 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const $=s=>docum
  act('an',null,'servet');chk(T.ui.sub==='ev'&&!!$('#wealth'),'eski Analiz › Servet Ana Sayfa’daki Hesaplar’a gider');act('an',null,'ozet');chk(T.ui.sub==='gelisim'&&!!$('#secbody .nwchart'),'4.35: net servet grafiği Gelişim › Özet’te');
  click('#secbody [data-act="nwr"][data-v="12"]');chk(T.ui.nwr===12&&!!$('#secbody [data-act="nwr"][data-v="12"][aria-pressed="true"]'),'grafik süresi 1 yıl');
  // hesaplar: piyasa kartı → Piyasalar → geri
- click('#tabbar [data-v="ev"]');click('[data-act="sv"][data-v="yatirim"]');click('#secbody .setcard[data-act="open-mkt"]');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa kartı Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='ev'&&T.ui.sv==='yatirim','Piyasalar’dan geri yatırımlara');
+ click('#tabbar [data-v="portfoy"]');chk(T.ui.sub==='portfoy'&&!!$('.pfcard')&&/Portföy/.test($('header h1').innerText),'4.37: Portföy modülü');click('#secbody .setcard[data-act="open-mkt"]');chk(page()==='piyasa'&&location.hash==='#piyasa','piyasa kartı Piyasalar sayfasına');back();await new Promise(r=>setTimeout(r,50));chk(!page()&&T.ui.sub==='portfoy','Piyasalar’dan geri Portföy’e');
  // 4.4: Hesaplar alt sekmeleri Hesaplar, Yatırımlar, Borçlar; ev/araba gibi varlıklar Yatırımlar'ın altında ayrı bölüm
- chk($$q('[data-act="sv"]').length===3&&!$('[data-act="sv"][data-v="varlik"]'),'Hesaplar: 3 alt sekme');
+ chk(!$('[data-act="sv"][data-v="varlik"]'),'eski Varlıklar alt sekmesi yok');
  {const hc=$$q('#secbody .hcard'),ab=$('#secbody [data-act="new-h"][data-v="inv"]'),vs=$('#secbody #varliklar'),mk=$('#secbody [data-act="open-mkt"]');
-  chk(hc.length>0&&ab&&vs&&mk&&(hc[hc.length-1].compareDocumentPosition(ab)&4)&&(ab.compareDocumentPosition(vs)&4)&&(vs.compareDocumentPosition(mk)&4),'Yatırımlar: elindekiler → Yatırım ekle → varlıklar → Piyasalar');
+  chk(hc.length>0&&ab&&vs&&mk&&(hc[hc.length-1].compareDocumentPosition(ab)&4)&&(ab.compareDocumentPosition(mk)&4)&&(mk.compareDocumentPosition(vs)&4),'Portföy: elindekiler → Yatırım ekle → Piyasalar → varlıklar');
   chk(!!$('#secbody [data-act="new-h"][data-v="asset"]'),'Yatırımlar’da Varlık ekle');}
  T.S.holdings.push({id:'evx',name:'Ev',type:'Gayrimenkul',kind:'asset',qty:1,cost:3000000,price:3500000});T.ui.sv='hesap';T.render();
- act('sv-go',null,'varlik');await new Promise(r=>setTimeout(r,30));chk(T.ui.sub==='ev'&&T.ui.sv==='yatirim'&&!!$('#varliklar ~ .hcard [data-act="edit-h"][data-id="evx"]'),'eski Varlıklar bağlantısı Yatırımlar’daki varlık bölümüne gider');
- act('sv',null,'varlik');chk(T.ui.sv==='yatirim','eski varlik alt sekme adı');T.S.holdings=T.S.holdings.filter(h=>h.id!=='evx');T.render();
+ act('sv-go',null,'varlik');await new Promise(r=>setTimeout(r,30));chk(T.ui.sub==='portfoy'&&!!$('#varliklar ~ .hcard [data-act="edit-h"][data-id="evx"]'),'eski Varlıklar bağlantısı Portföy’deki varlık bölümüne gider');
+ act('sv',null,'varlik');chk(T.ui.sub==='portfoy','eski varlik alt sekme adı Portföy’e');T.S.holdings=T.S.holdings.filter(h=>h.id!=='evx');T.render();
  // liste ekranlarında "… ekle" listenin altında
  for(const [pl,a] of [['hedef','new-g'],['duzenli','new-r']]){T.ui.sub='plan';T.ui.plan=pl;T.render();const items=$$q('#secbody .card'),b=$('#secbody [data-act="'+a+'"]');chk(b&&items.length&&(items[items.length-1].compareDocumentPosition(b)&4),pl+': ekle düğmesi listenin altında');}
  T.ui.sub='servet';T.ui.sv='borc';T.render();{const b=$('#secbody [data-act="new-d"]'),l=$('#secbody [data-act="edit-d"]');chk(b&&l&&(l.compareDocumentPosition(b)&4),'Borçlar: Borç ekle listenin altında');}
- T.ui.sv='yatirim';T.render();
+ T.ui.sub='ev';T.render();
  // hesap → tüm hareketler
  click('[data-act="sv"][data-v="hesap"]');click('#secbody [data-act="acct-open"]');const an=($('.sheet h2')||{}).innerText;chk(!!an,'hesap detayı');click('.sheet [data-act="acct-all"]');
  chk(T.ui.sub==='islem'&&T.ui.acctF===an&&!$('#sheet-root').innerHTML,'tüm hareketler İşlemler’e filtreli: '+T.ui.acctF);

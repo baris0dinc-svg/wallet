@@ -150,7 +150,7 @@ r=await ev(fx=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x)o.push(m);};const 
   /* stopaj vadeye göre: 6 aya kadar, 1 yıla kadar, daha uzun */
   c(T.depTax(32)===T.FACTS.dep.t6&&T.depTax(270)===T.FACTS.dep.t12&&T.depTax(400)===T.FACTS.dep.t12p,'stopaj kademeleri');
   /* kart ve Gündem */
-  T.ui.sub='servet';T.ui.sv='yatirim';T.ui.page=null;T.render();c(/net faiz/.test(document.body.innerText)&&/vade sonu/.test(document.body.innerText),'yatırım kartında faiz satırı');
+  T.ui.sub='portfoy';T.ui.page=null;T.render();c(/net faiz/.test(document.body.innerText)&&/vade sonu/.test(document.body.innerText),'yatırım kartında faiz satırı');
   c(T.alertItems().some(x=>/Vadeli 3: vade \d+ gün önce doldu/.test(x[1])),'yenilenmeyen vade uyarısı');
   /* satışta birikim fiyata katılır */
   const h2=T.S.holdings[1],v2=T.hVal(h2);T.yCrys(h2);c(near(T.hVal(h2),v2,0.01)&&h2.yd===t0,'birikim fiyata katıldı');

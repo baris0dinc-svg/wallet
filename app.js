@@ -44,7 +44,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
 });
 (function () {
   'use strict';
-  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.37';
+  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.38';
   var D_EXP = ['Market', 'Fatura', 'Kira', 'Ulaşım', 'Yeme-İçme', 'Sağlık', 'Eğlence', 'Giyim', 'Eğitim', 'Diğer'];
   var D_INC = ['Maaş', 'Ek gelir', 'Yatırım getirisi', 'Diğer gelir'];
   var D_ACC = ['Nakit', 'Banka', 'Kredi kartı'];
@@ -191,7 +191,8 @@ document.addEventListener('securitypolicyviolation', function (e) {
   /* alt menü: Ana Sayfa, İşlemler (liste / takvim), Plan (Bütçe, Düzenli, Hedefler, Koç), Analiz (Özet, Kategoriler), Hesaplar (Hesaplar, Yatırımlar, Borçlar). Ayarlar başlıktaki çark simgesiyle açılır. */
   /* 4.31: alt menü dört sekme: Ana Sayfa (net servet + hesaplar, yatırımlar, borçlar), İşlemler, Gelişim (eski Plan ve Analiz), Ayarlar */
   /* 4.34: alt menü üç sekme (yüzen, kaydırınca gizlenir); İşlemler ana sayfadan açılır (geri oku Ana Sayfa'ya döner) */
-  var SECS = [['ev', 'Ana Sayfa', 'home'], ['gelisim', 'Gelişim', 'trend'], ['ayar', 'Ayarlar', 'cog']];
+  /* 4.37: Portföy alt menüde ayrı modül (eski Hesaplar › Yatırımlar) */
+  var SECS = [['ev', 'Ana Sayfa', 'home'], ['gelisim', 'Gelişim', 'trend'], ['portfoy', 'Portföy', 'chart'], ['ayar', 'Ayarlar', 'cog']];
   var SUBS = SECS.concat([['islem', 'İşlemler', 'list']]);
   /* 4.4: Varlıklar (ev, araba) Yatırımlar'ın altında ayrı bölüm; eski 'varlik' bağlantıları oraya gider */
   var WEALTH = [['hesap', 'Hesaplar'], ['yatirim', 'Yatırımlar'], ['borc', 'Borçlar']];
@@ -2275,7 +2276,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     }) ? ui.sub : 'ev';
     ui.sub = cur;
     var body = {
-      ev: vHome, islem: vIslem, gelisim: gelisimBody, ayar: vAyarlar
+      ev: vHome, islem: vIslem, gelisim: gelisimBody, portfoy: yatirimBody, ayar: vAyarlar
     }[cur];
     return '<section id="secbody" class="stack">' + body() + '</section>';
   }
@@ -2713,20 +2714,65 @@ document.addEventListener('securitypolicyviolation', function (e) {
     }
     return { l: l, tot: tot };
   }
-  function nwRing() {
-    var D = distData(), l = D.l, tot = D.tot;
-    if (!(tot > 0) || !l.length)
-      return '';
+  /* halka + açıklama (Net Servetim kartı ve Portföy ortak): l = [[ad, tutar]], tot = toplam */
+  function ringHtml(l, tot, center, tag, attrs, aria) {
     var R = 52, C = 2 * Math.PI * R, off = 0, seg = l.map(function (x, i) {
       var f = x[1] / tot, len = Math.max(0, f * C - (l.length > 1 ? 2 : 0));
       var s = '<circle r="' + R + '" cx="66" cy="66" fill="none" stroke="' + dcol(i) + '" stroke-width="16" stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"/>';
       off += f * C;
       return s;
     }).join('');
-    return '<button class="nwring" data-act="nw-jump" aria-label="Varlık dağılımı: hesaplar ve yatırımlar"><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="Varlık dağılımı"><g transform="rotate(-90 66 66)">' + seg + '</g></svg><span class="rc"><span class="small muted">Varlıklar</span><b class="num">' + compactT(tot) + '</b></span></span>'
+    return '<' + tag + ' class="nwring"' + attrs + '><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="' + aria + '"><g transform="rotate(-90 66 66)">' + seg + '</g></svg><span class="rc"><span class="small muted">' + center + '</span><b class="num">' + compactT(tot) + '</b></span></span>'
       + '<span class="rl">' + l.map(function (x, i) {
-      return '<span class="ri" style="--c:' + dcol(i) + '"><i></i><span class="ell">' + esc(x[0]) + '</span><b class="num">' + compactT(x[1]) + '</b><span class="small muted">%' + (x[1] / tot < 0.01 ? '<1' : Math.round(x[1] / tot * 100)) + '</span></span>';
-    }).join('') + '</span></button>';
+        return '<span class="ri" style="--c:' + dcol(i) + '"><i></i><span class="ell">' + esc(x[0]) + '</span><b class="num">' + compactT(x[1]) + '</b><span class="small muted">%' + (x[1] / tot < 0.01 ? '<1' : Math.round(x[1] / tot * 100)) + '</span></span>';
+      }).join('') + '</span></' + tag + '>';
+  }
+  function nwRing() {
+    var D = distData(), l = D.l, tot = D.tot;
+    if (!(tot > 0) || !l.length)
+      return '';
+    return ringHtml(l, tot, 'Varlıklar', 'button', ' data-act="nw-jump" aria-label="Varlık dağılımı: hesaplar ve yatırımlar"', 'Varlık dağılımı');
+  }
+  /* Portföy: yatırımların türe göre dağılımı (ev, araba gibi varlıklar hariç) */
+  function pfRing() {
+    var by = {}, tot = 0;
+    S.holdings.forEach(function (x) {
+      if (hKind(x) !== 'inv')
+        return;
+      var v = hVal(x);
+      if (v > 0) {
+        by[x.type] = (by[x.type] || 0) + v;
+        tot += v;
+      }
+    });
+    var l = Object.keys(by).map(function (k) {
+      return [k, by[k]];
+    }).sort(function (a, b) {
+      return b[1] - a[1];
+    });
+    if (!(tot > 0))
+      return '';
+    if (l.length > 5) {
+      var rest = l.slice(4).reduce(function (a, x) {
+        return a + x[1];
+      }, 0);
+      l = l.slice(0, 4).concat([['Diğer', rest]]);
+    }
+    return ringHtml(l, tot, 'Yatırımlar', 'div', '', 'Yatırım dağılımı');
+  }
+  /* Portföy: piyasaya bağlı yatırımların bugünkü değişimi (kurlar/fiyatlar geldikçe) */
+  function pfDay() {
+    var d = 0, n = 0;
+    S.holdings.forEach(function (h) {
+      if (hKind(h) !== 'inv' || !h.mk)
+        return;
+      var q = mQ(h.mk), v = hVal(h);
+      if (!q || q.c == null || !isFinite(q.c) || !(v > 0))
+        return;
+      d += v - v / (1 + q.c / 100);
+      n++;
+    });
+    return n ? { d: r2(d), n: n } : null;
   }
   function distBar() {
     var by = {}, tot = 0;
@@ -2923,13 +2969,15 @@ document.addEventListener('securitypolicyviolation', function (e) {
     hlRefresh();
     toast('Varsayılan düzen');
   };
+  /* 4.37: ana sayfada Hesaplar ve Borçlar; Yatırımlar alt menüdeki Portföy'de */
+  var HWEALTH = WEALTH.filter(function (x) {
+    return x[0] !== 'yatirim';
+  });
   function homeWealth() {
-    if (ui.sv === 'varlik')
-      ui.sv = 'yatirim';
-    var v = WEALTH.some(function (x) {
+    var v = HWEALTH.some(function (x) {
       return x[0] === ui.sv;
     }) ? ui.sv : 'hesap', ch = '', db = '';
-    return '<div id="wealth" class="stack">' + (ch || db ? '<div class="card nw">' + ch + db + '</div>' : '') + segTabs(WEALTH, v, 'sv', 'Hesaplar') + (v === 'hesap' ? (function () {
+    return '<div id="wealth" class="stack">' + (ch || db ? '<div class="card nw">' + ch + db + '</div>' : '') + segTabs(HWEALTH, v, 'sv', 'Hesaplar') + (v === 'hesap' ? (function () {
       var c = acctCards();
       return c + hesapBody(!!c);
     })() : ({ yatirim: yatirimBody, borc: borcBody }[v])()) + '</div>';
@@ -3695,8 +3743,10 @@ document.addEventListener('securitypolicyviolation', function (e) {
     var pf = pfTotals('inv'), pl = pf.v - pf.c, plp = pf.c ? pl / pf.c * 100 : 0, h = '', dist = '', inv = S.holdings.filter(function (x) {
       return hKind(x) === 'inv';
     });
-    /* yatırım türlerinin dağılımı yukarıdaki net servet kartındaki "Varlık dağılımı"nda */
-    h += '<div class="card"><div class="lbl">Yatırımlarının değeri</div><p class="big">' + TRY0.format(pf.v) + '</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">' + TRY0.format(pf.c) + '</span></div><div><div class="lbl">Kâr / zarar</div><span class="num ' + (pl >= 0.5 ? 'inc' : (pl <= -0.5 ? 'exp' : '')) + '">' + sgn(pl) + '</span>' + (pf.c ? '<div class="small ' + (plp >= 0 ? 'inc' : 'exp') + '">' + (plp >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(plp)) + '</div>' : '') + '</div></div>' + (S.realized.length ? (function () {
+    /* 4.37: Portföy modülü: değer, bugünkü değişim, maliyet, kâr/zarar ve tür dağılımı tek kartta */
+    var dd = pfDay();
+    dist = (dd ? '<div class="small" style="margin-top:8px"><span class="muted">Bugün</span> <b class="num ' + (dd.d >= 0 ? 'inc' : 'exp') + '">' + sgn(dd.d) + '</b> <span class="muted">· piyasaya bağlı ' + dd.n + ' yatırım</span></div>' : '') + pfRing();
+    h += '<div class="card pfcard"><div class="lbl">Portföyümün değeri</div><p class="big">' + TRY0.format(pf.v) + '</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">' + TRY0.format(pf.c) + '</span></div><div><div class="lbl">Kâr / zarar</div><span class="num ' + (pl >= 0.5 ? 'inc' : (pl <= -0.5 ? 'exp' : '')) + '">' + sgn(pl) + '</span>' + (pf.c ? '<div class="small ' + (plp >= 0 ? 'inc' : 'exp') + '">' + (plp >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(plp)) + '</div>' : '') + '</div></div>' + (S.realized.length ? (function () {
       var rp = r2(S.realized.reduce(function (a, x) {
         return a + (+x.pl || 0);
       }, 0));
@@ -3704,7 +3754,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     })() : '') + dist + '</div>';
     /* 4.4: önce elindekiler (Al / Sat satırları), "Yatırım ekle" listenin altında; ev, araba gibi varlıklar ayrı bölümde; en altta Piyasalar */
     h += inv.length ? inv.map(holdCard).join('') + addBtn('new-h', 'Yatırım ekle', 0, 'inv') : '<div class="empty">Hisse, fon, altın, gümüş, döviz, kripto ya da mevduat ekle. Hisse, fon ve kriptoyu aşağıdaki Piyasalar’dan eklersen fiyatları kendiliğinden güncellenir.</div>' + addBtn('new-h', 'Yatırım ekle', 1, 'inv');
-    return h + varlikSec() + mCard();
+    return h + mCard() + varlikSec();
   }
   /* ev, araba gibi varlıklar: 4.4'e kadar ayrı "Varlıklar" alt sekmesiydi (üstteki "Varlıklar" toplamıyla karışıyordu); şimdi Yatırımlar'ın altında */
   function varlikSec() {
@@ -4588,8 +4638,8 @@ document.addEventListener('securitypolicyviolation', function (e) {
   /* eski bölüm adları: Bütçe, Düzenli, Hedefler ve Koç Plan sekmesinin; Yatırımlar, Varlıklar, Borçlar Hesaplar sekmesinin alt sekmeleri */
   /* 4.31: eski sekmeler: Hesaplar (servet) → Ana Sayfa'daki Hesaplar bölümü; Plan ve Analiz → Gelişim */
   function mapSec(s) {
-    if (s === 'portfoy' || s === 'varlik')
-      s = 'yatirim';
+    if (s === 'portfoy' || s === 'varlik' || s === 'yatirim' || s === 'yatirimlar')
+      return 'portfoy';
     if (WEALTH.some(function (x) {
       return x[0] === s;
     })) {
@@ -5636,7 +5686,13 @@ document.addEventListener('securitypolicyviolation', function (e) {
   }
   ACT.sv = function (el, id, v) {
     var va = v === 'varlik';
-    ui.sv = va ? 'yatirim' : v;
+    /* 4.37: Yatırımlar alt menüdeki Portföy'de */
+    if (va || v === 'yatirim') {
+      ui.page = null;
+      ui.sub = 'portfoy';
+    }
+    else
+      ui.sv = v;
     persistUi();
     render();
     if (va)

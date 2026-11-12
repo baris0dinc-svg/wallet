@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.37';
+  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.38';
   var D_EXP = ['Market', 'Fatura', 'Kira', 'Ulaşım', 'Yeme-İçme', 'Sağlık', 'Eğlence', 'Giyim', 'Eğitim', 'Diğer'];
   var D_INC = ['Maaş', 'Ek gelir', 'Yatırım getirisi', 'Diğer gelir'];
   var D_ACC = ['Nakit', 'Banka', 'Kredi kartı'];
@@ -147,7 +147,8 @@
   /* alt menü: Ana Sayfa, İşlemler (liste / takvim), Plan (Bütçe, Düzenli, Hedefler, Koç), Analiz (Özet, Kategoriler), Hesaplar (Hesaplar, Yatırımlar, Borçlar). Ayarlar başlıktaki çark simgesiyle açılır. */
   /* 4.31: alt menü dört sekme: Ana Sayfa (net servet + hesaplar, yatırımlar, borçlar), İşlemler, Gelişim (eski Plan ve Analiz), Ayarlar */
   /* 4.34: alt menü üç sekme (yüzen, kaydırınca gizlenir); İşlemler ana sayfadan açılır (geri oku Ana Sayfa'ya döner) */
-  var SECS = [['ev', 'Ana Sayfa', 'home'], ['gelisim', 'Gelişim', 'trend'], ['ayar', 'Ayarlar', 'cog']];
+  /* 4.37: Portföy alt menüde ayrı modül (eski Hesaplar › Yatırımlar) */
+  var SECS = [['ev', 'Ana Sayfa', 'home'], ['gelisim', 'Gelişim', 'trend'], ['portfoy', 'Portföy', 'chart'], ['ayar', 'Ayarlar', 'cog']];
   var SUBS = SECS.concat([['islem', 'İşlemler', 'list']]);
   /* 4.4: Varlıklar (ev, araba) Yatırımlar'ın altında ayrı bölüm; eski 'varlik' bağlantıları oraya gider */
   var WEALTH = [['hesap', 'Hesaplar'], ['yatirim', 'Yatırımlar'], ['borc', 'Borçlar']];

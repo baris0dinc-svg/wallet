@@ -849,3 +849,7 @@ body.has-tb .wrap{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
 .seg.grid4 button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 2px}.seg.grid4 .ic{width:20px;height:20px}.seg.grid4 button[aria-pressed="true"] .ic{color:var(--accent)}
 .seg.glsub{background:none;padding:0;gap:8px;margin-top:-4px}.seg.glsub button{border:1px solid var(--line);border-radius:999px;padding:7px 10px}
 .seg.glsub button[aria-pressed="true"]{background:var(--soft);border-color:var(--accent);box-shadow:none}
+
+/* 4.37: Portföy modülü; alt menü dört sekme */
+.tbin{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pfcard .nwring{margin-top:16px;cursor:default}

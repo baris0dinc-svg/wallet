@@ -276,7 +276,7 @@
     }) ? ui.sub : 'ev';
     ui.sub = cur;
     var body = {
-      ev: vHome, islem: vIslem, gelisim: gelisimBody, ayar: vAyarlar
+      ev: vHome, islem: vIslem, gelisim: gelisimBody, portfoy: yatirimBody, ayar: vAyarlar
     }[cur];
     return '<section id="secbody" class="stack">' + body() + '</section>';
   }
@@ -714,20 +714,65 @@
     }
     return { l: l, tot: tot };
   }
-  function nwRing() {
-    var D = distData(), l = D.l, tot = D.tot;
-    if (!(tot > 0) || !l.length)
-      return '';
+  /* halka + açıklama (Net Servetim kartı ve Portföy ortak): l = [[ad, tutar]], tot = toplam */
+  function ringHtml(l, tot, center, tag, attrs, aria) {
     var R = 52, C = 2 * Math.PI * R, off = 0, seg = l.map(function (x, i) {
       var f = x[1] / tot, len = Math.max(0, f * C - (l.length > 1 ? 2 : 0));
       var s = '<circle r="' + R + '" cx="66" cy="66" fill="none" stroke="' + dcol(i) + '" stroke-width="16" stroke-dasharray="' + len.toFixed(2) + ' ' + (C - len).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '"/>';
       off += f * C;
       return s;
     }).join('');
-    return '<button class="nwring" data-act="nw-jump" aria-label="Varlık dağılımı: hesaplar ve yatırımlar"><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="Varlık dağılımı"><g transform="rotate(-90 66 66)">' + seg + '</g></svg><span class="rc"><span class="small muted">Varlıklar</span><b class="num">' + compactT(tot) + '</b></span></span>'
+    return '<' + tag + ' class="nwring"' + attrs + '><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="' + aria + '"><g transform="rotate(-90 66 66)">' + seg + '</g></svg><span class="rc"><span class="small muted">' + center + '</span><b class="num">' + compactT(tot) + '</b></span></span>'
       + '<span class="rl">' + l.map(function (x, i) {
-      return '<span class="ri" style="--c:' + dcol(i) + '"><i></i><span class="ell">' + esc(x[0]) + '</span><b class="num">' + compactT(x[1]) + '</b><span class="small muted">%' + (x[1] / tot < 0.01 ? '<1' : Math.round(x[1] / tot * 100)) + '</span></span>';
-    }).join('') + '</span></button>';
+        return '<span class="ri" style="--c:' + dcol(i) + '"><i></i><span class="ell">' + esc(x[0]) + '</span><b class="num">' + compactT(x[1]) + '</b><span class="small muted">%' + (x[1] / tot < 0.01 ? '<1' : Math.round(x[1] / tot * 100)) + '</span></span>';
+      }).join('') + '</span></' + tag + '>';
+  }
+  function nwRing() {
+    var D = distData(), l = D.l, tot = D.tot;
+    if (!(tot > 0) || !l.length)
+      return '';
+    return ringHtml(l, tot, 'Varlıklar', 'button', ' data-act="nw-jump" aria-label="Varlık dağılımı: hesaplar ve yatırımlar"', 'Varlık dağılımı');
+  }
+  /* Portföy: yatırımların türe göre dağılımı (ev, araba gibi varlıklar hariç) */
+  function pfRing() {
+    var by = {}, tot = 0;
+    S.holdings.forEach(function (x) {
+      if (hKind(x) !== 'inv')
+        return;
+      var v = hVal(x);
+      if (v > 0) {
+        by[x.type] = (by[x.type] || 0) + v;
+        tot += v;
+      }
+    });
+    var l = Object.keys(by).map(function (k) {
+      return [k, by[k]];
+    }).sort(function (a, b) {
+      return b[1] - a[1];
+    });
+    if (!(tot > 0))
+      return '';
+    if (l.length > 5) {
+      var rest = l.slice(4).reduce(function (a, x) {
+        return a + x[1];
+      }, 0);
+      l = l.slice(0, 4).concat([['Diğer', rest]]);
+    }
+    return ringHtml(l, tot, 'Yatırımlar', 'div', '', 'Yatırım dağılımı');
+  }
+  /* Portföy: piyasaya bağlı yatırımların bugünkü değişimi (kurlar/fiyatlar geldikçe) */
+  function pfDay() {
+    var d = 0, n = 0;
+    S.holdings.forEach(function (h) {
+      if (hKind(h) !== 'inv' || !h.mk)
+        return;
+      var q = mQ(h.mk), v = hVal(h);
+      if (!q || q.c == null || !isFinite(q.c) || !(v > 0))
+        return;
+      d += v - v / (1 + q.c / 100);
+      n++;
+    });
+    return n ? { d: r2(d), n: n } : null;
   }
   function distBar() {
     var by = {}, tot = 0;
@@ -924,13 +969,15 @@
     hlRefresh();
     toast('Varsayılan düzen');
   };
+  /* 4.37: ana sayfada Hesaplar ve Borçlar; Yatırımlar alt menüdeki Portföy'de */
+  var HWEALTH = WEALTH.filter(function (x) {
+    return x[0] !== 'yatirim';
+  });
   function homeWealth() {
-    if (ui.sv === 'varlik')
-      ui.sv = 'yatirim';
-    var v = WEALTH.some(function (x) {
+    var v = HWEALTH.some(function (x) {
       return x[0] === ui.sv;
     }) ? ui.sv : 'hesap', ch = '', db = '';
-    return '<div id="wealth" class="stack">' + (ch || db ? '<div class="card nw">' + ch + db + '</div>' : '') + segTabs(WEALTH, v, 'sv', 'Hesaplar') + (v === 'hesap' ? (function () {
+    return '<div id="wealth" class="stack">' + (ch || db ? '<div class="card nw">' + ch + db + '</div>' : '') + segTabs(HWEALTH, v, 'sv', 'Hesaplar') + (v === 'hesap' ? (function () {
       var c = acctCards();
       return c + hesapBody(!!c);
     })() : ({ yatirim: yatirimBody, borc: borcBody }[v])()) + '</div>';

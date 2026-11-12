@@ -2521,11 +2521,12 @@ document.addEventListener('securitypolicyviolation', function (e) {
       if (aRate(a))
         sub.push('Yıllık %' + NUM2.format(aRate(a)) + ' faiz');
     }
-    return '<button class="item" data-act="acct-open" data-id="' + esc(a) + '">' + acctIc(a) + '<span class="mid"><div class="t">' + esc(a) + '</div>' + (sub.length ? '<div class="small muted">' + esc(sub.join(' · ')) + '</div>' : '') + '</span><span class="num' + (b < 0 ? ' exp' : '') + '">' + moneyIn(b, a) + '</span></button>';
+    return '<button class="item" data-act="acct-open" data-id="' + esc(a) + '">' + acctIc(a) + '<span class="mid"><div class="t">' + esc(a) + '</div>' + (sub.length ? '<div class="small muted">' + esc(sub.join(' · ')) + '</div>' : '') + '</span><span class="num' + (b < 0 ? ' exp' : '') + '">' + mIn(b, a) + '</span></button>';
   }
   /* Hesaplar: türe göre gruplar (boş gruplar gizli); hesap eklemek tek düğmede, transfer + düğmesindeki işlem penceresinde */
   function hesapBody(cards) {
-    var h = needSetup() ? '<div class="card hint"><p class="small" style="margin:0">Hesaplarındaki mevcut parayı girersen bakiyeler ve net servetin doğru görünür.</p><button class="btn small" data-act="open-bal">Bakiyeleri gir</button></div>' : '';
+    /* ana sayfada (cards) kurulum bandı zaten en üstte: ikinci kez gösterilmez */
+    var h = needSetup() && !cards ? '<div class="card hint"><p class="small" style="margin:0">Hesaplarındaki mevcut parayı girersen bakiyeler ve net servetin doğru görünür.</p><button class="btn small" data-act="open-bal">Bakiyeleri gir</button></div>' : '';
     h += '<div class="sumline"><span class="muted">Hesaplardaki para</span><b class="num">' + TRY0.format(accTotal()) + '</b></div>';
     var arc = ACCS().filter(function (a) {
       return ax(a).arch;
@@ -2722,7 +2723,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
       off += f * C;
       return s;
     }).join('');
-    return '<' + tag + ' class="nwring"' + attrs + '><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="' + aria + '"><g transform="rotate(-90 66 66)">' + seg + '</g></svg><span class="rc"><span class="small muted">' + center + '</span><b class="num">' + compactT(tot) + '</b></span></span>'
+    return '<' + tag + ' class="nwring"' + attrs + '><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="' + aria + '"><g transform="rotate(-90 66 66)">' + seg + '</g></svg><span class="rc"><span class="small muted">' + center + '</span><b class="num' + (compactT(tot).length > 9 ? ' lng' : '') + '">' + compactT(tot) + '</b></span></span>'
       + '<span class="rl">' + l.map(function (x, i) {
         return '<span class="ri" style="--c:' + dcol(i) + '"><i></i><span class="ell">' + esc(x[0]) + '</span><b class="num">' + compactT(x[1]) + '</b><span class="small muted">%' + (x[1] / tot < 0.01 ? '<1' : Math.round(x[1] / tot * 100)) + '</span></span>';
       }).join('') + '</span></' + tag + '>';
@@ -2882,7 +2883,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     return '<div class="acards scroll-x" role="list">' + l.map(function (a) {
       var b = acctBal(a), t = acctType(a), x = ax(a), lim = +x.limit || 0, u = t === 'kart' && lim > 0 ? Math.min(1, Math.max(0, -b) / lim) : -1;
       return '<button class="acard" role="listitem" data-act="acct-open" data-id="' + esc(a) + '" style="--c:' + (ATC[t] || 'var(--accent)') + '"><span class="at">' + acctIc(a) + '<span class="ell">' + esc(a) + '</span></span>'
-        + '<span class="ab num' + (b < 0 ? ' exp' : '') + '">' + moneyIn(b, a) + '</span>' + (function () {
+        + '<span class="ab num' + (b < 0 ? ' exp' : '') + '">' + mIn(b, a) + '</span>' + (function () {
         var pf = 0;
         monthTx(curP()).forEach(function (tx) {
           if (tx.acct === a || tx.to === a)
@@ -3692,6 +3693,14 @@ document.addEventListener('securitypolicyviolation', function (e) {
     /* 4.30: Dağılım pastası (Kategoriler listesinin tekrarı), Bütçeler bağlantısı ve En büyük harcamalar (Nereye gitti'nin tekrarı) kalktı */
     h += monthNav() + (Object.keys(sbc).length ? '' : '<div class="card"><div class="empty">Bu dönemde harcama yok.</div></div>');
     h += '<div class="card"><h2>Kategoriler</h2>' + catChanges() + '</div>' + whereCard(k);
+    /* 4.38: En büyük harcamalar geri geldi (4.30'da kaldırılmıştı; Nereye gitti mağazaya göre toplar, bu liste tek tek işlemleri gösterir). Kapalı gelir */
+    var big = m.filter(function (t) {
+      return t.type === 'exp';
+    }).sort(function (a, b) {
+      return txTL(b) - txTL(a);
+    }).slice(0, 5);
+    if (big.length > 1)
+      h += '<details class="card bigx"><summary><b>En büyük harcamalar</b><span class="small muted"> · ilk ' + big.length + '</span></summary><div class="list">' + big.map(txRow).join('') + '</div></details>';
     if (ak.length > 1)
       h += '<div class="card"><h2>Hesaplara göre</h2>' + donut(ak.map(function (a) {
         return [a, byA[a]];
@@ -3734,7 +3743,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
   }
   function holdCard(x) {
     var p = hVal(x) - hCost(x), pp = hCost(x) ? p / hCost(x) * 100 : 0, linked = !!x.mk || !!(x.ccy && +S.fx[x.ccy] > 0), ast = hKind(x) === 'asset', mq = x.mk && mQ(x.mk);
-    return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="' + x.id + '">' + holdIc(x) + '<span class="mid"><div class="t" style="font-weight:600">' + esc(x.name) + '</div><div class="small muted">' + esc(x.type) + (ast ? '' : ' · ' + qtyTxt(x) + ' · ort. ' + TRY2.format(x.cost)) + (linked ? ' · ' + esc(x.mk ? (x.mks || mSym(x.mk)) : FXL[x.ccy]) + ' ' + TRY2.format(hPrice(x)) : '') + (mq && mq.c != null ? ' ' + chgSpan(mq.c) : '') + '</div></span></button><span class="num" style="font-size:1.0625rem">' + TRY0.format(hVal(x)) + '</span></div>'
+    return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="' + x.id + '">' + holdIc(x) + '<span class="mid"><div class="t" style="font-weight:600">' + esc(x.name) + '</div><div class="small muted">' + esc(x.type) + (ast ? '' : ' · ' + qtyTxt(x) + ' · ort. ' + TRY2.format(x.cost)) + (linked ? ' · ' + esc(x.mk ? (x.mks || mSym(x.mk)) : FXL[x.ccy]) + ' ' + TRY2.format(hPrice(x)) : '') + (mq && mq.c != null ? ' ' + chgSpan(mq.c) : '') + '</div></span></button><span class="num hval" style="font-size:1.0625rem">' + (Math.abs(hVal(x)) >= 1e9 ? compactT(hVal(x)) : TRY0.format(hVal(x))) + '</span></div>'
       + yLine(x)
       + (linked || yOn(x) ? '' : '<label class="pin-in"><span class="small muted">Güncel ' + (ast ? 'değer' : 'fiyat') + ' (₺)</span><input inputmode="decimal" data-price="' + x.id + '" value="' + nv(x.price) + '" aria-label="' + esc(x.name) + ' güncel ' + (ast ? 'değer' : 'fiyat') + ' (₺)"></label>')
       + '<div class="hrow"><span class="num small ' + (p >= 0 ? 'inc' : 'exp') + '">' + sgn(p) + (hCost(x) ? ' (' + (pp >= 0 ? '+' : '−') + '%' + NUM2.format(Math.abs(pp)) + ')' : '') + '</span><span class="hbtn">' + (ast ? '' : '<button class="btn small ghost" data-act="h-buy" data-id="' + x.id + '">Al</button>') + '<button class="btn small ghost" data-act="h-sell" data-id="' + x.id + '">Sat</button></span></div></div>';
@@ -4631,8 +4640,9 @@ document.addEventListener('securitypolicyviolation', function (e) {
     })[0] || SECS[0])[1], cal = ui.txv === 'cal';
     /* İşlemler: liste ↔ takvim (4.4'e kadar Analiz › Takvim) */
     var tv = '<button class="icon-btn" id="txv" data-act="tx-view" aria-pressed="' + cal + '" aria-label="' + (cal ? 'Liste görünümü' : 'Takvim görünümü') + '" title="' + (cal ? 'Liste' : 'Takvim') + '">' + ic(cal ? 'list' : 'cal') + '</button>';
+    /* 4.38: İşlemler sayfasında işlem eklemek başlıktaki + ile (yüzen + kalktığından beri bu sayfada ekleme düğmesi yoktu) */
     if (ui.sub === 'islem')
-      return '<button class="icon-btn" data-act="sub" data-v="ev" aria-label="Ana Sayfa’ya dön">' + ic('back') + '</button><h1>' + esc(t) + '</h1><span class="hbtns">' + tv + '</span>';
+      return '<button class="icon-btn" data-act="sub" data-v="ev" aria-label="Ana Sayfa’ya dön">' + ic('back') + '</button><h1>' + esc(t) + '</h1><span class="hbtns"><button class="icon-btn" data-act="new-tx" aria-label="İşlem ekle" title="İşlem ekle">' + ic('plus') + '</button>' + tv + '</span>';
     return '<h1 class="tt">' + esc(t) + '</h1><span class="hbtns"></span>';
   }
   /* eski bölüm adları: Bütçe, Düzenli, Hedefler ve Koç Plan sekmesinin; Yatırımlar, Varlıklar, Borçlar Hesaplar sekmesinin alt sekmeleri */

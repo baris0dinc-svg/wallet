@@ -156,8 +156,9 @@
     })[0] || SECS[0])[1], cal = ui.txv === 'cal';
     /* İşlemler: liste ↔ takvim (4.4'e kadar Analiz › Takvim) */
     var tv = '<button class="icon-btn" id="txv" data-act="tx-view" aria-pressed="' + cal + '" aria-label="' + (cal ? 'Liste görünümü' : 'Takvim görünümü') + '" title="' + (cal ? 'Liste' : 'Takvim') + '">' + ic(cal ? 'list' : 'cal') + '</button>';
+    /* 4.38: İşlemler sayfasında işlem eklemek başlıktaki + ile (yüzen + kalktığından beri bu sayfada ekleme düğmesi yoktu) */
     if (ui.sub === 'islem')
-      return '<button class="icon-btn" data-act="sub" data-v="ev" aria-label="Ana Sayfa’ya dön">' + ic('back') + '</button><h1>' + esc(t) + '</h1><span class="hbtns">' + tv + '</span>';
+      return '<button class="icon-btn" data-act="sub" data-v="ev" aria-label="Ana Sayfa’ya dön">' + ic('back') + '</button><h1>' + esc(t) + '</h1><span class="hbtns"><button class="icon-btn" data-act="new-tx" aria-label="İşlem ekle" title="İşlem ekle">' + ic('plus') + '</button>' + tv + '</span>';
     return '<h1 class="tt">' + esc(t) + '</h1><span class="hbtns"></span>';
   }
   /* eski bölüm adları: Bütçe, Düzenli, Hedefler ve Koç Plan sekmesinin; Yatırımlar, Varlıklar, Borçlar Hesaplar sekmesinin alt sekmeleri */

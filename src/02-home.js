@@ -521,11 +521,12 @@
       if (aRate(a))
         sub.push('Yıllık %' + NUM2.format(aRate(a)) + ' faiz');
     }
-    return '<button class="item" data-act="acct-open" data-id="' + esc(a) + '">' + acctIc(a) + '<span class="mid"><div class="t">' + esc(a) + '</div>' + (sub.length ? '<div class="small muted">' + esc(sub.join(' · ')) + '</div>' : '') + '</span><span class="num' + (b < 0 ? ' exp' : '') + '">' + moneyIn(b, a) + '</span></button>';
+    return '<button class="item" data-act="acct-open" data-id="' + esc(a) + '">' + acctIc(a) + '<span class="mid"><div class="t">' + esc(a) + '</div>' + (sub.length ? '<div class="small muted">' + esc(sub.join(' · ')) + '</div>' : '') + '</span><span class="num' + (b < 0 ? ' exp' : '') + '">' + mIn(b, a) + '</span></button>';
   }
   /* Hesaplar: türe göre gruplar (boş gruplar gizli); hesap eklemek tek düğmede, transfer + düğmesindeki işlem penceresinde */
   function hesapBody(cards) {
-    var h = needSetup() ? '<div class="card hint"><p class="small" style="margin:0">Hesaplarındaki mevcut parayı girersen bakiyeler ve net servetin doğru görünür.</p><button class="btn small" data-act="open-bal">Bakiyeleri gir</button></div>' : '';
+    /* ana sayfada (cards) kurulum bandı zaten en üstte: ikinci kez gösterilmez */
+    var h = needSetup() && !cards ? '<div class="card hint"><p class="small" style="margin:0">Hesaplarındaki mevcut parayı girersen bakiyeler ve net servetin doğru görünür.</p><button class="btn small" data-act="open-bal">Bakiyeleri gir</button></div>' : '';
     h += '<div class="sumline"><span class="muted">Hesaplardaki para</span><b class="num">' + TRY0.format(accTotal()) + '</b></div>';
     var arc = ACCS().filter(function (a) {
       return ax(a).arch;
@@ -722,7 +723,7 @@
       off += f * C;
       return s;
     }).join('');
-    return '<' + tag + ' class="nwring"' + attrs + '><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="' + aria + '"><g transform="rotate(-90 66 66)">' + seg + '</g></svg><span class="rc"><span class="small muted">' + center + '</span><b class="num">' + compactT(tot) + '</b></span></span>'
+    return '<' + tag + ' class="nwring"' + attrs + '><span class="rg"><svg viewBox="0 0 132 132" role="img" aria-label="' + aria + '"><g transform="rotate(-90 66 66)">' + seg + '</g></svg><span class="rc"><span class="small muted">' + center + '</span><b class="num' + (compactT(tot).length > 9 ? ' lng' : '') + '">' + compactT(tot) + '</b></span></span>'
       + '<span class="rl">' + l.map(function (x, i) {
         return '<span class="ri" style="--c:' + dcol(i) + '"><i></i><span class="ell">' + esc(x[0]) + '</span><b class="num">' + compactT(x[1]) + '</b><span class="small muted">%' + (x[1] / tot < 0.01 ? '<1' : Math.round(x[1] / tot * 100)) + '</span></span>';
       }).join('') + '</span></' + tag + '>';
@@ -882,7 +883,7 @@
     return '<div class="acards scroll-x" role="list">' + l.map(function (a) {
       var b = acctBal(a), t = acctType(a), x = ax(a), lim = +x.limit || 0, u = t === 'kart' && lim > 0 ? Math.min(1, Math.max(0, -b) / lim) : -1;
       return '<button class="acard" role="listitem" data-act="acct-open" data-id="' + esc(a) + '" style="--c:' + (ATC[t] || 'var(--accent)') + '"><span class="at">' + acctIc(a) + '<span class="ell">' + esc(a) + '</span></span>'
-        + '<span class="ab num' + (b < 0 ? ' exp' : '') + '">' + moneyIn(b, a) + '</span>' + (function () {
+        + '<span class="ab num' + (b < 0 ? ' exp' : '') + '">' + mIn(b, a) + '</span>' + (function () {
         var pf = 0;
         monthTx(curP()).forEach(function (tx) {
           if (tx.acct === a || tx.to === a)

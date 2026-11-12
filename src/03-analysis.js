@@ -303,6 +303,14 @@
     /* 4.30: Dağılım pastası (Kategoriler listesinin tekrarı), Bütçeler bağlantısı ve En büyük harcamalar (Nereye gitti'nin tekrarı) kalktı */
     h += monthNav() + (Object.keys(sbc).length ? '' : '<div class="card"><div class="empty">Bu dönemde harcama yok.</div></div>');
     h += '<div class="card"><h2>Kategoriler</h2>' + catChanges() + '</div>' + whereCard(k);
+    /* 4.38: En büyük harcamalar geri geldi (4.30'da kaldırılmıştı; Nereye gitti mağazaya göre toplar, bu liste tek tek işlemleri gösterir). Kapalı gelir */
+    var big = m.filter(function (t) {
+      return t.type === 'exp';
+    }).sort(function (a, b) {
+      return txTL(b) - txTL(a);
+    }).slice(0, 5);
+    if (big.length > 1)
+      h += '<details class="card bigx"><summary><b>En büyük harcamalar</b><span class="small muted"> · ilk ' + big.length + '</span></summary><div class="list">' + big.map(txRow).join('') + '</div></details>';
     if (ak.length > 1)
       h += '<div class="card"><h2>Hesaplara göre</h2>' + donut(ak.map(function (a) {
         return [a, byA[a]];
@@ -345,7 +353,7 @@
   }
   function holdCard(x) {
     var p = hVal(x) - hCost(x), pp = hCost(x) ? p / hCost(x) * 100 : 0, linked = !!x.mk || !!(x.ccy && +S.fx[x.ccy] > 0), ast = hKind(x) === 'asset', mq = x.mk && mQ(x.mk);
-    return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="' + x.id + '">' + holdIc(x) + '<span class="mid"><div class="t" style="font-weight:600">' + esc(x.name) + '</div><div class="small muted">' + esc(x.type) + (ast ? '' : ' · ' + qtyTxt(x) + ' · ort. ' + TRY2.format(x.cost)) + (linked ? ' · ' + esc(x.mk ? (x.mks || mSym(x.mk)) : FXL[x.ccy]) + ' ' + TRY2.format(hPrice(x)) : '') + (mq && mq.c != null ? ' ' + chgSpan(mq.c) : '') + '</div></span></button><span class="num" style="font-size:1.0625rem">' + TRY0.format(hVal(x)) + '</span></div>'
+    return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="' + x.id + '">' + holdIc(x) + '<span class="mid"><div class="t" style="font-weight:600">' + esc(x.name) + '</div><div class="small muted">' + esc(x.type) + (ast ? '' : ' · ' + qtyTxt(x) + ' · ort. ' + TRY2.format(x.cost)) + (linked ? ' · ' + esc(x.mk ? (x.mks || mSym(x.mk)) : FXL[x.ccy]) + ' ' + TRY2.format(hPrice(x)) : '') + (mq && mq.c != null ? ' ' + chgSpan(mq.c) : '') + '</div></span></button><span class="num hval" style="font-size:1.0625rem">' + (Math.abs(hVal(x)) >= 1e9 ? compactT(hVal(x)) : TRY0.format(hVal(x))) + '</span></div>'
       + yLine(x)
       + (linked || yOn(x) ? '' : '<label class="pin-in"><span class="small muted">Güncel ' + (ast ? 'değer' : 'fiyat') + ' (₺)</span><input inputmode="decimal" data-price="' + x.id + '" value="' + nv(x.price) + '" aria-label="' + esc(x.name) + ' güncel ' + (ast ? 'değer' : 'fiyat') + ' (₺)"></label>')
       + '<div class="hrow"><span class="num small ' + (p >= 0 ? 'inc' : 'exp') + '">' + sgn(p) + (hCost(x) ? ' (' + (pp >= 0 ? '+' : '−') + '%' + NUM2.format(Math.abs(pp)) + ')' : '') + '</span><span class="hbtn">' + (ast ? '' : '<button class="btn small ghost" data-act="h-buy" data-id="' + x.id + '">Al</button>') + '<button class="btn small ghost" data-act="h-sell" data-id="' + x.id + '">Sat</button></span></div></div>';

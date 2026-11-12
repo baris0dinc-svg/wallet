@@ -853,3 +853,16 @@ body.has-tb .wrap{padding-bottom:calc(100px + env(safe-area-inset-bottom,0px))}
 /* 4.37: Portföy modülü; alt menü dört sekme */
 .tbin{grid-template-columns:repeat(4,minmax(0,1fr))}
 .pfcard .nwring{margin-top:16px;cursor:default}
+
+/* 4.38 son dokunuşlar: dar ekranda halka üstte, açıklama altta (adlar kesilmesin); dokunma alanları en az 32 px */
+@media (max-width:359px){.nwring{grid-template-columns:1fr;justify-items:center;gap:12px}.nwring .rl{width:100%}}
+.nwring .rc b{font-size:.9375rem}
+button.lg{min-height:32px}
+.pill.linkp{min-height:32px;display:inline-flex;align-items:center}
+.seg.mini button{min-height:32px}
+.linkbtn{min-height:32px}
+.hlist .row-tgl{min-height:36px;display:flex;align-items:center}
+.bigx summary{cursor:pointer}.bigx .list{margin-top:8px}
+/* çok büyük tutarlarda yatırım kartı taşmasın; halkanın ortasındaki uzun tutar küçülsün */
+.hcard>div:first-child>.item{min-width:0}.hcard .hval{flex-shrink:0;white-space:nowrap}
+.nwring .rc b.lng{font-size:.75rem}

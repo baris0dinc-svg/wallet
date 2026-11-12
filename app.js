@@ -44,7 +44,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
 });
 (function () {
   'use strict';
-  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.39';
+  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.40';
   var D_EXP = ['Market', 'Fatura', 'Kira', 'Ulaşım', 'Yeme-İçme', 'Sağlık', 'Eğlence', 'Giyim', 'Eğitim', 'Diğer'];
   var D_INC = ['Maaş', 'Ek gelir', 'Yatırım getirisi', 'Diğer gelir'];
   var D_ACC = ['Nakit', 'Banka', 'Kredi kartı'];
@@ -2893,7 +2893,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
         foot.push('Bu dönem <b class="num ' + (pf >= 0 ? 'inc' : 'exp') + '">' + (pf >= 0 ? '+' : '−') + moneyIn(Math.abs(pf), a, 1) + '</b>');
       if (t === 'kart' && x.due)
         foot.push('Son ödeme ayın ' + x.due + sfx(x.due));
-      return '<button class="acard" role="listitem" data-act="acct-open" data-id="' + esc(a) + '" style="--c:' + (ATC[t] || 'var(--accent)') + '"><i class="awm logo" aria-hidden="true"></i><span class="at">' + acctIc(a) + '<span class="ell">' + esc(a) + '</span><span class="aty">' + ((ATN[t] || 'Hesap').toLocaleLowerCase('tr-TR') === a.toLocaleLowerCase('tr-TR') ? '' : esc(ATN[t] || 'Hesap')) + (ccyOf(a) !== 'TRY' ? ' ' + esc(ccyOf(a)) : '') + '</span></span>'
+      return '<button class="acard" role="listitem" data-act="acct-open" data-id="' + esc(a) + '" style="--c:' + (ATC[t] || 'var(--accent)') + '"><span class="at">' + acctIc(a) + '<span class="ell">' + esc(a) + '</span><span class="aty">' + ((ATN[t] || 'Hesap').toLocaleLowerCase('tr-TR') === a.toLocaleLowerCase('tr-TR') ? '' : esc(ATN[t] || 'Hesap')) + (ccyOf(a) !== 'TRY' ? ' ' + esc(ccyOf(a)) : '') + '</span></span>'
         + (t === 'kart' || t === 'banka' ? '<i class="achip" aria-hidden="true"></i>' : '')
         + '<span class="ab num' + (b < 0 ? ' exp' : '') + '">' + mIn(b, a) + '</span>'
         + (u >= 0 ? '<span class="bar"><i style="width:' + (u * 100).toFixed(1) + '%"></i></span>' : '')

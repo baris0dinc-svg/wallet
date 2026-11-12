@@ -9,21 +9,32 @@ android {
         targetSdk 34
         // her derlemede artar: yeni APK eskisinin üstüne güncelleme olarak kurulur, veriler korunur
         versionCode 100 + (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
-        versionName '4.34'
+        versionName '4.39'
         // test derlemesi: gradle -PwebDebug=true → WebView uzaktan incelenebilir (emülatör testi için)
         buildConfigField 'boolean', 'WEB_DEBUG', (project.findProperty('webDebug') ?: 'false')
     }
     buildFeatures { buildConfig true }
+    // 4.39: yayınlanan APK özel anahtarla imzalanır. Anahtar depoda DEĞİL: GitHub gizli değişkeni WALLET_KEYSTORE_B64'ten gelir
+    // (apk.yml dosyaya açar, yolunu WALLET_KEYSTORE ile verir). Güvenlik anahtar dosyasının gizliliğindedir; parola sabittir.
+    // Gizli değişken yoksa (ve emülatör testinde) depodaki herkese açık debug anahtarı kullanılır.
+    def ownKs = System.getenv('WALLET_KEYSTORE')
     signingConfigs {
-        // Kişisel kullanım için sabit imza: güncellemeler eski sürümün üstüne kurulabilsin diye.
         debug {
             storeFile file('../debug.keystore')
             storePassword 'android'
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        own {
+            if (ownKs) {
+                storeFile file(ownKs)
+                storePassword 'wallet-imza'
+                keyAlias 'wallet'
+                keyPassword 'wallet-imza'
+            }
+        }
     }
     buildTypes {
-        debug { signingConfig signingConfigs.debug }
+        debug { signingConfig ownKs ? signingConfigs.own : signingConfigs.debug }
     }
 }

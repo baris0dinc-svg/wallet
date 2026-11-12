@@ -18,6 +18,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      # Özel imza anahtarı yalnızca GitHub gizli değişkeninde durur (depoda yok). Tanımlı değilse eski, herkese açık anahtar kullanılır.
+      - name: İmza anahtarını hazırla
+        id: key
+        env:
+          KS: ${{ secrets.WALLET_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then
+            printf '%s' "$KS" | tr -d ' \n\r' | base64 -d > "$RUNNER_TEMP/wallet.jks"
+            keytool -list -keystore "$RUNNER_TEMP/wallet.jks" -storepass wallet-imza -alias wallet >/dev/null
+            echo "WALLET_KEYSTORE=$RUNNER_TEMP/wallet.jks" >> "$GITHUB_ENV"
+            echo "imza=özel anahtar" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::WALLET_KEYSTORE_B64 tanımlı değil: APK depodaki herkese açık anahtarla imzalanıyor."
+            echo "imza=eski (herkese açık) anahtar" >> "$GITHUB_OUTPUT"
+          fi
       - name: APK derle
         run: gradle -p android-app assembleDebug --no-daemon --stacktrace
       - name: Release'e yükle
@@ -26,4 +41,4 @@ jobs:
         run: |
           cp android-app/app/build/outputs/apk/debug/app-debug.apk Wallet.apk
           gh release delete apk-latest --cleanup-tag -y || true
-          gh release create apk-latest Wallet.apk --title "Wallet (Android APK)" --notes "Telefona indirip kurun. Güncel sürüm bu sayfadaki Wallet.apk dosyasıdır."
+          gh release create apk-latest Wallet.apk --title "Wallet (Android APK)" --notes "Telefona indirip kurun. Güncel sürüm bu sayfadaki Wallet.apk dosyasıdır. İmza: ${{ steps.key.outputs.imza }}."

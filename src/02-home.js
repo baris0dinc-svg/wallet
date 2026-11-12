@@ -882,16 +882,24 @@
       return '';
     return '<div class="acards scroll-x" role="list">' + l.map(function (a) {
       var b = acctBal(a), t = acctType(a), x = ax(a), lim = +x.limit || 0, u = t === 'kart' && lim > 0 ? Math.min(1, Math.max(0, -b) / lim) : -1;
-      return '<button class="acard" role="listitem" data-act="acct-open" data-id="' + esc(a) + '" style="--c:' + (ATC[t] || 'var(--accent)') + '"><span class="at">' + acctIc(a) + '<span class="ell">' + esc(a) + '</span></span>'
-        + '<span class="ab num' + (b < 0 ? ' exp' : '') + '">' + mIn(b, a) + '</span>' + (function () {
-        var pf = 0;
-        monthTx(curP()).forEach(function (tx) {
-          if (tx.acct === a || tx.to === a)
-            pf += txDelta(tx, a);
-        });
-        return Math.abs(pf) >= 1 ? '<span class="as small">Bu dönem <b class="num ' + (pf >= 0 ? 'inc' : 'exp') + '">' + (pf >= 0 ? '+' : '−') + moneyIn(Math.abs(pf), a, 1) + '</b></span>' : '';
-      })() + '<span class="as small">' + esc(ATN[t] || 'Hesap') + (ccyOf(a) !== 'TRY' ? ' · ' + esc(ccyOf(a)) : '') + (t === 'kart' && x.due ? ' · son ödeme ayın ' + x.due + sfx(x.due) : '') + '</span>'
-        + (u >= 0 ? '<span class="bar"><i style="width:' + (u * 100).toFixed(1) + '%"></i></span><span class="as small">Limitin %' + Math.round(u * 100) + '’i kullanıldı</span>' : '') + '</button>';
+      /* 4.39: banka kartı görünümü: üstte logo ve ad, çip (banka ve kredi kartında), altta bakiye; arayüzün koyu yüzeyi, türün rengi yalnız ince vurgu */
+      var pf = 0;
+      monthTx(curP()).forEach(function (tx) {
+        if (tx.acct === a || tx.to === a)
+          pf += txDelta(tx, a);
+      });
+      var foot = [];
+      if (Math.abs(pf) >= 1)
+        foot.push('Bu dönem <b class="num ' + (pf >= 0 ? 'inc' : 'exp') + '">' + (pf >= 0 ? '+' : '−') + moneyIn(Math.abs(pf), a, 1) + '</b>');
+      if (t === 'kart' && x.due)
+        foot.push('Son ödeme ayın ' + x.due + sfx(x.due));
+      return '<button class="acard" role="listitem" data-act="acct-open" data-id="' + esc(a) + '" style="--c:' + (ATC[t] || 'var(--accent)') + '"><i class="awm logo" aria-hidden="true"></i><span class="at">' + acctIc(a) + '<span class="ell">' + esc(a) + '</span><span class="aty">' + ((ATN[t] || 'Hesap').toLocaleLowerCase('tr-TR') === a.toLocaleLowerCase('tr-TR') ? '' : esc(ATN[t] || 'Hesap')) + (ccyOf(a) !== 'TRY' ? ' ' + esc(ccyOf(a)) : '') + '</span></span>'
+        + (t === 'kart' || t === 'banka' ? '<i class="achip" aria-hidden="true"></i>' : '')
+        + '<span class="ab num' + (b < 0 ? ' exp' : '') + '">' + mIn(b, a) + '</span>'
+        + (u >= 0 ? '<span class="bar"><i style="width:' + (u * 100).toFixed(1) + '%"></i></span>' : '')
+        + '<span class="af small">' + (u >= 0 ? '<span>Limitin %' + Math.round(u * 100) + '’i kullanıldı</span>' : '') + foot.map(function (f) {
+          return '<span>' + f + '</span>';
+        }).join('') + '</span></button>';
     }).join('') + '</div>';
   }
   /* ana sayfa kartları: kimlik → [ad, çizim]; varsayılan sıra: bu dönem → yapılacaklar → bütçe → harcama → işlemler → hesaplar → piyasalar */

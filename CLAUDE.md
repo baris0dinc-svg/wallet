@@ -12,6 +12,8 @@ sürüm dosyasını bozduğu için geri alınmak zorunda kalındı. Bu kurallar 
   36 ekranın görüntüsü öncesiyle aynı. Bundan sonra bu biçim korunur; yeniden toplu biçimlendirme yine yasak.)
 - **Android imzasına, `applicationId`'ye, keystore'a ve `apk.yml`'deki imza adımlarına dokunma.** İmza değişirse yeni APK eskisinin
   üstüne kurulmaz; kaldırıp kurmak telefondaki bütün veriyi siler.
+  (4.39'da sahibinin isteğiyle özel anahtara geçiş hazırlandı: anahtar yalnız GitHub gizli değişkeni `WALLET_KEYSTORE_B64`'te,
+  yedeği sahibinde. Bu gizli değişkeni silme/değiştirme; `debug.keystore` yalnız emülatör testi ve yedek yol içindir.)
 - `app.js`'i elle düzenleme; kaynak `src/*.js`, derleme `python3 tools/build.py`.
 - Özellik kaldırma, ana sayfa düzenini ve tema renklerini değiştirme (ilk kart her zaman büyük "Net servetim").
 

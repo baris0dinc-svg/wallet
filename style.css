@@ -777,14 +777,24 @@ button.card:active,.acard:active,.setcard:active,.ut:active{transform:scale(.985
 @media (prefers-reduced-motion:reduce){#view.enter>*,#view.enter .bar i,#view.enter .donut svg{animation:none}.tbin .tbadd,.card,.acard{transition:none}}
 /* hesap kartları: cüzdandaki kartlar gibi, türün renginde, yana kayar */
 .acards{display:flex;gap:12px;padding:2px 2px 6px;scroll-snap-type:x mandatory}
-.acard{position:relative;overflow:hidden;flex:0 0 78%;max-width:300px;min-height:150px;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;text-align:left;
-  padding:16px;border-radius:18px;border:1px solid var(--line);color:var(--ink);font:inherit;cursor:pointer;
-  background:var(--surface);background:linear-gradient(140deg,color-mix(in srgb,var(--c) 42%,var(--surface)) 0%,color-mix(in srgb,var(--c) 12%,var(--surface)) 70%)}
-.acard::after{content:"";position:absolute;right:-40px;top:-50px;width:170px;height:170px;border-radius:50%;background:color-mix(in srgb,var(--c) 22%,transparent);pointer-events:none}
+.acard{position:relative;overflow:hidden;flex:0 0 82%;max-width:320px;aspect-ratio:1.62;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;text-align:left;
+  padding:16px 18px;border-radius:16px;border:1px solid color-mix(in srgb,var(--c) 28%,var(--line));color:var(--ink);font:inherit;cursor:pointer;
+  background:var(--surface);background:linear-gradient(135deg,color-mix(in srgb,var(--c) 16%,var(--surface)) 0%,var(--surface) 55%,color-mix(in srgb,var(--c) 7%,var(--surface)) 100%);
+  box-shadow:0 6px 18px rgba(0,0,0,.14)}
+/* 4.39: banka kartı görünümü: ince çapraz parlama, sağ altta soluk Wallet işareti, çip */
+.acard::before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 38%,color-mix(in srgb,var(--ink) 5%,transparent) 46%,transparent 56%);pointer-events:none}
+.acard .awm.logo{position:absolute;right:16px;bottom:14px;width:44px;height:28px;background:color-mix(in srgb,var(--ink) 14%,transparent);pointer-events:none}
 .acard .at{display:flex;align-items:center;gap:8px;font-weight:700;min-width:0;position:relative}.acard .at .ic{width:20px;height:20px;flex-shrink:0}
-.acard .ab{margin-top:auto;font-size:1.6rem;font-weight:800;letter-spacing:-.01em;position:relative}
-.acard .as{color:var(--ink2);position:relative}
-.acard .bar{position:relative;background:color-mix(in srgb,var(--ink) 14%,transparent)}.acard .bar i{background:var(--c)}
+.acard .at .ell{flex:1;min-width:0}
+.acard .aty{flex-shrink:0;font-size:.6875rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.acard .achip{position:relative;display:block;width:34px;height:25px;margin-top:6px;border-radius:6px;border:1px solid color-mix(in srgb,var(--ink) 26%,transparent);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--ink) 20%,transparent),color-mix(in srgb,var(--ink) 7%,transparent))}
+.acard .achip::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid color-mix(in srgb,var(--ink) 26%,transparent)}
+.acard .achip::after{content:"";position:absolute;top:0;bottom:0;left:36%;right:36%;border-left:1px solid color-mix(in srgb,var(--ink) 26%,transparent);border-right:1px solid color-mix(in srgb,var(--ink) 26%,transparent)}
+.acard .ab{margin-top:auto;font-size:1.5rem;font-weight:800;letter-spacing:-.01em;position:relative}
+.acard .af{position:relative;display:flex;flex-wrap:wrap;gap:2px 12px;color:var(--ink2);padding-right:56px;min-height:1.2em}
+.acard .bar{position:relative;height:4px;background:color-mix(in srgb,var(--ink) 14%,transparent)}.acard .bar i{background:var(--c)}
+@media (max-width:359px){.acard{flex-basis:90%}.acard .ab{font-size:1.3rem}}
 /* Düzenli: ödeme takvimi */
 .rcal .cgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center;margin-top:4px}
 .rcal .cgrid b{font-size:.6875rem;color:var(--ink2);font-weight:600;padding:2px 0 4px}
@@ -866,3 +876,4 @@ button.lg{min-height:32px}
 /* çok büyük tutarlarda yatırım kartı taşmasın; halkanın ortasındaki uzun tutar küçülsün */
 .hcard>div:first-child>.item{min-width:0}.hcard .hval{flex-shrink:0;white-space:nowrap}
 .nwring .rc b.lng{font-size:.75rem}
+.acards{padding:2px 4px 18px;margin-bottom:-10px}.acard{box-shadow:0 4px 12px rgba(0,0,0,.10)}

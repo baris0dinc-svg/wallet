@@ -351,12 +351,100 @@
       h += '<div class="card" style="padding-top:12px"><h2>Kredi kartları</h2><div class="list">' + cards.map(acctLine).join('') + '</div></div>';
     return h;
   }
+  /* 4.41: yatırım geçmişi: S.hlog (4.41'den beri her alım/satım) + daha eski, hesaba yansıtılmış yatırım işlemleri */
+  function invHist(hid) {
+    var seen = {}, l = [];
+    S.hlog.forEach(function (e) {
+      if (e.tx)
+        seen[e.tx] = 1;
+      l.push({ id: e.id, side: e.side, hold: e.hold, hname: e.hname, qty: e.qty, tl: +e.tl || 0, date: e.date, pl: e.pl, tx: e.tx });
+    });
+    S.tx.forEach(function (t) {
+      if (t.type !== 'inv' || seen[t.id] || !t.side)
+        return;
+      var pl;
+      if (t.side === 'sell')
+        S.realized.forEach(function (r) {
+          if (pl === undefined && r.date === t.date && r.name === t.hname && Math.abs((+r.qty || 0) - (+t.qty || 0)) < 1e-9)
+            pl = r.pl;
+        });
+      l.push({ id: t.id, side: t.side, hold: t.hold, hname: t.hname, qty: t.qty, tl: r2(toTL(t.amt, t.acct)), date: t.date, pl: pl, tx: t.id });
+    });
+    if (hid)
+      l = l.filter(function (e) {
+        return e.hold === hid;
+      });
+    return l.sort(function (a, b) {
+      return b.date.localeCompare(a.date);
+    });
+  }
+  /* ilk alış tarihi: kullanıcının girdiği (since) ya da geçmişteki ilk alım */
+  function hSince(h) {
+    if (h.since)
+      return h.since;
+    var f = null;
+    invHist(h.id).forEach(function (e) {
+      if (e.side === 'buy' && (!f || e.date < f))
+        f = e.date;
+    });
+    return f;
+  }
+  /* reel getiri: (1 + nominal) ÷ (1 + alıştan bugüne TÜFE) − 1. Maliyetin tamamı ilk alış tarihinde yapılmış sayılır (yaklaşık) */
+  function hReal(h) {
+    var d = hSince(h), c = hCost(h), v = hVal(h);
+    if (!d || !(c > 0) || !(v > 0) || d > todayS())
+      return null;
+    var inf = cumInf(d, todayS()), nom = v / c - 1;
+    return { date: d, inf: inf, nom: nom, real: (1 + nom) / (1 + inf) - 1, adj: c * (1 + inf), v: v };
+  }
+  function pfReal(inv) {
+    var v = 0, adj = 0, n = 0;
+    inv.forEach(function (h) {
+      var r = hReal(h);
+      if (!r)
+        return;
+      v += r.v;
+      adj += r.adj;
+      n++;
+    });
+    return n && adj > 0 ? { real: v / adj - 1, tl: r2(v - adj), n: n, of: inv.length } : null;
+  }
+  function pctS(x) {
+    return (x >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(x * 100));
+  }
+  function histRow(e) {
+    var sell = e.side === 'sell';
+    return '<' + (e.tx && byId(S.tx, e.tx) ? 'button data-act="edit-tx" data-id="' + e.tx + '"' : 'div') + ' class="item">' + mvIc(sell ? 'exp' : 'inc', sell ? 'warn' : 'blue') + '<span class="mid"><div class="t ell">' + esc(e.hname || 'Yatırım') + '</div><div class="small muted ell">' + (sell ? 'Satış' : 'Alış') + ' · ' + esc(pdate(e.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })) + (e.qty ? ' · ' + NUM2.format(e.qty) + ' adet/birim' : '') + '</div></span><span style="text-align:right"><span class="num">' + TRY0.format(e.tl) + '</span>' + (sell && e.pl !== undefined ? '<div class="small num ' + (e.pl >= 0 ? 'inc' : 'exp') + '">' + sgn(e.pl) + '</div>' : '') + '</span></' + (e.tx && byId(S.tx, e.tx) ? 'button' : 'div') + '>';
+  }
+  function histCard() {
+    var l = invHist();
+    if (!l.length)
+      return '';
+    return '<div class="card" style="padding-top:12px"><div class="ghead"><h2 style="margin:0;flex:1">Yatırım geçmişi</h2>' + (l.length > 4 ? '<button class="linkbtn" data-act="inv-hist">Tümü (' + l.length + ') ›</button>' : '') + '</div><div class="list">' + l.slice(0, 4).map(histRow).join('') + '</div></div>';
+  }
+  ACT['inv-hist'] = function (el, id) {
+    var l = invHist(id || null), h = id && byId(S.holdings, id), buy = 0, sell = 0, pl = 0;
+    l.forEach(function (e) {
+      if (e.side === 'sell') {
+        sell += e.tl;
+        pl += +e.pl || 0;
+      }
+      else
+        buy += e.tl;
+    });
+    openSheet('<h2>' + (h ? esc(h.name) + ': geçmiş' : 'Yatırım geçmişi') + '</h2><div class="row3" style="grid-template-columns:1fr 1fr 1fr"><div><div class="lbl">Alım</div><span class="num">' + TRY0.format(buy) + '</span></div><div><div class="lbl">Satış</div><span class="num">' + TRY0.format(sell) + '</span></div><div><div class="lbl">Gerçekleşen</div><span class="num ' + (pl >= 0 ? 'inc' : 'exp') + '">' + sgn(r2(pl)) + '</span></div></div>'
+      + (l.length ? '<div class="list">' + l.map(histRow).join('') + '</div>' : '<div class="empty">Kayıtlı alım ya da satım yok.</div>')
+      + '<p class="small muted" style="margin:0">4.41’den önce hesaba yansıtmadan yaptığın alım ve satımlar kayıtlı olmadığı için burada görünmez.</p>');
+  };
   function holdCard(x) {
     var p = hVal(x) - hCost(x), pp = hCost(x) ? p / hCost(x) * 100 : 0, linked = !!x.mk || !!(x.ccy && +S.fx[x.ccy] > 0), ast = hKind(x) === 'asset', mq = x.mk && mQ(x.mk);
     return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="' + x.id + '">' + holdIc(x) + '<span class="mid"><div class="t" style="font-weight:600">' + esc(x.name) + '</div><div class="small muted">' + esc(x.type) + (ast ? '' : ' · ' + qtyTxt(x) + ' · ort. ' + TRY2.format(x.cost)) + (linked ? ' · ' + esc(x.mk ? (x.mks || mSym(x.mk)) : FXL[x.ccy]) + ' ' + TRY2.format(hPrice(x)) : '') + (mq && mq.c != null ? ' ' + chgSpan(mq.c) : '') + '</div></span></button><span class="num hval" style="font-size:1.0625rem">' + (Math.abs(hVal(x)) >= 1e9 ? compactT(hVal(x)) : TRY0.format(hVal(x))) + '</span></div>'
       + yLine(x)
       + (linked || yOn(x) ? '' : '<label class="pin-in"><span class="small muted">Güncel ' + (ast ? 'değer' : 'fiyat') + ' (₺)</span><input inputmode="decimal" data-price="' + x.id + '" value="' + nv(x.price) + '" aria-label="' + esc(x.name) + ' güncel ' + (ast ? 'değer' : 'fiyat') + ' (₺)"></label>')
-      + '<div class="hrow"><span class="num small ' + (p >= 0 ? 'inc' : 'exp') + '">' + sgn(p) + (hCost(x) ? ' (' + (pp >= 0 ? '+' : '−') + '%' + NUM2.format(Math.abs(pp)) + ')' : '') + '</span><span class="hbtn">' + (ast ? '' : '<button class="btn small ghost" data-act="h-buy" data-id="' + x.id + '">Al</button>') + '<button class="btn small ghost" data-act="h-sell" data-id="' + x.id + '">Sat</button></span></div></div>';
+      + '<div class="hrow"><span class="num small ' + (p >= 0 ? 'inc' : 'exp') + '">' + sgn(p) + (hCost(x) ? ' (' + (pp >= 0 ? '+' : '−') + '%' + NUM2.format(Math.abs(pp)) + ')' : '') + (function () {
+        var rr = ast ? null : hReal(x);
+        return rr ? '<span class="hreal ' + (rr.real >= 0 ? 'inc' : 'exp') + '" title="Enflasyondan arındırılmış getiri"> · reel ' + pctS(rr.real) + '</span>' : '';
+      })() + '</span><span class="hbtn">' + (!ast && invHist(x.id).length ? '<button class="btn small ghost" data-act="inv-hist" data-id="' + x.id + '">Geçmiş</button>' : '') + (ast ? '' : '<button class="btn small ghost" data-act="h-buy" data-id="' + x.id + '">Al</button>') + '<button class="btn small ghost" data-act="h-sell" data-id="' + x.id + '">Sat</button></span></div></div>';
   }
   function yatirimBody() {
     var pf = pfTotals('inv'), pl = pf.v - pf.c, plp = pf.c ? pl / pf.c * 100 : 0, h = '', dist = '', inv = S.holdings.filter(function (x) {
@@ -364,7 +452,8 @@
     });
     /* 4.37: Portföy modülü: değer, bugünkü değişim, maliyet, kâr/zarar ve tür dağılımı tek kartta */
     var dd = pfDay();
-    dist = (dd ? '<div class="small" style="margin-top:8px"><span class="muted">Bugün</span> <b class="num ' + (dd.d >= 0 ? 'inc' : 'exp') + '">' + sgn(dd.d) + '</b> <span class="muted">· piyasaya bağlı ' + dd.n + ' yatırım</span></div>' : '') + pfRing();
+    var pr = pfReal(inv), realLine = pr ? '<div class="small" style="margin-top:8px"><span class="muted">Reel getiri (enflasyon sonrası)</span> <b class="num ' + (pr.real >= 0 ? 'inc' : 'exp') + '">' + pctS(pr.real) + ' · ' + sgn(pr.tl) + '</b>' + (pr.n < pr.of ? ' <span class="muted">· ' + pr.of + ' yatırımın ' + pr.n + '’i</span>' : '') + '</div>' : (inv.length ? '<div class="small muted" style="margin-top:8px">Reel getiri için yatırımlarına ilk alış tarihi gir (yatırıma dokun).</div>' : '');
+    dist = realLine + (dd ? '<div class="small" style="margin-top:8px"><span class="muted">Bugün</span> <b class="num ' + (dd.d >= 0 ? 'inc' : 'exp') + '">' + sgn(dd.d) + '</b> <span class="muted">· piyasaya bağlı ' + dd.n + ' yatırım</span></div>' : '') + pfRing();
     h += '<div class="card pfcard"><div class="lbl">Portföyümün değeri</div><p class="big">' + TRY0.format(pf.v) + '</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">' + TRY0.format(pf.c) + '</span></div><div><div class="lbl">Kâr / zarar</div><span class="num ' + (pl >= 0.5 ? 'inc' : (pl <= -0.5 ? 'exp' : '')) + '">' + sgn(pl) + '</span>' + (pf.c ? '<div class="small ' + (plp >= 0 ? 'inc' : 'exp') + '">' + (plp >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(plp)) + '</div>' : '') + '</div></div>' + (S.realized.length ? (function () {
       var rp = r2(S.realized.reduce(function (a, x) {
         return a + (+x.pl || 0);
@@ -373,7 +462,10 @@
     })() : '') + dist + '</div>';
     /* 4.4: önce elindekiler (Al / Sat satırları), "Yatırım ekle" listenin altında; ev, araba gibi varlıklar ayrı bölümde; en altta Piyasalar */
     h += inv.length ? inv.map(holdCard).join('') + addBtn('new-h', 'Yatırım ekle', 0, 'inv') : '<div class="empty">Hisse, fon, altın, gümüş, döviz, kripto ya da mevduat ekle. Hisse, fon ve kriptoyu aşağıdaki Piyasalar’dan eklersen fiyatları kendiliğinden güncellenir.</div>' + addBtn('new-h', 'Yatırım ekle', 1, 'inv');
-    return h + mCard() + varlikSec();
+    /* reel getirinin nasıl hesaplandığı */
+    if (pfReal(inv))
+      h += '<p class="small muted" style="margin:0 4px">Reel getiri: kâr/zarardan, ilk alış tarihinden bugüne TÜFE enflasyonu düşülür (yaklaşık değer).</p>';
+    return h + histCard() + mCard() + varlikSec();
   }
   /* ev, araba gibi varlıklar: 4.4'e kadar ayrı "Varlıklar" alt sekmesiydi (üstteki "Varlıklar" toplamıyla karışıyordu); şimdi Yatırımlar'ın altında */
   function varlikSec() {

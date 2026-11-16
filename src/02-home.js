@@ -505,10 +505,12 @@
       sub.push(CCYN[c] + (rateOf(c) > 0 ? ' · ≈ ' + TRY0.format(toTL(b, a)) : ''));
     if (t === 'kart') {
       if (+x.limit > 0)
-        sub.push('Kullanılabilir ' + moneyIn(Math.max(+x.limit + b, 0), a, 1));
+        sub.push('Kullanılabilir ' + moneyIn(Math.max(+x.limit + b - acctBlk(a), 0), a, 1));
       if (x.due)
         sub.push('Son ödeme: ayın ' + x.due + sfx(x.due));
     }
+    if (acctBlk(a) > 0)
+      sub.push('Bloke ' + moneyIn(acctBlk(a), a, 1) + (t === 'banka' ? ' · kullanılabilir ' + moneyIn(b - acctBlk(a), a, 1) : ''));
     /* 4.15: bu dönemdeki net hareket ve birikim faizi */
     else if (!x.arch) {
       var pf = 0;
@@ -881,7 +883,7 @@
     if (!l.length)
       return '';
     return '<div class="acards scroll-x" role="list">' + l.map(function (a) {
-      var b = acctBal(a), t = acctType(a), x = ax(a), lim = +x.limit || 0, u = t === 'kart' && lim > 0 ? Math.min(1, Math.max(0, -b) / lim) : -1;
+      var b = acctBal(a), t = acctType(a), x = ax(a), lim = +x.limit || 0, blk = acctBlk(a), u = t === 'kart' && lim > 0 ? Math.min(1, (Math.max(0, -b) + blk) / lim) : -1;
       /* 4.39: banka kartı görünümü: üstte logo ve ad, çip (banka ve kredi kartında), altta bakiye; arayüzün koyu yüzeyi, türün rengi yalnız ince vurgu */
       var pf = 0;
       monthTx(curP()).forEach(function (tx) {
@@ -891,6 +893,12 @@
       var foot = [];
       if (Math.abs(pf) >= 1)
         foot.push('Bu dönem <b class="num ' + (pf >= 0 ? 'inc' : 'exp') + '">' + (pf >= 0 ? '+' : '−') + moneyIn(Math.abs(pf), a, 1) + '</b>');
+      if (blk > 0)
+        foot.push('Bloke <b class="num">' + moneyIn(blk, a, 1) + '</b>');
+      if (t === 'kart' && lim > 0)
+        foot.push('Kullanılabilir <b class="num">' + moneyIn(Math.max(lim + b - blk, 0), a, 1) + '</b>');
+      else if (t === 'banka' && blk > 0)
+        foot.push('Kullanılabilir <b class="num">' + moneyIn(b - blk, a, 1) + '</b>');
       if (t === 'kart' && x.due)
         foot.push('Son ödeme ayın ' + x.due + sfx(x.due));
       return '<button class="acard" role="listitem" data-act="acct-open" data-id="' + esc(a) + '" style="--c:' + (ATC[t] || 'var(--accent)') + '"><span class="at">' + acctIc(a) + '<span class="ell">' + esc(a) + '</span><span class="aty">' + ((ATN[t] || 'Hesap').toLocaleLowerCase('tr-TR') === a.toLocaleLowerCase('tr-TR') ? '' : esc(ATN[t] || 'Hesap')) + (ccyOf(a) !== 'TRY' ? ' ' + esc(ccyOf(a)) : '') + '</span></span>'
@@ -917,14 +925,14 @@
         return recentCard();
       }], hesap: ['Hesaplar', function () {
         return homeWealth();
-      }], piyasa: ['Piyasalar', function () {
+      }], piyasa: ['Takip listem', function () {
         return mStrip();
       }]
   };
-  var HWDEF = ['donem', 'odeme', 'butce', 'harcama', 'islem', 'hesap', 'piyasa'];
-  /* sade: Piyasalar ilk düzende kapalı (Hesaplar › Yatırımlar ve Tümü › Araçlar'da var); Ana sayfayı düzenle'den açılır */
+  var HWDEF = ['donem', 'odeme', 'butce', 'harcama', 'islem', 'piyasa', 'hesap'];
+  /* 4.41: Takip listem ana sayfada yine açık gelir (4.38'de kapalı geliyordu); Ana sayfayı düzenle'den gizlenebilir */
   function homeOffs() {
-    return S.homeOff || { piyasa: 1 };
+    return S.homeOff || {};
   }
   function homeLay() {
     var l = (Array.isArray(S.homeLay) ? S.homeLay : []).filter(function (k, i, a) {
@@ -982,13 +990,44 @@
   var HWEALTH = WEALTH.filter(function (x) {
     return x[0] !== 'yatirim';
   });
+  /* 4.41: hesap kartlarının sırası (S.accounts sırası; her yerde aynı sıra kullanılır) */
+  function acctSortHtml() {
+    var l = ACCS().filter(function (a) {
+      return !ax(a).arch;
+    });
+    return '<h2>Hesapları sırala</h2><p class="small muted" style="margin-top:-6px">Kartlar ana sayfada bu sırayla görünür.</p><div class="list hlist">' + l.map(function (a, i) {
+      return '<div class="item">' + acctIc(a) + '<span class="mid"><div class="t ell">' + esc(a) + '</div><div class="small muted">' + esc(ATN[acctType(a)] || 'Hesap') + '</div></span><button class="icon-btn sm" data-act="as-mv" data-id="' + esc(a) + '" data-v="-1" aria-label="' + esc(a) + ' yukarı"' + (i ? '' : ' disabled') + '>' + ic('l') + '</button><button class="icon-btn sm" data-act="as-mv" data-id="' + esc(a) + '" data-v="1" aria-label="' + esc(a) + ' aşağı"' + (i < l.length - 1 ? '' : ' disabled') + '>' + ic('r') + '</button></div>';
+    }).join('') + '</div><button class="btn" data-act="close">Tamam</button>';
+  }
+  ACT['acct-sort'] = function () {
+    openSheet(acctSortHtml());
+  };
+  ACT['as-mv'] = function (el, id, v) {
+    var vis = ACCS().filter(function (a) {
+      return !ax(a).arch;
+    }), i = vis.indexOf(id), j = i + (+v);
+    if (i < 0 || j < 0 || j >= vis.length)
+      return;
+    /* görünen komşusuyla yer değiştirir (arşivlenmiş hesaplar aradaysa atlanır) */
+    var A = S.accounts, ia = A.indexOf(id), ib = A.indexOf(vis[j]);
+    A[ia] = vis[j];
+    A[ib] = id;
+    save();
+    render();
+    var sr = document.querySelector('.sheet');
+    if (sr)
+      sr.innerHTML = acctSortHtml();
+  };
   function homeWealth() {
     var v = HWEALTH.some(function (x) {
       return x[0] === ui.sv;
     }) ? ui.sv : 'hesap', ch = '', db = '';
     return '<div id="wealth" class="stack">' + (ch || db ? '<div class="card nw">' + ch + db + '</div>' : '') + segTabs(HWEALTH, v, 'sv', 'Hesaplar') + (v === 'hesap' ? (function () {
       var c = acctCards();
-      return c + hesapBody(!!c);
+      var n = ACCS().filter(function (a) {
+        return !ax(a).arch;
+      }).length;
+      return c + (c && n > 1 ? '<div class="ghead asort"><span class="small muted" style="flex:1">' + n + ' hesap · kartları yana kaydır</span><button class="linkbtn" data-act="acct-sort">' + ic('swap') + ' Sırala</button></div>' : '') + hesapBody(!!c);
     })() : ({ yatirim: yatirimBody, borc: borcBody }[v])()) + '</div>';
   }
   ACT['nw-jump'] = function () {
@@ -1151,7 +1190,7 @@
   }
   function hedefBody() {
     if (!S.goals.length)
-      return '<div class="empty">Henüz hedef yok. Tatil, acil durum fonu ya da büyük bir alışveriş için hedef koy. Hedefi bir birikim hesabına bağlarsan biriken tutar hesaptan otomatik gelir.</div>' + addBtn('new-g', 'Hedef ekle', 1);
+      return '<div class="empty">Henüz hedef yok. Tatil, acil durum fonu ya da büyük bir alışveriş için hedef koy. Hedefi bir birikim hesabına bağlarsan biriken tutar hesaptan otomatik gelir.</div>' + addBtn('new-g', 'Hedef ekle', 1) + fireCard();
     var tot = 0, sv = 0, h = '';
     S.goals.forEach(function (g) {
       tot += g.target;
@@ -1162,7 +1201,8 @@
       var s = goalSaved(g), p = g.target > 0 ? Math.min(s / g.target * 100, 100) : 0;
       h += '<div class="card stack" style="gap:10px"><button class="item" style="padding:0;border:0" data-act="edit-g" data-id="' + g.id + '"><span class="mid"><div class="t" style="font-weight:700">' + esc(g.name) + '</div><div class="small muted">' + esc(goalInfo(g)) + '</div></span><span class="num">%' + Math.round(p) + '</span></button><div class="bar"><i style="width:' + p + '%"></i></div><div class="small num muted" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>' + TRY0.format(s) + ' / ' + TRY0.format(g.target) + '</span>' + (g.acct && ACCS().indexOf(g.acct) >= 0 ? '<span>Bağlı hesap: ' + esc(g.acct) + '</span>' : '') + '</div><button class="btn small ghost" style="align-self:flex-start" data-act="goal-add" data-id="' + g.id + '">Para ekle</button></div>';
     });
-    return h + addBtn('new-g', 'Hedef ekle');
+    /* 4.41: Finansal özgürlük (FIRE) kartı Hedefler'de (4.30'dan beri yalnız Koç'taki küçük kutucuktan açılıyordu) */
+    return h + fireCard() + addBtn('new-g', 'Hedef ekle');
   }
   /* 4.33: ödeme takvimi: dönemin ödeme günleri işaretli; güne dokununca o günün ödemeleri */
   function recCal() {
@@ -1351,9 +1391,12 @@
     render();
   };
   /* hızlı işlemler: en çok kullanılan 4 + Tümü */
-  var QA = [['qa-inc', 'Gelir', 'inc', 'var(--inc)'], ['qa-exp', 'Gider', 'exp', 'var(--exp)'], ['qa-trf', 'Transfer', 'swap', 'var(--accent)'], ['qa-inv', 'Yatırım', 'trend', 'var(--inc)'], ['qa-cash', 'Nakit', 'cash', 'var(--warn)'], ['qa-bank', 'Banka', 'bank', 'var(--blue)'], ['qa-debt', 'Borç', 'card', 'var(--exp)'], ['qa-save', 'Birikim', 'coins', 'var(--warn)'], ['qa-asset', 'Varlık', 'home', 'var(--blue)'], ['qa-calc', 'Hesaplayıcı', 'calc', 'var(--ink2)'], ['qa-notes', 'Notlar', 'note', 'var(--accent)'], ['qa-mkt', 'Piyasalar', 'pulse', 'var(--blue)'], ['ai-open', 'Claude’a sor', 'sparkles', 'var(--accent)']];
+  var QA = [['qa-inc', 'Gelir', 'inc', 'var(--inc)'], ['qa-exp', 'Gider', 'exp', 'var(--exp)'], ['qa-trf', 'Transfer', 'swap', 'var(--accent)'], ['qa-inv', 'Yatırım', 'trend', 'var(--inc)'], ['qa-cash', 'Nakit', 'cash', 'var(--warn)'], ['qa-bank', 'Banka', 'bank', 'var(--blue)'], ['qa-debt', 'Borç', 'card', 'var(--exp)'], ['qa-save', 'Birikim', 'coins', 'var(--warn)'], ['qa-asset', 'Varlık', 'home', 'var(--blue)'], ['qa-calc', 'Hesaplayıcı', 'calc', 'var(--ink2)'], ['qa-notes', 'Notlar', 'note', 'var(--accent)'], ['qa-mkt', 'Piyasalar', 'pulse', 'var(--blue)'], ['ai-open', 'Claude’a sor', 'sparkles', 'var(--accent)'],
+    /* 4.41: bulması zor özellikler Tümü penceresinde */
+    ['qa-fire', 'Finansal özgürlük', 'fire', 'var(--exp)'], ['qa-koc', 'Koç', 'flag', 'var(--inc)'], ['qa-takvim', 'Ödeme takvimi', 'cal', 'var(--warn)'], ['qa-hist', 'Yatırım geçmişi', 'chart', 'var(--blue)'],
+    ['qa-ekstre', 'Ekstre içe aktar', 'bank', 'var(--blue)'], ['qa-sms', 'Banka SMS’leri', 'bell', 'var(--accent)'], ['qa-yedek', 'Yedek ve Excel', 'server', 'var(--ink2)'], ['qa-duzen', 'Ana sayfayı düzenle', 'grid', 'var(--ink2)']];
   /* 4.32: Tümü penceresi gruplu: işlem, hesap ve varlık, araçlar */
-  var QAG = [['İşlem ekle', ['qa-inc', 'qa-exp', 'qa-trf', 'qa-inv', 'qa-debt']], ['Hesap ve varlık ekle', ['qa-cash', 'qa-bank', 'qa-save', 'qa-asset']], ['Araçlar', ['qa-mkt', 'qa-calc', 'qa-notes', 'ai-open']]];
+  var QAG = [['İşlem ekle', ['qa-inc', 'qa-exp', 'qa-trf', 'qa-inv', 'qa-debt']], ['Hesap ve varlık ekle', ['qa-cash', 'qa-bank', 'qa-save', 'qa-asset']], ['Araçlar', ['qa-mkt', 'qa-calc', 'qa-notes', 'ai-open', 'qa-fire', 'qa-koc', 'qa-takvim', 'qa-hist']], ['Veri ve düzen', ['qa-ekstre', 'qa-sms', 'qa-yedek', 'qa-duzen']]];
   function qaOrder() {
     if (!ui.qaOrd) {
       var u = S.qaUse || {}, tot = Object.keys(u).reduce(function (a, k) {
@@ -1370,6 +1413,32 @@
     return ui.qaOrd;
   }
   /* ana ekranda en çok kullanılan 4 işlem + "Tümü"; geri kalanlar tek dokunuşla açılan pencerede */
+  ACT['qa-fire'] = function () {
+    ACT['open-fire']();
+  };
+  ACT['qa-koc'] = function () {
+    closeSheet();
+    ACT.plan(null, null, 'koc');
+  };
+  ACT['qa-takvim'] = function () {
+    closeSheet();
+    ACT.plan(null, null, 'duzenli');
+  };
+  ACT['qa-hist'] = function () {
+    ACT['inv-hist']();
+  };
+  ACT['qa-ekstre'] = function () {
+    ACT['open-set'](null, 'veri');
+  };
+  ACT['qa-sms'] = function () {
+    ACT['open-set'](null, 'bild');
+  };
+  ACT['qa-yedek'] = function () {
+    ACT['open-set'](null, 'veri');
+  };
+  ACT['qa-duzen'] = function () {
+    ACT['home-edit']();
+  };
   function qaBtn(q) {
     return '<button data-act="' + q[0] + '"><span class="c" style="--c:' + q[3] + '">' + ic(q[2]) + '</span><span class="t">' + q[1] + '</span></button>';
   }

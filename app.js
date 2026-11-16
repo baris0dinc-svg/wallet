@@ -44,7 +44,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
 });
 (function () {
   'use strict';
-  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.40';
+  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.41';
   var D_EXP = ['Market', 'Fatura', 'Kira', 'Ulaşım', 'Yeme-İçme', 'Sağlık', 'Eğlence', 'Giyim', 'Eğitim', 'Diğer'];
   var D_INC = ['Maaş', 'Ek gelir', 'Yatırım getirisi', 'Diğer gelir'];
   var D_ACC = ['Nakit', 'Banka', 'Kredi kartı'];
@@ -457,6 +457,8 @@ document.addEventListener('securitypolicyviolation', function (e) {
     d.recurring = Array.isArray(d.recurring) ? d.recurring : [];
     d.debts = Array.isArray(d.debts) ? d.debts : [];
     d.realized = Array.isArray(d.realized) ? d.realized : [];
+    /* 4.41: yatırım geçmişi: her alım/satım (hesaba yansıtılmasa da) */
+    d.hlog = Array.isArray(d.hlog) ? d.hlog : [];
     d.accounts = (Array.isArray(d.accounts) && d.accounts.length) ? d.accounts : D_ACC.slice();
     d.cats = d.cats || {};
     d.cats.exp = (d.cats.exp && d.cats.exp.length) ? d.cats.exp : D_EXP.slice();
@@ -518,7 +520,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
       d.sms.map = {};
     d.qaUse = d.qaUse || {};
     /* kimlikler HTML özniteliklerine yazılır: dışarıdan gelen (yedek) bozuk ya da tehlikeli kimlikler yenilenir */
-    ['tx', 'holdings', 'notes', 'goals', 'recurring', 'debts', 'realized'].forEach(function (k) {
+    ['tx', 'holdings', 'notes', 'goals', 'recurring', 'debts', 'realized', 'hlog'].forEach(function (k) {
       d[k] = d[k].filter(function (x) {
         return x && typeof x === 'object';
       });
@@ -718,6 +720,12 @@ document.addEventListener('securitypolicyviolation', function (e) {
   }
   function INCC() {
     return S.cats.inc;
+  }
+  /* 4.41: blokeli tutar (provizyon): karttan/hesaptan henüz düşmemiş ama ayrılmış tutar. Bakiyeyi ve net serveti değiştirmez;
+     yalnız kullanılabilir tutarı azaltır (kredi kartında limit, banka hesabında bakiye) */
+  function acctBlk(a) {
+    var t = acctType(a);
+    return t === 'kart' || t === 'banka' ? Math.max(0, +ax(a).blk || 0) : 0;
   }
   function ACCS() {
     return S.accounts;
@@ -2505,10 +2513,12 @@ document.addEventListener('securitypolicyviolation', function (e) {
       sub.push(CCYN[c] + (rateOf(c) > 0 ? ' · ≈ ' + TRY0.format(toTL(b, a)) : ''));
     if (t === 'kart') {
       if (+x.limit > 0)
-        sub.push('Kullanılabilir ' + moneyIn(Math.max(+x.limit + b, 0), a, 1));
+        sub.push('Kullanılabilir ' + moneyIn(Math.max(+x.limit + b - acctBlk(a), 0), a, 1));
       if (x.due)
         sub.push('Son ödeme: ayın ' + x.due + sfx(x.due));
     }
+    if (acctBlk(a) > 0)
+      sub.push('Bloke ' + moneyIn(acctBlk(a), a, 1) + (t === 'banka' ? ' · kullanılabilir ' + moneyIn(b - acctBlk(a), a, 1) : ''));
     /* 4.15: bu dönemdeki net hareket ve birikim faizi */
     else if (!x.arch) {
       var pf = 0;
@@ -2881,7 +2891,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     if (!l.length)
       return '';
     return '<div class="acards scroll-x" role="list">' + l.map(function (a) {
-      var b = acctBal(a), t = acctType(a), x = ax(a), lim = +x.limit || 0, u = t === 'kart' && lim > 0 ? Math.min(1, Math.max(0, -b) / lim) : -1;
+      var b = acctBal(a), t = acctType(a), x = ax(a), lim = +x.limit || 0, blk = acctBlk(a), u = t === 'kart' && lim > 0 ? Math.min(1, (Math.max(0, -b) + blk) / lim) : -1;
       /* 4.39: banka kartı görünümü: üstte logo ve ad, çip (banka ve kredi kartında), altta bakiye; arayüzün koyu yüzeyi, türün rengi yalnız ince vurgu */
       var pf = 0;
       monthTx(curP()).forEach(function (tx) {
@@ -2891,6 +2901,12 @@ document.addEventListener('securitypolicyviolation', function (e) {
       var foot = [];
       if (Math.abs(pf) >= 1)
         foot.push('Bu dönem <b class="num ' + (pf >= 0 ? 'inc' : 'exp') + '">' + (pf >= 0 ? '+' : '−') + moneyIn(Math.abs(pf), a, 1) + '</b>');
+      if (blk > 0)
+        foot.push('Bloke <b class="num">' + moneyIn(blk, a, 1) + '</b>');
+      if (t === 'kart' && lim > 0)
+        foot.push('Kullanılabilir <b class="num">' + moneyIn(Math.max(lim + b - blk, 0), a, 1) + '</b>');
+      else if (t === 'banka' && blk > 0)
+        foot.push('Kullanılabilir <b class="num">' + moneyIn(b - blk, a, 1) + '</b>');
       if (t === 'kart' && x.due)
         foot.push('Son ödeme ayın ' + x.due + sfx(x.due));
       return '<button class="acard" role="listitem" data-act="acct-open" data-id="' + esc(a) + '" style="--c:' + (ATC[t] || 'var(--accent)') + '"><span class="at">' + acctIc(a) + '<span class="ell">' + esc(a) + '</span><span class="aty">' + ((ATN[t] || 'Hesap').toLocaleLowerCase('tr-TR') === a.toLocaleLowerCase('tr-TR') ? '' : esc(ATN[t] || 'Hesap')) + (ccyOf(a) !== 'TRY' ? ' ' + esc(ccyOf(a)) : '') + '</span></span>'
@@ -2917,14 +2933,14 @@ document.addEventListener('securitypolicyviolation', function (e) {
         return recentCard();
       }], hesap: ['Hesaplar', function () {
         return homeWealth();
-      }], piyasa: ['Piyasalar', function () {
+      }], piyasa: ['Takip listem', function () {
         return mStrip();
       }]
   };
-  var HWDEF = ['donem', 'odeme', 'butce', 'harcama', 'islem', 'hesap', 'piyasa'];
-  /* sade: Piyasalar ilk düzende kapalı (Hesaplar › Yatırımlar ve Tümü › Araçlar'da var); Ana sayfayı düzenle'den açılır */
+  var HWDEF = ['donem', 'odeme', 'butce', 'harcama', 'islem', 'piyasa', 'hesap'];
+  /* 4.41: Takip listem ana sayfada yine açık gelir (4.38'de kapalı geliyordu); Ana sayfayı düzenle'den gizlenebilir */
   function homeOffs() {
-    return S.homeOff || { piyasa: 1 };
+    return S.homeOff || {};
   }
   function homeLay() {
     var l = (Array.isArray(S.homeLay) ? S.homeLay : []).filter(function (k, i, a) {
@@ -2982,13 +2998,44 @@ document.addEventListener('securitypolicyviolation', function (e) {
   var HWEALTH = WEALTH.filter(function (x) {
     return x[0] !== 'yatirim';
   });
+  /* 4.41: hesap kartlarının sırası (S.accounts sırası; her yerde aynı sıra kullanılır) */
+  function acctSortHtml() {
+    var l = ACCS().filter(function (a) {
+      return !ax(a).arch;
+    });
+    return '<h2>Hesapları sırala</h2><p class="small muted" style="margin-top:-6px">Kartlar ana sayfada bu sırayla görünür.</p><div class="list hlist">' + l.map(function (a, i) {
+      return '<div class="item">' + acctIc(a) + '<span class="mid"><div class="t ell">' + esc(a) + '</div><div class="small muted">' + esc(ATN[acctType(a)] || 'Hesap') + '</div></span><button class="icon-btn sm" data-act="as-mv" data-id="' + esc(a) + '" data-v="-1" aria-label="' + esc(a) + ' yukarı"' + (i ? '' : ' disabled') + '>' + ic('l') + '</button><button class="icon-btn sm" data-act="as-mv" data-id="' + esc(a) + '" data-v="1" aria-label="' + esc(a) + ' aşağı"' + (i < l.length - 1 ? '' : ' disabled') + '>' + ic('r') + '</button></div>';
+    }).join('') + '</div><button class="btn" data-act="close">Tamam</button>';
+  }
+  ACT['acct-sort'] = function () {
+    openSheet(acctSortHtml());
+  };
+  ACT['as-mv'] = function (el, id, v) {
+    var vis = ACCS().filter(function (a) {
+      return !ax(a).arch;
+    }), i = vis.indexOf(id), j = i + (+v);
+    if (i < 0 || j < 0 || j >= vis.length)
+      return;
+    /* görünen komşusuyla yer değiştirir (arşivlenmiş hesaplar aradaysa atlanır) */
+    var A = S.accounts, ia = A.indexOf(id), ib = A.indexOf(vis[j]);
+    A[ia] = vis[j];
+    A[ib] = id;
+    save();
+    render();
+    var sr = document.querySelector('.sheet');
+    if (sr)
+      sr.innerHTML = acctSortHtml();
+  };
   function homeWealth() {
     var v = HWEALTH.some(function (x) {
       return x[0] === ui.sv;
     }) ? ui.sv : 'hesap', ch = '', db = '';
     return '<div id="wealth" class="stack">' + (ch || db ? '<div class="card nw">' + ch + db + '</div>' : '') + segTabs(HWEALTH, v, 'sv', 'Hesaplar') + (v === 'hesap' ? (function () {
       var c = acctCards();
-      return c + hesapBody(!!c);
+      var n = ACCS().filter(function (a) {
+        return !ax(a).arch;
+      }).length;
+      return c + (c && n > 1 ? '<div class="ghead asort"><span class="small muted" style="flex:1">' + n + ' hesap · kartları yana kaydır</span><button class="linkbtn" data-act="acct-sort">' + ic('swap') + ' Sırala</button></div>' : '') + hesapBody(!!c);
     })() : ({ yatirim: yatirimBody, borc: borcBody }[v])()) + '</div>';
   }
   ACT['nw-jump'] = function () {
@@ -3151,7 +3198,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
   }
   function hedefBody() {
     if (!S.goals.length)
-      return '<div class="empty">Henüz hedef yok. Tatil, acil durum fonu ya da büyük bir alışveriş için hedef koy. Hedefi bir birikim hesabına bağlarsan biriken tutar hesaptan otomatik gelir.</div>' + addBtn('new-g', 'Hedef ekle', 1);
+      return '<div class="empty">Henüz hedef yok. Tatil, acil durum fonu ya da büyük bir alışveriş için hedef koy. Hedefi bir birikim hesabına bağlarsan biriken tutar hesaptan otomatik gelir.</div>' + addBtn('new-g', 'Hedef ekle', 1) + fireCard();
     var tot = 0, sv = 0, h = '';
     S.goals.forEach(function (g) {
       tot += g.target;
@@ -3162,7 +3209,8 @@ document.addEventListener('securitypolicyviolation', function (e) {
       var s = goalSaved(g), p = g.target > 0 ? Math.min(s / g.target * 100, 100) : 0;
       h += '<div class="card stack" style="gap:10px"><button class="item" style="padding:0;border:0" data-act="edit-g" data-id="' + g.id + '"><span class="mid"><div class="t" style="font-weight:700">' + esc(g.name) + '</div><div class="small muted">' + esc(goalInfo(g)) + '</div></span><span class="num">%' + Math.round(p) + '</span></button><div class="bar"><i style="width:' + p + '%"></i></div><div class="small num muted" style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>' + TRY0.format(s) + ' / ' + TRY0.format(g.target) + '</span>' + (g.acct && ACCS().indexOf(g.acct) >= 0 ? '<span>Bağlı hesap: ' + esc(g.acct) + '</span>' : '') + '</div><button class="btn small ghost" style="align-self:flex-start" data-act="goal-add" data-id="' + g.id + '">Para ekle</button></div>';
     });
-    return h + addBtn('new-g', 'Hedef ekle');
+    /* 4.41: Finansal özgürlük (FIRE) kartı Hedefler'de (4.30'dan beri yalnız Koç'taki küçük kutucuktan açılıyordu) */
+    return h + fireCard() + addBtn('new-g', 'Hedef ekle');
   }
   /* 4.33: ödeme takvimi: dönemin ödeme günleri işaretli; güne dokununca o günün ödemeleri */
   function recCal() {
@@ -3351,9 +3399,12 @@ document.addEventListener('securitypolicyviolation', function (e) {
     render();
   };
   /* hızlı işlemler: en çok kullanılan 4 + Tümü */
-  var QA = [['qa-inc', 'Gelir', 'inc', 'var(--inc)'], ['qa-exp', 'Gider', 'exp', 'var(--exp)'], ['qa-trf', 'Transfer', 'swap', 'var(--accent)'], ['qa-inv', 'Yatırım', 'trend', 'var(--inc)'], ['qa-cash', 'Nakit', 'cash', 'var(--warn)'], ['qa-bank', 'Banka', 'bank', 'var(--blue)'], ['qa-debt', 'Borç', 'card', 'var(--exp)'], ['qa-save', 'Birikim', 'coins', 'var(--warn)'], ['qa-asset', 'Varlık', 'home', 'var(--blue)'], ['qa-calc', 'Hesaplayıcı', 'calc', 'var(--ink2)'], ['qa-notes', 'Notlar', 'note', 'var(--accent)'], ['qa-mkt', 'Piyasalar', 'pulse', 'var(--blue)'], ['ai-open', 'Claude’a sor', 'sparkles', 'var(--accent)']];
+  var QA = [['qa-inc', 'Gelir', 'inc', 'var(--inc)'], ['qa-exp', 'Gider', 'exp', 'var(--exp)'], ['qa-trf', 'Transfer', 'swap', 'var(--accent)'], ['qa-inv', 'Yatırım', 'trend', 'var(--inc)'], ['qa-cash', 'Nakit', 'cash', 'var(--warn)'], ['qa-bank', 'Banka', 'bank', 'var(--blue)'], ['qa-debt', 'Borç', 'card', 'var(--exp)'], ['qa-save', 'Birikim', 'coins', 'var(--warn)'], ['qa-asset', 'Varlık', 'home', 'var(--blue)'], ['qa-calc', 'Hesaplayıcı', 'calc', 'var(--ink2)'], ['qa-notes', 'Notlar', 'note', 'var(--accent)'], ['qa-mkt', 'Piyasalar', 'pulse', 'var(--blue)'], ['ai-open', 'Claude’a sor', 'sparkles', 'var(--accent)'],
+    /* 4.41: bulması zor özellikler Tümü penceresinde */
+    ['qa-fire', 'Finansal özgürlük', 'fire', 'var(--exp)'], ['qa-koc', 'Koç', 'flag', 'var(--inc)'], ['qa-takvim', 'Ödeme takvimi', 'cal', 'var(--warn)'], ['qa-hist', 'Yatırım geçmişi', 'chart', 'var(--blue)'],
+    ['qa-ekstre', 'Ekstre içe aktar', 'bank', 'var(--blue)'], ['qa-sms', 'Banka SMS’leri', 'bell', 'var(--accent)'], ['qa-yedek', 'Yedek ve Excel', 'server', 'var(--ink2)'], ['qa-duzen', 'Ana sayfayı düzenle', 'grid', 'var(--ink2)']];
   /* 4.32: Tümü penceresi gruplu: işlem, hesap ve varlık, araçlar */
-  var QAG = [['İşlem ekle', ['qa-inc', 'qa-exp', 'qa-trf', 'qa-inv', 'qa-debt']], ['Hesap ve varlık ekle', ['qa-cash', 'qa-bank', 'qa-save', 'qa-asset']], ['Araçlar', ['qa-mkt', 'qa-calc', 'qa-notes', 'ai-open']]];
+  var QAG = [['İşlem ekle', ['qa-inc', 'qa-exp', 'qa-trf', 'qa-inv', 'qa-debt']], ['Hesap ve varlık ekle', ['qa-cash', 'qa-bank', 'qa-save', 'qa-asset']], ['Araçlar', ['qa-mkt', 'qa-calc', 'qa-notes', 'ai-open', 'qa-fire', 'qa-koc', 'qa-takvim', 'qa-hist']], ['Veri ve düzen', ['qa-ekstre', 'qa-sms', 'qa-yedek', 'qa-duzen']]];
   function qaOrder() {
     if (!ui.qaOrd) {
       var u = S.qaUse || {}, tot = Object.keys(u).reduce(function (a, k) {
@@ -3370,6 +3421,32 @@ document.addEventListener('securitypolicyviolation', function (e) {
     return ui.qaOrd;
   }
   /* ana ekranda en çok kullanılan 4 işlem + "Tümü"; geri kalanlar tek dokunuşla açılan pencerede */
+  ACT['qa-fire'] = function () {
+    ACT['open-fire']();
+  };
+  ACT['qa-koc'] = function () {
+    closeSheet();
+    ACT.plan(null, null, 'koc');
+  };
+  ACT['qa-takvim'] = function () {
+    closeSheet();
+    ACT.plan(null, null, 'duzenli');
+  };
+  ACT['qa-hist'] = function () {
+    ACT['inv-hist']();
+  };
+  ACT['qa-ekstre'] = function () {
+    ACT['open-set'](null, 'veri');
+  };
+  ACT['qa-sms'] = function () {
+    ACT['open-set'](null, 'bild');
+  };
+  ACT['qa-yedek'] = function () {
+    ACT['open-set'](null, 'veri');
+  };
+  ACT['qa-duzen'] = function () {
+    ACT['home-edit']();
+  };
   function qaBtn(q) {
     return '<button data-act="' + q[0] + '"><span class="c" style="--c:' + q[3] + '">' + ic(q[2]) + '</span><span class="t">' + q[1] + '</span></button>';
   }
@@ -3749,12 +3826,100 @@ document.addEventListener('securitypolicyviolation', function (e) {
       h += '<div class="card" style="padding-top:12px"><h2>Kredi kartları</h2><div class="list">' + cards.map(acctLine).join('') + '</div></div>';
     return h;
   }
+  /* 4.41: yatırım geçmişi: S.hlog (4.41'den beri her alım/satım) + daha eski, hesaba yansıtılmış yatırım işlemleri */
+  function invHist(hid) {
+    var seen = {}, l = [];
+    S.hlog.forEach(function (e) {
+      if (e.tx)
+        seen[e.tx] = 1;
+      l.push({ id: e.id, side: e.side, hold: e.hold, hname: e.hname, qty: e.qty, tl: +e.tl || 0, date: e.date, pl: e.pl, tx: e.tx });
+    });
+    S.tx.forEach(function (t) {
+      if (t.type !== 'inv' || seen[t.id] || !t.side)
+        return;
+      var pl;
+      if (t.side === 'sell')
+        S.realized.forEach(function (r) {
+          if (pl === undefined && r.date === t.date && r.name === t.hname && Math.abs((+r.qty || 0) - (+t.qty || 0)) < 1e-9)
+            pl = r.pl;
+        });
+      l.push({ id: t.id, side: t.side, hold: t.hold, hname: t.hname, qty: t.qty, tl: r2(toTL(t.amt, t.acct)), date: t.date, pl: pl, tx: t.id });
+    });
+    if (hid)
+      l = l.filter(function (e) {
+        return e.hold === hid;
+      });
+    return l.sort(function (a, b) {
+      return b.date.localeCompare(a.date);
+    });
+  }
+  /* ilk alış tarihi: kullanıcının girdiği (since) ya da geçmişteki ilk alım */
+  function hSince(h) {
+    if (h.since)
+      return h.since;
+    var f = null;
+    invHist(h.id).forEach(function (e) {
+      if (e.side === 'buy' && (!f || e.date < f))
+        f = e.date;
+    });
+    return f;
+  }
+  /* reel getiri: (1 + nominal) ÷ (1 + alıştan bugüne TÜFE) − 1. Maliyetin tamamı ilk alış tarihinde yapılmış sayılır (yaklaşık) */
+  function hReal(h) {
+    var d = hSince(h), c = hCost(h), v = hVal(h);
+    if (!d || !(c > 0) || !(v > 0) || d > todayS())
+      return null;
+    var inf = cumInf(d, todayS()), nom = v / c - 1;
+    return { date: d, inf: inf, nom: nom, real: (1 + nom) / (1 + inf) - 1, adj: c * (1 + inf), v: v };
+  }
+  function pfReal(inv) {
+    var v = 0, adj = 0, n = 0;
+    inv.forEach(function (h) {
+      var r = hReal(h);
+      if (!r)
+        return;
+      v += r.v;
+      adj += r.adj;
+      n++;
+    });
+    return n && adj > 0 ? { real: v / adj - 1, tl: r2(v - adj), n: n, of: inv.length } : null;
+  }
+  function pctS(x) {
+    return (x >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(x * 100));
+  }
+  function histRow(e) {
+    var sell = e.side === 'sell';
+    return '<' + (e.tx && byId(S.tx, e.tx) ? 'button data-act="edit-tx" data-id="' + e.tx + '"' : 'div') + ' class="item">' + mvIc(sell ? 'exp' : 'inc', sell ? 'warn' : 'blue') + '<span class="mid"><div class="t ell">' + esc(e.hname || 'Yatırım') + '</div><div class="small muted ell">' + (sell ? 'Satış' : 'Alış') + ' · ' + esc(pdate(e.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })) + (e.qty ? ' · ' + NUM2.format(e.qty) + ' adet/birim' : '') + '</div></span><span style="text-align:right"><span class="num">' + TRY0.format(e.tl) + '</span>' + (sell && e.pl !== undefined ? '<div class="small num ' + (e.pl >= 0 ? 'inc' : 'exp') + '">' + sgn(e.pl) + '</div>' : '') + '</span></' + (e.tx && byId(S.tx, e.tx) ? 'button' : 'div') + '>';
+  }
+  function histCard() {
+    var l = invHist();
+    if (!l.length)
+      return '';
+    return '<div class="card" style="padding-top:12px"><div class="ghead"><h2 style="margin:0;flex:1">Yatırım geçmişi</h2>' + (l.length > 4 ? '<button class="linkbtn" data-act="inv-hist">Tümü (' + l.length + ') ›</button>' : '') + '</div><div class="list">' + l.slice(0, 4).map(histRow).join('') + '</div></div>';
+  }
+  ACT['inv-hist'] = function (el, id) {
+    var l = invHist(id || null), h = id && byId(S.holdings, id), buy = 0, sell = 0, pl = 0;
+    l.forEach(function (e) {
+      if (e.side === 'sell') {
+        sell += e.tl;
+        pl += +e.pl || 0;
+      }
+      else
+        buy += e.tl;
+    });
+    openSheet('<h2>' + (h ? esc(h.name) + ': geçmiş' : 'Yatırım geçmişi') + '</h2><div class="row3" style="grid-template-columns:1fr 1fr 1fr"><div><div class="lbl">Alım</div><span class="num">' + TRY0.format(buy) + '</span></div><div><div class="lbl">Satış</div><span class="num">' + TRY0.format(sell) + '</span></div><div><div class="lbl">Gerçekleşen</div><span class="num ' + (pl >= 0 ? 'inc' : 'exp') + '">' + sgn(r2(pl)) + '</span></div></div>'
+      + (l.length ? '<div class="list">' + l.map(histRow).join('') + '</div>' : '<div class="empty">Kayıtlı alım ya da satım yok.</div>')
+      + '<p class="small muted" style="margin:0">4.41’den önce hesaba yansıtmadan yaptığın alım ve satımlar kayıtlı olmadığı için burada görünmez.</p>');
+  };
   function holdCard(x) {
     var p = hVal(x) - hCost(x), pp = hCost(x) ? p / hCost(x) * 100 : 0, linked = !!x.mk || !!(x.ccy && +S.fx[x.ccy] > 0), ast = hKind(x) === 'asset', mq = x.mk && mQ(x.mk);
     return '<div class="card hcard"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><button class="item" style="padding:0;border:0;flex:1" data-act="edit-h" data-id="' + x.id + '">' + holdIc(x) + '<span class="mid"><div class="t" style="font-weight:600">' + esc(x.name) + '</div><div class="small muted">' + esc(x.type) + (ast ? '' : ' · ' + qtyTxt(x) + ' · ort. ' + TRY2.format(x.cost)) + (linked ? ' · ' + esc(x.mk ? (x.mks || mSym(x.mk)) : FXL[x.ccy]) + ' ' + TRY2.format(hPrice(x)) : '') + (mq && mq.c != null ? ' ' + chgSpan(mq.c) : '') + '</div></span></button><span class="num hval" style="font-size:1.0625rem">' + (Math.abs(hVal(x)) >= 1e9 ? compactT(hVal(x)) : TRY0.format(hVal(x))) + '</span></div>'
       + yLine(x)
       + (linked || yOn(x) ? '' : '<label class="pin-in"><span class="small muted">Güncel ' + (ast ? 'değer' : 'fiyat') + ' (₺)</span><input inputmode="decimal" data-price="' + x.id + '" value="' + nv(x.price) + '" aria-label="' + esc(x.name) + ' güncel ' + (ast ? 'değer' : 'fiyat') + ' (₺)"></label>')
-      + '<div class="hrow"><span class="num small ' + (p >= 0 ? 'inc' : 'exp') + '">' + sgn(p) + (hCost(x) ? ' (' + (pp >= 0 ? '+' : '−') + '%' + NUM2.format(Math.abs(pp)) + ')' : '') + '</span><span class="hbtn">' + (ast ? '' : '<button class="btn small ghost" data-act="h-buy" data-id="' + x.id + '">Al</button>') + '<button class="btn small ghost" data-act="h-sell" data-id="' + x.id + '">Sat</button></span></div></div>';
+      + '<div class="hrow"><span class="num small ' + (p >= 0 ? 'inc' : 'exp') + '">' + sgn(p) + (hCost(x) ? ' (' + (pp >= 0 ? '+' : '−') + '%' + NUM2.format(Math.abs(pp)) + ')' : '') + (function () {
+        var rr = ast ? null : hReal(x);
+        return rr ? '<span class="hreal ' + (rr.real >= 0 ? 'inc' : 'exp') + '" title="Enflasyondan arındırılmış getiri"> · reel ' + pctS(rr.real) + '</span>' : '';
+      })() + '</span><span class="hbtn">' + (!ast && invHist(x.id).length ? '<button class="btn small ghost" data-act="inv-hist" data-id="' + x.id + '">Geçmiş</button>' : '') + (ast ? '' : '<button class="btn small ghost" data-act="h-buy" data-id="' + x.id + '">Al</button>') + '<button class="btn small ghost" data-act="h-sell" data-id="' + x.id + '">Sat</button></span></div></div>';
   }
   function yatirimBody() {
     var pf = pfTotals('inv'), pl = pf.v - pf.c, plp = pf.c ? pl / pf.c * 100 : 0, h = '', dist = '', inv = S.holdings.filter(function (x) {
@@ -3762,7 +3927,8 @@ document.addEventListener('securitypolicyviolation', function (e) {
     });
     /* 4.37: Portföy modülü: değer, bugünkü değişim, maliyet, kâr/zarar ve tür dağılımı tek kartta */
     var dd = pfDay();
-    dist = (dd ? '<div class="small" style="margin-top:8px"><span class="muted">Bugün</span> <b class="num ' + (dd.d >= 0 ? 'inc' : 'exp') + '">' + sgn(dd.d) + '</b> <span class="muted">· piyasaya bağlı ' + dd.n + ' yatırım</span></div>' : '') + pfRing();
+    var pr = pfReal(inv), realLine = pr ? '<div class="small" style="margin-top:8px"><span class="muted">Reel getiri (enflasyon sonrası)</span> <b class="num ' + (pr.real >= 0 ? 'inc' : 'exp') + '">' + pctS(pr.real) + ' · ' + sgn(pr.tl) + '</b>' + (pr.n < pr.of ? ' <span class="muted">· ' + pr.of + ' yatırımın ' + pr.n + '’i</span>' : '') + '</div>' : (inv.length ? '<div class="small muted" style="margin-top:8px">Reel getiri için yatırımlarına ilk alış tarihi gir (yatırıma dokun).</div>' : '');
+    dist = realLine + (dd ? '<div class="small" style="margin-top:8px"><span class="muted">Bugün</span> <b class="num ' + (dd.d >= 0 ? 'inc' : 'exp') + '">' + sgn(dd.d) + '</b> <span class="muted">· piyasaya bağlı ' + dd.n + ' yatırım</span></div>' : '') + pfRing();
     h += '<div class="card pfcard"><div class="lbl">Portföyümün değeri</div><p class="big">' + TRY0.format(pf.v) + '</p><div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Maliyet</div><span class="num">' + TRY0.format(pf.c) + '</span></div><div><div class="lbl">Kâr / zarar</div><span class="num ' + (pl >= 0.5 ? 'inc' : (pl <= -0.5 ? 'exp' : '')) + '">' + sgn(pl) + '</span>' + (pf.c ? '<div class="small ' + (plp >= 0 ? 'inc' : 'exp') + '">' + (plp >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(plp)) + '</div>' : '') + '</div></div>' + (S.realized.length ? (function () {
       var rp = r2(S.realized.reduce(function (a, x) {
         return a + (+x.pl || 0);
@@ -3771,7 +3937,10 @@ document.addEventListener('securitypolicyviolation', function (e) {
     })() : '') + dist + '</div>';
     /* 4.4: önce elindekiler (Al / Sat satırları), "Yatırım ekle" listenin altında; ev, araba gibi varlıklar ayrı bölümde; en altta Piyasalar */
     h += inv.length ? inv.map(holdCard).join('') + addBtn('new-h', 'Yatırım ekle', 0, 'inv') : '<div class="empty">Hisse, fon, altın, gümüş, döviz, kripto ya da mevduat ekle. Hisse, fon ve kriptoyu aşağıdaki Piyasalar’dan eklersen fiyatları kendiliğinden güncellenir.</div>' + addBtn('new-h', 'Yatırım ekle', 1, 'inv');
-    return h + mCard() + varlikSec();
+    /* reel getirinin nasıl hesaplandığı */
+    if (pfReal(inv))
+      h += '<p class="small muted" style="margin:0 4px">Reel getiri: kâr/zarardan, ilk alış tarihinden bugüne TÜFE enflasyonu düşülür (yaklaşık değer).</p>';
+    return h + histCard() + mCard() + varlikSec();
   }
   /* ev, araba gibi varlıklar: 4.4'e kadar ayrı "Varlıklar" alt sekmesiydi (üstteki "Varlıklar" toplamıyla karışıyordu); şimdi Yatırımlar'ın altında */
   function varlikSec() {
@@ -5234,11 +5403,13 @@ document.addEventListener('securitypolicyviolation', function (e) {
       extra.push('≈ ' + TRY0.format(toTL(b, a)));
     if (t === 'kart') {
       if (+x.limit > 0)
-        extra.push('Limit ' + moneyIn(+x.limit, a, 1) + ' · kullanılabilir ' + moneyIn(Math.max(+x.limit + b, 0), a, 1));
+        extra.push('Limit ' + moneyIn(+x.limit, a, 1) + ' · kullanılabilir ' + moneyIn(Math.max(+x.limit + b - acctBlk(a), 0), a, 1));
       if (x.due)
         extra.push('Son ödeme günü: ayın ' + x.due + sfx(x.due));
       cs = cardStmt(a);
     }
+    if (acctBlk(a) > 0)
+      extra.push('Blokeli tutar ' + moneyIn(acctBlk(a), a, 1) + (t === 'banka' ? ' · kullanılabilir ' + moneyIn(b - acctBlk(a), a, 1) : ''));
     if (aRate(a)) {
       var ai = aIntNow(a);
       extra.push('Yıllık %' + NUM2.format(aRate(a)) + ' faiz · bu ay ≈ ' + moneyIn(ai, a) + ' birikti (ay sonunda işlenir)');
@@ -5315,6 +5486,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
       + '<div class="two"><div class="field"><label for="h-type">Tür</label><select id="h-type">' + optsKeep(INVT, x ? x.type : pre.type) + '</select></div><div class="field"><label for="h-ccy">Fiyat kaynağı</label><select id="h-ccy">' + co + '</select></div></div>'
       + (mkk && mkp > 0 ? '<div class="small muted" id="h-mkp">Güncel piyasa fiyatı: <b class="num">' + TRY2.format(mkp) + '</b></div>' : '')
       + '<div class="two"><div class="field"><label for="h-qty" id="lb-hqty">Adet / miktar</label><input id="h-qty" inputmode="decimal" value="' + (x ? nv(x.qty) : '') + '"></div><div class="field"><label for="h-cost">Ortalama maliyet (₺)</label><input id="h-cost" inputmode="decimal" placeholder="' + (mkp > 0 ? 'Boşsa güncel fiyat' : '') + '" value="' + (x ? nv(x.cost) : '') + '"></div></div>'
+      + '<div class="field"><label for="h-since">İlk alış tarihi</label><input id="h-since" type="date" max="' + todayS() + '" value="' + esc(x ? (hSince(x) || '') : todayS()) + '"><span class="small muted">Reel (enflasyon sonrası) getiri bu tarihten hesaplanır.</span></div>'
       + '<div class="field" id="row-hprice"><label for="h-price">Güncel fiyat (₺)</label><input id="h-price" inputmode="decimal" placeholder="Boş bırakırsan maliyet kullanılır" value="' + (x ? nv(x.price) : '') + '"></div>'
       + yFields(x, x ? x.type : pre.type)
       + (x && !x.mk ? '<button class="btn ghost small" data-act="m-linkmode" data-id="' + x.id + '">' + ic('pulse') + ' Fiyatı piyasadan al (hisse, fon, kripto…)</button>' : '')
@@ -5546,6 +5718,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     }).join('') + '</select></div><div class="field">' + (used ? '<span class="flbl">Para birimi</span>' : '<label for="a-ccy">Para birimi</label>') + cs + '</div></div>'
       + '<div class="two"><div class="field"><label for="a-open" id="lb-aopen">Başlangıç bakiyesi (' + CSYM[c] + ')</label><input id="a-open" inputmode="decimal" placeholder="0" value="' + (ex ? nv(+S.opening[a] || 0) : '') + '"></div><div class="field" id="row-due"' + (t === 'kart' ? '' : ' hidden') + '><label for="a-due">Son ödeme günü</label><input id="a-due" inputmode="numeric" maxlength="2" placeholder="Örn. 15" value="' + (x.due || '') + '"></div></div>'
       + '<div class="two" id="row-limit"' + (t === 'kart' ? '' : ' hidden') + '><div class="field"><label for="a-limit">Kart limiti</label><input id="a-limit" inputmode="decimal" placeholder="İsteğe bağlı" value="' + (x.limit ? nv(x.limit) : '') + '"></div><div class="field"><label for="a-cut">Hesap kesim günü</label><input id="a-cut" inputmode="numeric" maxlength="2" placeholder="Örn. 5" value="' + (x.cut || '') + '"></div></div>'
+      + '<div class="field" id="row-blk"' + (t === 'kart' || t === 'banka' ? '' : ' hidden') + '><label for="a-blk">Blokeli tutar (provizyon)</label><input id="a-blk" inputmode="decimal" placeholder="İsteğe bağlı" value="' + (+x.blk > 0 ? nv(x.blk) : '') + '"><span class="small muted">Otel, akaryakıt, kiralama gibi henüz kesinleşmemiş çekimler. Kullanılabilir tutardan düşülür; bakiyeni değiştirmez.</span></div>'
       + '<div class="two" id="row-arate"' + (t === 'birikim' ? '' : ' hidden') + '><div class="field"><label for="a-rate">Yıllık faiz (%)</label><input id="a-rate" inputmode="decimal" placeholder="İsteğe bağlı, örn. 38" value="' + (+x.rate > 0 ? nv(x.rate) : '') + '"></div><div class="field"><label for="a-tax">Stopaj (%)</label><input id="a-tax" inputmode="decimal" placeholder="' + NUM1.format(FACTS.dep.t6) + '" value="' + (x.tax != null && x.tax !== '' ? nv(x.tax) : '') + '"></div></div>'
       + '<p class="small muted" style="margin:0" id="row-arate-h"' + (t === 'birikim' ? '' : ' hidden') + '>Günlük faizli (kazandıran) hesaplar için: faiz her günün bakiyesinden hesaplanır, ay sonunda stopaj düşülerek “Yatırım getirisi › Faiz” geliri olarak bu hesaba kendiliğinden işlenir.</p>'
       + '<p class="small muted" style="margin:0" id="a-hint"></p><div class="err" id="f-err"></div>'
@@ -5561,6 +5734,9 @@ document.addEventListener('securitypolicyviolation', function (e) {
       if (r)
         r.hidden = t !== 'kart';
     });
+    var rb = document.getElementById('row-blk');
+    if (rb)
+      rb.hidden = !(t === 'kart' || t === 'banka');
     ['row-arate', 'row-arate-h'].forEach(function (id) {
       var r = document.getElementById(id);
       if (r)
@@ -6387,6 +6563,11 @@ document.addEventListener('securitypolicyviolation', function (e) {
       return;
     }
     var op = r2(num(val('a-open'))), cs = document.getElementById('a-ccy');
+    var blk = r2(num(val('a-blk')));
+    if (blk < 0 || tooBig(blk)) {
+      ferr('Blokeli tutar geçersiz.');
+      return;
+    }
     if (tooBig(op) || tooBig(lim)) {
       ferr('Tutar çok büyük (en fazla 100 milyar).');
       return;
@@ -6407,6 +6588,10 @@ document.addEventListener('securitypolicyviolation', function (e) {
       x.limit = lim;
     else
       delete x.limit;
+    if ((type === 'kart' || type === 'banka') && blk > 0)
+      x.blk = blk;
+    else
+      delete x.blk;
     var cut = parseInt(val('a-cut'), 10);
     if (type === 'kart' && cut >= 1 && cut <= 31)
       x.cut = cut;
@@ -6545,6 +6730,9 @@ document.addEventListener('securitypolicyviolation', function (e) {
       h = {
         name: nm, type: val('h-type'), kind: 'inv', ccy: cc, qty: q, cost: co || (cc ? rateOf(cc) : (mp || num(val('h-price')))), price: mp || num(val('h-price')) || co || rateOf(cc), mk: mkk || undefined, mks: mkk ? ((x && x.mk === mkk && x.mks) || mSym(mkk)) : undefined
       };
+      var sn = val('h-since');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(sn) && sn <= todayS())
+        h.since = sn;
     }
     if (v !== 'asset') {
       var ye = yRead(h, x);
@@ -6576,12 +6764,17 @@ document.addEventListener('securitypolicyviolation', function (e) {
     else {
       h.id = uid();
       S.holdings.push(h);
+      var txi = null;
       if (acct && ACCS().indexOf(acct) >= 0 && r2(fromTL(h.qty * h.cost, acct)) > 0) {
         var tl = h.qty * h.cost;
+        txi = uid();
         S.tx.push({
-          id: uid(), type: 'inv', side: 'buy', hold: h.id, hname: h.name, qty: h.qty, amt: r2(fromTL(tl, acct)), acct: acct, date: todayS(), note: ''
+          id: txi, type: 'inv', side: 'buy', hold: h.id, hname: h.name, qty: h.qty, amt: r2(fromTL(tl, acct)), acct: acct, date: todayS(), note: ''
         });
       }
+      /* 4.41: yatırım geçmişi (hesaptan düşülmese de kaydedilir) */
+      if (h.kind === 'inv' && h.qty * h.cost > 0)
+        S.hlog.push({ id: uid(), side: 'buy', hold: h.id, hname: h.name, qty: h.qty, tl: r2(h.qty * h.cost), date: txi ? todayS() : (h.since || todayS()), tx: txi });
     }
     save();
     closeSheet();
@@ -6610,6 +6803,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     if (!x)
       return;
     yCrys(x);
+    var cost0 = x.cost;
     var ast = hKind(x) === 'asset', q = ast ? 1 : num(val('tr-qty')), p = num(val('tr-price')), fee = r2(num(val('tr-fee'))), acct = val('tr-acct'), d = val('tr-date') || todayS();
     if (fee < 0) {
       ferr('Komisyon eksi olamaz.');
@@ -6673,10 +6867,15 @@ document.addEventListener('securitypolicyviolation', function (e) {
         });
     }
     delete x.sample;
-    if (acct && r2(fromTL(tl, acct)) > 0)
+    var txj = null;
+    if (acct && r2(fromTL(tl, acct)) > 0) {
+      txj = uid();
       S.tx.push({
-        id: uid(), type: 'inv', side: side, hold: x.id, hname: x.name, qty: q, amt: r2(fromTL(tl, acct)), acct: acct, date: d, note: fee > 0 ? 'Komisyon ' + TRY2.format(fee) + ' dahil' : ''
+        id: txj, type: 'inv', side: side, hold: x.id, hname: x.name, qty: q, amt: r2(fromTL(tl, acct)), acct: acct, date: d, note: fee > 0 ? 'Komisyon ' + TRY2.format(fee) + ' dahil' : ''
       });
+    }
+    if (!ast)
+      S.hlog.push({ id: uid(), side: side, hold: x.id, hname: x.name, qty: q, tl: r2(tl), date: d, tx: txj, pl: side === 'sell' ? r2((p - cost0) * q - fee) : undefined });
     save();
     closeSheet();
     render();
@@ -10822,10 +11021,11 @@ document.addEventListener('securitypolicyviolation', function (e) {
   }
   /* Ana sayfa şeridi: takip listesinin ilk dördü, değişim yüzdesi ve küçük grafik */
   function mStrip() {
-    var l = S.watch.slice(0, 4), t = mLast();
+    /* 4.41: ana sayfada takip listesi: ilk 6 kalem; tümü Piyasalar sayfasında */
+    var l = S.watch.slice(0, 6), t = mLast();
     if (!l.length)
       return '';
-    return '<button class="card mstrip" data-act="open-mkt" aria-label="Piyasalar"><span class="mhead"><b>Piyasalar</b><span class="small muted">' + (offline() ? 'Çevrimdışı · ' : '') + (t ? esc(ago(t)) : 'fiyatlar alınıyor') + ' ›</span></span><span class="rgrid">' + l.map(function (w) {
+    return '<button class="card mstrip" data-act="open-mkt" aria-label="Takip listem: Piyasalar"><span class="mhead"><b>Takip listem</b><span class="small muted">' + (offline() ? 'Çevrimdışı · ' : '') + (t ? esc(ago(t)) : 'fiyatlar alınıyor') + ' ›</span></span><span class="rgrid">' + l.map(function (w) {
       var q = mQ(w.k);
       return '<span class="rt"><span class="lbl ell">' + esc(mk(w.k).src === 'fx' ? mName(w.k).replace(' endeksi', '') : mSym(w.k)) + '</span><span class="num">' + (q && q.p > 0 ? fmtPx(q.p, q.ccy || 'TRY', w.k) : '—') + '</span><span class="rtb">' + (q ? chgSpan(q.c) : '') + sparkSvg(q && q.h, 44, 16) + '</span></span>';
     }).join('') + '</span></button>';

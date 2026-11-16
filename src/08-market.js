@@ -1012,10 +1012,11 @@
   }
   /* Ana sayfa şeridi: takip listesinin ilk dördü, değişim yüzdesi ve küçük grafik */
   function mStrip() {
-    var l = S.watch.slice(0, 4), t = mLast();
+    /* 4.41: ana sayfada takip listesi: ilk 6 kalem; tümü Piyasalar sayfasında */
+    var l = S.watch.slice(0, 6), t = mLast();
     if (!l.length)
       return '';
-    return '<button class="card mstrip" data-act="open-mkt" aria-label="Piyasalar"><span class="mhead"><b>Piyasalar</b><span class="small muted">' + (offline() ? 'Çevrimdışı · ' : '') + (t ? esc(ago(t)) : 'fiyatlar alınıyor') + ' ›</span></span><span class="rgrid">' + l.map(function (w) {
+    return '<button class="card mstrip" data-act="open-mkt" aria-label="Takip listem: Piyasalar"><span class="mhead"><b>Takip listem</b><span class="small muted">' + (offline() ? 'Çevrimdışı · ' : '') + (t ? esc(ago(t)) : 'fiyatlar alınıyor') + ' ›</span></span><span class="rgrid">' + l.map(function (w) {
       var q = mQ(w.k);
       return '<span class="rt"><span class="lbl ell">' + esc(mk(w.k).src === 'fx' ? mName(w.k).replace(' endeksi', '') : mSym(w.k)) + '</span><span class="num">' + (q && q.p > 0 ? fmtPx(q.p, q.ccy || 'TRY', w.k) : '—') + '</span><span class="rtb">' + (q ? chgSpan(q.c) : '') + sparkSvg(q && q.h, 44, 16) + '</span></span>';
     }).join('') + '</span></button>';

@@ -745,6 +745,11 @@
       return;
     }
     var op = r2(num(val('a-open'))), cs = document.getElementById('a-ccy');
+    var blk = r2(num(val('a-blk')));
+    if (blk < 0 || tooBig(blk)) {
+      ferr('Blokeli tutar geçersiz.');
+      return;
+    }
     if (tooBig(op) || tooBig(lim)) {
       ferr('Tutar çok büyük (en fazla 100 milyar).');
       return;
@@ -765,6 +770,10 @@
       x.limit = lim;
     else
       delete x.limit;
+    if ((type === 'kart' || type === 'banka') && blk > 0)
+      x.blk = blk;
+    else
+      delete x.blk;
     var cut = parseInt(val('a-cut'), 10);
     if (type === 'kart' && cut >= 1 && cut <= 31)
       x.cut = cut;
@@ -903,6 +912,9 @@
       h = {
         name: nm, type: val('h-type'), kind: 'inv', ccy: cc, qty: q, cost: co || (cc ? rateOf(cc) : (mp || num(val('h-price')))), price: mp || num(val('h-price')) || co || rateOf(cc), mk: mkk || undefined, mks: mkk ? ((x && x.mk === mkk && x.mks) || mSym(mkk)) : undefined
       };
+      var sn = val('h-since');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(sn) && sn <= todayS())
+        h.since = sn;
     }
     if (v !== 'asset') {
       var ye = yRead(h, x);
@@ -934,12 +946,17 @@
     else {
       h.id = uid();
       S.holdings.push(h);
+      var txi = null;
       if (acct && ACCS().indexOf(acct) >= 0 && r2(fromTL(h.qty * h.cost, acct)) > 0) {
         var tl = h.qty * h.cost;
+        txi = uid();
         S.tx.push({
-          id: uid(), type: 'inv', side: 'buy', hold: h.id, hname: h.name, qty: h.qty, amt: r2(fromTL(tl, acct)), acct: acct, date: todayS(), note: ''
+          id: txi, type: 'inv', side: 'buy', hold: h.id, hname: h.name, qty: h.qty, amt: r2(fromTL(tl, acct)), acct: acct, date: todayS(), note: ''
         });
       }
+      /* 4.41: yatırım geçmişi (hesaptan düşülmese de kaydedilir) */
+      if (h.kind === 'inv' && h.qty * h.cost > 0)
+        S.hlog.push({ id: uid(), side: 'buy', hold: h.id, hname: h.name, qty: h.qty, tl: r2(h.qty * h.cost), date: txi ? todayS() : (h.since || todayS()), tx: txi });
     }
     save();
     closeSheet();
@@ -968,6 +985,7 @@
     if (!x)
       return;
     yCrys(x);
+    var cost0 = x.cost;
     var ast = hKind(x) === 'asset', q = ast ? 1 : num(val('tr-qty')), p = num(val('tr-price')), fee = r2(num(val('tr-fee'))), acct = val('tr-acct'), d = val('tr-date') || todayS();
     if (fee < 0) {
       ferr('Komisyon eksi olamaz.');
@@ -1031,10 +1049,15 @@
         });
     }
     delete x.sample;
-    if (acct && r2(fromTL(tl, acct)) > 0)
+    var txj = null;
+    if (acct && r2(fromTL(tl, acct)) > 0) {
+      txj = uid();
       S.tx.push({
-        id: uid(), type: 'inv', side: side, hold: x.id, hname: x.name, qty: q, amt: r2(fromTL(tl, acct)), acct: acct, date: d, note: fee > 0 ? 'Komisyon ' + TRY2.format(fee) + ' dahil' : ''
+        id: txj, type: 'inv', side: side, hold: x.id, hname: x.name, qty: q, amt: r2(fromTL(tl, acct)), acct: acct, date: d, note: fee > 0 ? 'Komisyon ' + TRY2.format(fee) + ' dahil' : ''
       });
+    }
+    if (!ast)
+      S.hlog.push({ id: uid(), side: side, hold: x.id, hname: x.name, qty: q, tl: r2(tl), date: d, tx: txj, pl: side === 'sell' ? r2((p - cost0) * q - fee) : undefined });
     save();
     closeSheet();
     render();

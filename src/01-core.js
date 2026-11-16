@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.40';
+  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.41';
   var D_EXP = ['Market', 'Fatura', 'Kira', 'Ulaşım', 'Yeme-İçme', 'Sağlık', 'Eğlence', 'Giyim', 'Eğitim', 'Diğer'];
   var D_INC = ['Maaş', 'Ek gelir', 'Yatırım getirisi', 'Diğer gelir'];
   var D_ACC = ['Nakit', 'Banka', 'Kredi kartı'];
@@ -413,6 +413,8 @@
     d.recurring = Array.isArray(d.recurring) ? d.recurring : [];
     d.debts = Array.isArray(d.debts) ? d.debts : [];
     d.realized = Array.isArray(d.realized) ? d.realized : [];
+    /* 4.41: yatırım geçmişi: her alım/satım (hesaba yansıtılmasa da) */
+    d.hlog = Array.isArray(d.hlog) ? d.hlog : [];
     d.accounts = (Array.isArray(d.accounts) && d.accounts.length) ? d.accounts : D_ACC.slice();
     d.cats = d.cats || {};
     d.cats.exp = (d.cats.exp && d.cats.exp.length) ? d.cats.exp : D_EXP.slice();
@@ -474,7 +476,7 @@
       d.sms.map = {};
     d.qaUse = d.qaUse || {};
     /* kimlikler HTML özniteliklerine yazılır: dışarıdan gelen (yedek) bozuk ya da tehlikeli kimlikler yenilenir */
-    ['tx', 'holdings', 'notes', 'goals', 'recurring', 'debts', 'realized'].forEach(function (k) {
+    ['tx', 'holdings', 'notes', 'goals', 'recurring', 'debts', 'realized', 'hlog'].forEach(function (k) {
       d[k] = d[k].filter(function (x) {
         return x && typeof x === 'object';
       });
@@ -674,6 +676,12 @@
   }
   function INCC() {
     return S.cats.inc;
+  }
+  /* 4.41: blokeli tutar (provizyon): karttan/hesaptan henüz düşmemiş ama ayrılmış tutar. Bakiyeyi ve net serveti değiştirmez;
+     yalnız kullanılabilir tutarı azaltır (kredi kartında limit, banka hesabında bakiye) */
+  function acctBlk(a) {
+    var t = acctType(a);
+    return t === 'kart' || t === 'banka' ? Math.max(0, +ax(a).blk || 0) : 0;
   }
   function ACCS() {
     return S.accounts;

@@ -742,11 +742,13 @@
       extra.push('≈ ' + TRY0.format(toTL(b, a)));
     if (t === 'kart') {
       if (+x.limit > 0)
-        extra.push('Limit ' + moneyIn(+x.limit, a, 1) + ' · kullanılabilir ' + moneyIn(Math.max(+x.limit + b, 0), a, 1));
+        extra.push('Limit ' + moneyIn(+x.limit, a, 1) + ' · kullanılabilir ' + moneyIn(Math.max(+x.limit + b - acctBlk(a), 0), a, 1));
       if (x.due)
         extra.push('Son ödeme günü: ayın ' + x.due + sfx(x.due));
       cs = cardStmt(a);
     }
+    if (acctBlk(a) > 0)
+      extra.push('Blokeli tutar ' + moneyIn(acctBlk(a), a, 1) + (t === 'banka' ? ' · kullanılabilir ' + moneyIn(b - acctBlk(a), a, 1) : ''));
     if (aRate(a)) {
       var ai = aIntNow(a);
       extra.push('Yıllık %' + NUM2.format(aRate(a)) + ' faiz · bu ay ≈ ' + moneyIn(ai, a) + ' birikti (ay sonunda işlenir)');
@@ -823,6 +825,7 @@
       + '<div class="two"><div class="field"><label for="h-type">Tür</label><select id="h-type">' + optsKeep(INVT, x ? x.type : pre.type) + '</select></div><div class="field"><label for="h-ccy">Fiyat kaynağı</label><select id="h-ccy">' + co + '</select></div></div>'
       + (mkk && mkp > 0 ? '<div class="small muted" id="h-mkp">Güncel piyasa fiyatı: <b class="num">' + TRY2.format(mkp) + '</b></div>' : '')
       + '<div class="two"><div class="field"><label for="h-qty" id="lb-hqty">Adet / miktar</label><input id="h-qty" inputmode="decimal" value="' + (x ? nv(x.qty) : '') + '"></div><div class="field"><label for="h-cost">Ortalama maliyet (₺)</label><input id="h-cost" inputmode="decimal" placeholder="' + (mkp > 0 ? 'Boşsa güncel fiyat' : '') + '" value="' + (x ? nv(x.cost) : '') + '"></div></div>'
+      + '<div class="field"><label for="h-since">İlk alış tarihi</label><input id="h-since" type="date" max="' + todayS() + '" value="' + esc(x ? (hSince(x) || '') : todayS()) + '"><span class="small muted">Reel (enflasyon sonrası) getiri bu tarihten hesaplanır.</span></div>'
       + '<div class="field" id="row-hprice"><label for="h-price">Güncel fiyat (₺)</label><input id="h-price" inputmode="decimal" placeholder="Boş bırakırsan maliyet kullanılır" value="' + (x ? nv(x.price) : '') + '"></div>'
       + yFields(x, x ? x.type : pre.type)
       + (x && !x.mk ? '<button class="btn ghost small" data-act="m-linkmode" data-id="' + x.id + '">' + ic('pulse') + ' Fiyatı piyasadan al (hisse, fon, kripto…)</button>' : '')
@@ -1054,6 +1057,7 @@
     }).join('') + '</select></div><div class="field">' + (used ? '<span class="flbl">Para birimi</span>' : '<label for="a-ccy">Para birimi</label>') + cs + '</div></div>'
       + '<div class="two"><div class="field"><label for="a-open" id="lb-aopen">Başlangıç bakiyesi (' + CSYM[c] + ')</label><input id="a-open" inputmode="decimal" placeholder="0" value="' + (ex ? nv(+S.opening[a] || 0) : '') + '"></div><div class="field" id="row-due"' + (t === 'kart' ? '' : ' hidden') + '><label for="a-due">Son ödeme günü</label><input id="a-due" inputmode="numeric" maxlength="2" placeholder="Örn. 15" value="' + (x.due || '') + '"></div></div>'
       + '<div class="two" id="row-limit"' + (t === 'kart' ? '' : ' hidden') + '><div class="field"><label for="a-limit">Kart limiti</label><input id="a-limit" inputmode="decimal" placeholder="İsteğe bağlı" value="' + (x.limit ? nv(x.limit) : '') + '"></div><div class="field"><label for="a-cut">Hesap kesim günü</label><input id="a-cut" inputmode="numeric" maxlength="2" placeholder="Örn. 5" value="' + (x.cut || '') + '"></div></div>'
+      + '<div class="field" id="row-blk"' + (t === 'kart' || t === 'banka' ? '' : ' hidden') + '><label for="a-blk">Blokeli tutar (provizyon)</label><input id="a-blk" inputmode="decimal" placeholder="İsteğe bağlı" value="' + (+x.blk > 0 ? nv(x.blk) : '') + '"><span class="small muted">Otel, akaryakıt, kiralama gibi henüz kesinleşmemiş çekimler. Kullanılabilir tutardan düşülür; bakiyeni değiştirmez.</span></div>'
       + '<div class="two" id="row-arate"' + (t === 'birikim' ? '' : ' hidden') + '><div class="field"><label for="a-rate">Yıllık faiz (%)</label><input id="a-rate" inputmode="decimal" placeholder="İsteğe bağlı, örn. 38" value="' + (+x.rate > 0 ? nv(x.rate) : '') + '"></div><div class="field"><label for="a-tax">Stopaj (%)</label><input id="a-tax" inputmode="decimal" placeholder="' + NUM1.format(FACTS.dep.t6) + '" value="' + (x.tax != null && x.tax !== '' ? nv(x.tax) : '') + '"></div></div>'
       + '<p class="small muted" style="margin:0" id="row-arate-h"' + (t === 'birikim' ? '' : ' hidden') + '>Günlük faizli (kazandıran) hesaplar için: faiz her günün bakiyesinden hesaplanır, ay sonunda stopaj düşülerek “Yatırım getirisi › Faiz” geliri olarak bu hesaba kendiliğinden işlenir.</p>'
       + '<p class="small muted" style="margin:0" id="a-hint"></p><div class="err" id="f-err"></div>'
@@ -1069,6 +1073,9 @@
       if (r)
         r.hidden = t !== 'kart';
     });
+    var rb = document.getElementById('row-blk');
+    if (rb)
+      rb.hidden = !(t === 'kart' || t === 'banka');
     ['row-arate', 'row-arate-h'].forEach(function (id) {
       var r = document.getElementById(id);
       if (r)

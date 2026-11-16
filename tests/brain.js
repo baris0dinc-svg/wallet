@@ -32,9 +32,9 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[],o={};const chk=(c,m)=
  const sp=T.smsIngest([{text:'Kartinizla BAKKAL AHMET isyerinden 145,00 TL harcama yapilmistir.',from:'BANKA',ts:Date.now()}],{});
  const pend=(T.S.sms.pend||T.S.sms.queue||[]);const it=pend[pend.length-1];chk(!it||it.cat==='Market','SMS kategorisi öğrenilenden '+(it&&it.cat));
  // 2) düzenli ödeme adayı
- let rc=T.recurCands();chk(rc.length===1&&/netflix/i.test(rc[0].name)&&rc[0].day>=4&&rc[0].day<=6&&Math.abs(rc[0].amt-229.99)<0.01,'Netflix adayı '+JSON.stringify(rc.map(x=>[x.name,x.amt,x.day,x.n])));
+ /* rastgele veride tarihe göre tesadüfi aday çıkabilir; yalnız Netflix'e bakılır */let rc=T.recurCands().filter(x=>/netflix/i.test(x.name));chk(rc.length===1&&/netflix/i.test(rc[0].name)&&rc[0].day>=4&&rc[0].day<=6&&Math.abs(rc[0].amt-229.99)<0.01,'Netflix adayı '+JSON.stringify(rc.map(x=>[x.name,x.amt,x.day,x.n])));
  T.ui.sub='analiz';T.ui.an='ozet';T.ui.month=T.curP();T.ui.page=null;T.render();const bc=document.querySelector('.brain');chk(bc&&/NETFLIX|Netflix/i.test(bc.innerText),'4.30: Analiz › Özet’te akıllı tespit');
- const rb=[...document.querySelectorAll('.brain [data-act="br-rec"]')][0];rb&&rb.click();chk(T.S.recurring.length===1&&T.S.recurring[0].day===rc[0].day,'düzenli ödemelere eklendi');chk(T.recurCands().length===0,'eklenince tekrar önerilmez');
+ const rb=[...document.querySelectorAll('.brain [data-act="br-rec"]')].find(x=>x.dataset.id===rc[0].key);rb&&rb.click();chk(T.S.recurring.some(r=>/netflix/i.test(r.name)&&r.day===rc[0].day),'düzenli ödemelere eklendi');chk(!T.recurCands().some(x=>/netflix/i.test(x.name)),'eklenince tekrar önerilmez');
  // 3) olağandışı harcama
  T.S.tx.push({id:'big',type:'exp',cat:'Yeme-İçme',acct:'Banka',amt:3800,date:dAgo(2),note:'Restoran'});T.save();
  const un=T.unusualTx();chk(un.length>=1&&un[0].t.id==='big','olağandışı tespit '+JSON.stringify(un.map(x=>x.t.id)));

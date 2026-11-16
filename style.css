@@ -877,3 +877,11 @@ button.lg{min-height:32px}
 .hcard>div:first-child>.item{min-width:0}.hcard .hval{flex-shrink:0;white-space:nowrap}
 .nwring .rc b.lng{font-size:.75rem}
 .acards{padding:2px 4px 6px}
+
+/* ---------- 4.41 ---------- */
+.rgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (min-width:430px){.rgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:339px){.rgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.asort{margin:-2px 4px 0}.asort .linkbtn{display:inline-flex;align-items:center;gap:6px}.asort .ic{width:16px;height:16px;transform:rotate(90deg)}
+.hcard .hrow{flex-wrap:wrap;gap:8px}.hreal{font-weight:600}
+.hlist .item .aic{flex-shrink:0}

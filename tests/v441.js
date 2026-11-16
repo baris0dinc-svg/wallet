@@ -18,6 +18,11 @@ const F=await p.evaluate(async()=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x
   const kc=[...document.querySelectorAll('.acard')].find(x=>/Kart/.test(x.innerText));c(kc&&/Bloke\s*₺3\.500/.test(kc.innerText)&&/Kullanılabilir\s*₺26\.500/.test(kc.innerText)&&/%47/.test(kc.innerText),'kartta bloke ve kullanılabilir: '+(kc&&kc.innerText.replace(/\n/g,' ')));
   T.ACT['edit-a'](null,'Nakit');await W(100);c($('#row-blk').hidden,'nakitte bloke alanı yok');T.closeSheet();
   S.accx.Nakit.blk=99;c(T.acctBlk('Nakit')===0,'nakitte bloke sayılmaz');
+  // ---- 4.42: hesap penceresinde logo (karttaki ile aynı) ----
+  T.renameAcct&&0;S.accounts.push('Garanti');S.accx.Garanti={type:'banka'};T.save();T.render();
+  {const gc=[...document.querySelectorAll('.acard')].find(x=>/Garanti/.test(x.innerText));const ci=gc&&gc.querySelector('.aic img');T.ACT['acct-open'](null,'Garanti');const hi=$('.sheet .ghead .sic img');c(!!ci&&!!hi&&hi.dataset.d===ci.dataset.d,'hesap penceresinde kartla aynı logo');T.closeSheet();
+   T.ACT['acct-open'](null,'Nakit');await W(100);c(!$('.sheet .ghead .sic img'),'logosu olmayan hesapta simge');T.closeSheet();}
+  S.accounts.pop();delete S.accx.Garanti;T.save();T.render();
   // ---- sıralama ----
   c(!!$('[data-act="acct-sort"]'),'Sırala düğmesi');T.ACT['acct-sort']();await W(100);c(document.querySelectorAll('.sheet [data-act="as-mv"]').length===6,'sıralama penceresi');
   T.ACT['as-mv'](null,'Kart','-1');T.ACT['as-mv'](null,'Kart','-1');T.ACT['as-mv'](null,'Kart','-1');c(S.accounts.join()==='Kart,Nakit,Banka','kart başa alındı: '+S.accounts.join());

@@ -885,3 +885,9 @@ button.lg{min-height:32px}
 .asort{margin:-2px 4px 0}.asort .linkbtn{display:inline-flex;align-items:center;gap:6px}.asort .ic{width:16px;height:16px;transform:rotate(90deg)}
 .hcard .hrow{flex-wrap:wrap;gap:8px}.hreal{font-weight:600}
 .hlist .item .aic{flex-shrink:0}
+
+/* 4.42: hesap penceresinde banka logosu */
+.sic.mlg{position:relative;overflow:hidden}
+.sic.mlg img{position:absolute;inset:0;width:100%;height:100%;max-width:none;object-fit:contain;background:#fff;border-radius:inherit;opacity:0}
+.sic.mlg.ok img{opacity:1}
+.sic.mlg.ok{box-shadow:inset 0 0 0 1px var(--line)}

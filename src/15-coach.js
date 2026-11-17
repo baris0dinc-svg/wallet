@@ -113,8 +113,8 @@
     var incN = ks.filter(function (k) {
       return sum(monthTx(k), 'inc') > 0;
     }).length;
-    var surplus = r2(inc - exp), sr = inc > 0 ? surplus / inc * 100 : null;
-    var eg = emGoal(), em = eg ? goalSaved(eg) : Math.max(W.g.liquid, 0), aex = avgMonthly('exp'), emM = aex > 0 ? em / aex : null;
+    var surplus = r2(inc - exp), sr = inc > 0 && exp > 0 ? surplus / inc * 100 : null; /* 4.44: gider kaydı yokken %100 tasarruf gösterilmez */
+    var eg = emGoal(), em = eg ? goalSaved(eg) : Math.max(W.g.liquid, 0), aex = expBase().v, emM = aex > 0 ? em / aex : null;
     /* vadesiz TL: nakit ve banka türü TL hesaplardaki artı bakiyeler (birikim hesapları faizli sayılır) */
     var vad = 0, buck = {
       tl: 0, fx: 0, gold: 0, eq: 0, fon: 0, kripto: 0, bes: 0, diger: 0
@@ -313,8 +313,9 @@
     })();
     /* 4. acil durum fonu */
     (function () {
-      var s = { id: 'acil', t: 'Acil durum fonu: 3–6 aylık gider', act: ['Acil durum fonu', 'em-open'] };
+      var s = { id: 'acil', t: 'Acil durum fonu: 3–6 aylık gider', act: ['Acil durum fonu', 'em-open'] }, G = expBase().v;
       if (!(G > 0)) {
+        s.act = ['Aylık giderini gir', 'exp-set'];
         s.st = 'need';
         s.sum = 'Aylık gider ortalaman yok.';
         s.body = 'Fon hedefi aylık giderine göre hesaplanır.';
@@ -459,7 +460,7 @@
     };
     h += '<div class="card kochead"><div class="ghead">' + ring + '<span class="mid"><h2 style="margin:0">Finansal durumun</h2><div class="small muted">' + (sc == null ? 'Puan için gelir-gider kaydı gerekli.' : scoreWord(sc) + ' · 100 üzerinden ' + sc) + '</div></span></div><div class="ktg">'
       + tile('Tasarruf oranı', D.sr == null ? '—' : (D.sr < 0 ? '−' : '') + '%' + Math.round(Math.abs(D.sr)), 'an-go', 'ozet')
-      + tile('Acil durum fonu', D.emM == null ? '—' : NUM1.format(D.emM) + ' ay', 'em-open')
+      + tile('Acil durum fonu', D.emM == null ? '—' : (D.emM > 99 ? '99+' : NUM1.format(D.emM)) + ' ay', D.emM == null ? 'exp-set' : 'em-open')
       + tile('Borç', D.cardDebt + D.debts.reduce(function (a, x) {
         return a + x.left;
       }, 0) > 0 ? compactT(D.cardDebt + D.debts.reduce(function (a, x) {

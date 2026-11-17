@@ -16,23 +16,24 @@
     return a;
   }
   function health() {
-    var W = wealth(), ae = avgMonthly('exp'), cur = curP(), parts = [];
+    var W = wealth(), eb = expBase(), ae = eb.v, cur = curP(), parts = [];
     var ks = monthBase().ks.slice(0, 3).filter(function (k) {
-      return sum(monthTx(k), 'inc') > 0;
+      return sum(monthTx(k), 'inc') > 0 && sum(monthTx(k), 'exp') > 0;
     });
-    if (!ks.length && sum(monthTx(cur), 'inc') > 0)
+    /* 4.44: gider kaydı olmayan dönem tasarruf oranına katılmaz (yalnız gelir girilince %100 çıkıyordu) */
+    if (!ks.length && sum(monthTx(cur), 'inc') > 0 && sum(monthTx(cur), 'exp') > 0)
       ks = [cur];
     var sr = ks.length ? ks.reduce(function (a, k) {
       return a + pstat(k).rate;
     }, 0) / ks.length : null;
     parts.push({
-      k: 'Tasarruf oranı', v: sr == null ? '—' : (sr < 0 ? '−' : '') + '%' + Math.round(Math.abs(sr)), p: sr == null ? null : clamp(sr / 20, 0, 1), tip: sr == null ? 'Gelir kaydı yok.' : (sr >= 20 ? 'Gelirinin en az %20’sini biriktiriyorsun.' : 'Hedef: gelirin en az %20’si.')
+      k: 'Tasarruf oranı', v: sr == null ? '—' : (sr < 0 ? '−' : '') + '%' + Math.round(Math.abs(sr)), p: sr == null ? null : clamp(sr / 20, 0, 1), tip: sr == null ? 'Gelir ve gider kaydı olan dönem yok.' : (sr >= 20 ? 'Gelirinin en az %20’sini biriktiriyorsun.' : 'Hedef: gelirin en az %20’si.')
     });
     var eg = emGoal(), ef = eg ? goalSaved(eg) : Math.max(W.g.liquid, 0), em = ae > 0 ? ef / ae : null, six = ae > 0 ? ' 6 aylık gider: ' + TRY0.format(ae * 6) + '.' : '';
     parts.push({
-      k: 'Acil durum fonu', act: 'em-open', v: em == null ? (eg ? TRY0.format(ef) : '—') : NUM1.format(em) + ' ay', p: em == null ? null : clamp(em / 6, 0, 1),
-      tip: eg ? ('“' + eg.name + '” hedefinde ' + TRY0.format(ef) + ' var.' + (em == null ? ' Gider kaydı olunca kaç aylık gideri karşıladığı hesaplanır.' : six)) :
-        (em == null ? 'Gider kaydı yok. Acil durum fonunu girmek için dokun.' : 'Nakit, banka ve birikim toplamına göre.' + six + ' Ayrı bir acil durum fonu girmek için dokun.')
+      k: 'Acil durum fonu', act: em == null ? 'exp-set' : 'em-open', v: em == null ? (eg ? TRY0.format(ef) : '—') : (em > 99 ? '99+' : NUM1.format(em)) + ' ay', p: em == null ? null : clamp(em / 6, 0, 1),
+      tip: eg ? ('“' + eg.name + '” hedefinde ' + TRY0.format(ef) + ' var.' + (em == null ? ' Aylık giderini girmek için dokun; kaç aylık gideri karşıladığı hesaplanır.' : six + ' Gider tabanı: ' + expSrcTxt(eb) + '.')) :
+        (em == null ? 'Yeterli gider kaydı yok. Aylık giderini girmek için dokun.' : 'Nakit, banka ve birikim toplamı ÷ aylık gider (' + TRY0.format(ae) + ', ' + expSrcTxt(eb) + ').' + six + ' Ayrı bir acil durum fonu girmek için dokun.')
     });
     var dr = W.assets > 0 ? W.debt / W.assets : (W.debt > 0 ? 1 : 0);
     parts.push({

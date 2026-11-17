@@ -44,7 +44,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
 });
 (function () {
   'use strict';
-  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.43';
+  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.44';
   var D_EXP = ['Market', 'Fatura', 'Kira', 'Ulaşım', 'Yeme-İçme', 'Sağlık', 'Eğlence', 'Giyim', 'Eğitim', 'Diğer'];
   var D_INC = ['Maaş', 'Ek gelir', 'Yatırım getirisi', 'Diğer gelir'];
   var D_ACC = ['Nakit', 'Banka', 'Kredi kartı'];
@@ -1953,6 +1953,30 @@ document.addEventListener('securitypolicyviolation', function (e) {
       return a + b;
     }, 0) / v.length : 0;
   }
+  /* 4.44: güvenilir aylık gider tabanı (acil durum fonu ve FIRE aynı sayıyı kullanır).
+     Sıra: kullanıcının girdiği aylık harcama → tamamlanmış dönemlerin ortalaması (en az 3 gider kaydı) → düzenli ödemeler toplamı.
+     Yarım dönemdeki birkaç kayıt taban sayılmaz: gideri olduğundan küçük, fonu "126 ay" gibi gösteriyordu. */
+  function expBase() {
+    var man = +S.fire.exp > 0 ? +S.fire.exp : 0, rec = recMonthlyTot();
+    if (man)
+      return { v: man, src: 'man', rec: rec };
+    var B = monthBase(), n = 0;
+    B.ks.forEach(function (k) {
+      monthTx(k).forEach(function (t) {
+        if (t.type === 'exp')
+          n++;
+      });
+    });
+    var avg = !B.part && n >= 3 ? avgMonthly('exp') : 0;
+    if (avg > 0 && avg >= rec)
+      return { v: avg, src: 'avg', rec: rec, n: n };
+    if (rec > 0)
+      return { v: rec, src: 'rec', rec: rec, n: n };
+    return { v: avg, src: avg > 0 ? 'avg' : '', rec: rec, n: n };
+  }
+  function expSrcTxt(b) {
+    return b.src === 'man' ? 'girdiğin aylık gider' : (b.src === 'avg' ? 'geçmiş dönemlerin ortalaması' : (b.src === 'rec' ? 'düzenli ödemelerin toplamı' : ''));
+  }
   /* ---------- FIRE ---------- */
   function monthsToFI(P, C, rm, T) {
     if (P >= T)
@@ -1970,8 +1994,11 @@ document.addEventListener('securitypolicyviolation', function (e) {
     return t > 0 ? t * rateOf(f.tccy || 'TRY') : 0;
   }
   function fireModel() {
-    var f = S.fire, autoE = avgMonthly('exp'), autoS = avgSave();
+    var f = S.fire, autoE = (function () { var fx = S.fire.exp; S.fire.exp = ''; var b = expBase(); S.fire.exp = fx; return b.v; })(), autoS = avgSave();
     var exp = (+f.exp > 0) ? +f.exp : autoE;
+    /* aylık harcama elle girildiyse otomatik birikim de ona göre: ortalama gelir − girilen harcama */
+    if (+f.exp > 0 && avgMonthly('inc') > 0)
+      autoS = avgMonthly('inc') - (+f.exp);
     var sv = (f.save !== '' && f.save != null) ? +f.save : Math.max(autoS, 0);
     var assets = (f.acc ? accTotal() - debtManual() : 0) + (f.pf ? pfTotals('inv').v : 0) + (f.ast ? pfTotals('asset').v : 0) + (+f.extra || 0);
     var wr = Math.max(+f.wr, 0.1) / 100, rm = Math.pow(1 + (+f.ret) / 100, 1 / 12) - 1, custom = fireTargetTL();
@@ -1998,6 +2025,14 @@ document.addEventListener('securitypolicyviolation', function (e) {
       mo = 0;
     }
     return ((y ? y + ' yıl ' : '') + (mo ? mo + ' ay' : '')).trim() || '1 ay';
+  }
+  /* 4.44: süre metni; birikim yokken "100 yıldan fazla" yerine nedenini söyler */
+  function fireEta(m) {
+    if (m.n <= 0)
+      return 'Hedefe ulaştın';
+    if (!isFinite(m.n) && !(m.sv > 0))
+      return 'Aylık birikim yok; süre hesaplanamıyor';
+    return 'Tahmini süre: ' + fmtYears(m.n) + (fireDate(m.n) ? ' · ' + fireDate(m.n) : '');
   }
   function fireDate(n) {
     if (!isFinite(n) || n > 1200 || n <= 0)
@@ -2935,18 +2970,99 @@ document.addEventListener('securitypolicyviolation', function (e) {
         return homeWealth();
       }], piyasa: ['Takip listem', function () {
         return mStrip();
+      }],
+    /* 4.44: Portföy ve Gelişim kartları da ana sayfaya eklenebilir (ilk düzende kapalı; Ana sayfayı düzenle'den açılır) */
+    pf: ['Portföy özeti', function () {
+        return hwPf();
+      }], yat: ['Yatırımlarım', function () {
+        return hwYat();
+      }], yhist: ['Yatırım geçmişi', function () {
+        return histCard();
+      }], saglik: ['Finansal sağlık', function () {
+        return hwSaglik();
+      }], hedef: ['Hedeflerim', function () {
+        return hwHedef();
+      }], fire: ['Finansal özgürlük (FIRE)', function () {
+        return fireCard();
+      }], koc: ['Koç: sıradaki adım', function () {
+        return hwKoc();
       }]
   };
+  var HWOPT = ['pf', 'yat', 'yhist', 'saglik', 'hedef', 'fire', 'koc'];
+  var HWGRP = { pf: 'Portföy', yat: 'Portföy', yhist: 'Portföy', saglik: 'Gelişim', hedef: 'Gelişim', fire: 'Gelişim', koc: 'Gelişim' };
+  function hwHead(t, act, v, more) {
+    return '<div class="ghead"><h2 style="margin:0;flex:1">' + t + '</h2><button class="linkbtn" data-act="' + act + '"' + (v ? ' data-v="' + v + '"' : '') + '>' + (more || 'Tümü') + ' ›</button></div>';
+  }
+  function hwEmpty(t, txt, act, v, lb) {
+    return '<div class="card" style="padding-top:12px">' + hwHead(t, act, v, lb) + '<div class="small muted">' + txt + '</div></div>';
+  }
+  function hwPf() {
+    var inv = S.holdings.filter(function (x) {
+      return hKind(x) === 'inv';
+    });
+    if (!inv.length)
+      return hwEmpty('Portföyüm', 'Henüz yatırım yok. Hisse, fon, altın, döviz ya da mevduat ekle.', 'sub', 'portfoy', 'Portföy');
+    var pf = pfTotals('inv'), pl = pf.v - pf.c, plp = pf.c ? pl / pf.c * 100 : 0, pr = pfReal(inv), dd = pfDay();
+    return '<div class="card" style="padding-top:12px">' + hwHead('Portföyüm', 'sub', 'portfoy', 'Portföy')
+      + '<p class="big" style="margin:0">' + TRY0.format(pf.v) + '</p>'
+      + '<div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Kâr / zarar</div><span class="num ' + (pl >= 0 ? 'inc' : 'exp') + '">' + sgn(pl) + ' (' + (pl >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(plp)) + ')</span></div>'
+      + '<div><div class="lbl">' + (pr ? 'Reel getiri' : 'Bugün') + '</div><span class="num ' + ((pr ? pr.real : (dd ? dd.d : 0)) >= 0 ? 'inc' : 'exp') + '">' + (pr ? pctS(pr.real) : (dd ? sgn(dd.d) : '—')) + '</span></div></div></div>';
+  }
+  function hwYat() {
+    var inv = S.holdings.filter(function (x) {
+      return hKind(x) === 'inv';
+    }).sort(function (a, b) {
+      return hVal(b) - hVal(a);
+    });
+    if (!inv.length)
+      return hwEmpty('Yatırımlarım', 'Henüz yatırım yok.', 'sub', 'portfoy', 'Portföy');
+    return '<div class="card" style="padding-top:12px">' + hwHead('Yatırımlarım', 'sub', 'portfoy', inv.length > 4 ? 'Tümü (' + inv.length + ')' : 'Portföy') + '<div class="list">' + inv.slice(0, 4).map(function (x) {
+      var v = hVal(x), c = hCost(x), pl = v - c, p = c ? pl / c * 100 : 0;
+      return '<button class="item" data-act="edit-h" data-id="' + x.id + '">' + holdIc(x) + '<span class="mid"><div class="t ell">' + esc(x.name) + '</div><div class="small muted">' + esc(x.type) + '</div></span><span class="amt" style="text-align:right"><div class="num">' + TRY0.format(v) + '</div><div class="small num ' + (pl >= 0 ? 'inc' : 'exp') + '">' + (pl >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(p)) + '</div></span></button>';
+    }).join('') + '</div></div>';
+  }
+  function hwSaglik() {
+    var H = health(), sc = H.score;
+    return '<div class="card" style="padding-top:12px">' + hwHead('Finansal sağlık', 'an', 'ozet', 'Gelişim')
+      + '<div style="display:flex;align-items:baseline;gap:10px"><span class="num" style="font-size:1.75rem;font-weight:700">' + (sc == null ? '—' : sc) + '</span><span class="small muted">' + (sc == null ? 'Puan için gelir ve gider kaydı gerekli' : '/ 100 · ' + scoreWord(sc)) + '</span></div>'
+      + (sc == null ? '' : '<span class="bar" style="display:block"><i style="width:' + sc + '%"></i></span>')
+      + '<div class="row3" style="grid-template-columns:repeat(' + Math.min(H.parts.length, 4) + ',1fr)">' + H.parts.slice(0, 4).map(function (p) {
+        return '<div><div class="lbl">' + p.k + '</div><span class="num">' + p.v + '</span></div>';
+      }).join('') + '</div></div>';
+  }
+  function hwHedef() {
+    if (!S.goals.length)
+      return hwEmpty('Hedeflerim', 'Henüz hedef yok. Tatil, acil durum fonu ya da büyük bir alışveriş için hedef koy.', 'plan', 'hedef', 'Hedef ekle');
+    return '<div class="card" style="padding-top:12px">' + hwHead('Hedeflerim', 'plan', 'hedef', S.goals.length > 3 ? 'Tümü (' + S.goals.length + ')' : 'Hedefler') + '<div class="stack" style="gap:12px">' + S.goals.slice(0, 3).map(function (g) {
+      var sv = goalSaved(g), p = +g.target > 0 ? clamp(sv / g.target * 100, 0, 100) : 0;
+      return '<button class="plain" style="display:block;width:100%;text-align:left" data-act="edit-g" data-id="' + g.id + '"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span class="t ell">' + esc(g.name) + '</span><span class="small muted num">' + TRY0.format(sv) + ' / ' + TRY0.format(+g.target || 0) + '</span></span><span class="bar" style="display:block;margin-top:6px"><i style="width:' + p + '%"></i></span></button>';
+    }).join('') + '</div></div>';
+  }
+  function hwKoc() {
+    var l = coachSteps(), i = coachCur(l), st = i >= 0 ? l[i] : null;
+    return '<div class="card" style="padding-top:12px">' + hwHead('Koç', 'plan', 'koc', 'Yol haritası')
+      + (st ? '<div class="t">' + (i + 1) + '. ' + esc(st.t) + '</div><div class="small muted">' + esc(st.sum || '') + '</div>' : '<div class="small muted">Bütün adımlar tamam. Yol haritasına göz at.</div>') + '</div>';
+  }
   var HWDEF = ['donem', 'odeme', 'butce', 'harcama', 'islem', 'piyasa', 'hesap'];
   /* 4.41: Takip listem ana sayfada yine açık gelir (4.38'de kapalı geliyordu); Ana sayfayı düzenle'den gizlenebilir */
   function homeOffs() {
-    return S.homeOff || {};
+    var o = {}, f = S.homeOff || {}, on = S.homeOn || {};
+    Object.keys(f).forEach(function (k) {
+      o[k] = f[k];
+    });
+    HWOPT.forEach(function (k) {
+      if (on[k])
+        delete o[k];
+      else
+        o[k] = 1;
+    });
+    return o;
   }
   function homeLay() {
     var l = (Array.isArray(S.homeLay) ? S.homeLay : []).filter(function (k, i, a) {
       return HW[k] && a.indexOf(k) === i;
     });
-    HWDEF.forEach(function (k) {
+    HWDEF.concat(HWOPT).forEach(function (k) {
       if (l.indexOf(k) < 0)
         l.push(k);
     });
@@ -2954,8 +3070,8 @@ document.addEventListener('securitypolicyviolation', function (e) {
   }
   function homeEditHtml() {
     var l = homeLay(), off = homeOffs();
-    return '<h2>Ana sayfayı düzenle</h2><p class="small muted" style="margin-top:-6px">Net Servetim ve hızlı işlemler en üstte sabit. Diğer kartları sırala ya da gizle.</p><div class="list hlist">' + l.map(function (k, i) {
-      return '<div class="item"><span class="mid"><div class="t' + (off[k] ? ' muted' : '') + '">' + HW[k][0] + '</div></span><button class="icon-btn sm" data-act="hl-mv" data-id="' + k + '" data-v="-1" aria-label="' + HW[k][0] + ' yukarı"' + (i ? '' : ' disabled') + '>' + ic('l') + '</button><button class="icon-btn sm" data-act="hl-mv" data-id="' + k + '" data-v="1" aria-label="' + HW[k][0] + ' aşağı"' + (i < l.length - 1 ? '' : ' disabled') + '>' + ic('r') + '</button>'
+    return '<h2>Ana sayfayı düzenle</h2><p class="small muted" style="margin-top:-6px">Net Servetim ve hızlı işlemler en üstte sabit. Diğer kartları sırala ya da gizle. Portföy ve Gelişim kartlarını da buradan açabilirsin.</p><div class="list hlist">' + l.map(function (k, i) {
+      return '<div class="item"><span class="mid"><div class="t' + (off[k] ? ' muted' : '') + '">' + HW[k][0] + '</div>' + (HWGRP[k] ? '<div class="small muted">' + HWGRP[k] + '</div>' : '') + '</span><button class="icon-btn sm" data-act="hl-mv" data-id="' + k + '" data-v="-1" aria-label="' + HW[k][0] + ' yukarı"' + (i ? '' : ' disabled') + '>' + ic('l') + '</button><button class="icon-btn sm" data-act="hl-mv" data-id="' + k + '" data-v="1" aria-label="' + HW[k][0] + ' aşağı"' + (i < l.length - 1 ? '' : ' disabled') + '>' + ic('r') + '</button>'
         + '<button class="row-tgl hltg" data-act="hl-tog" data-id="' + k + '" role="switch" aria-checked="' + !off[k] + '" aria-label="' + HW[k][0] + ' görünsün"><span class="sw"></span></button></div>';
     }).join('') + '</div><button class="btn ghost" data-act="hl-reset">Varsayılan düzen</button>';
   }
@@ -2981,7 +3097,16 @@ document.addEventListener('securitypolicyviolation', function (e) {
     hlRefresh();
   };
   ACT['hl-tog'] = function (el, id) {
-    S.homeOff = S.homeOff || homeOffs();
+    if (HWOPT.indexOf(id) >= 0) {
+      S.homeOn = S.homeOn || {};
+      if (S.homeOn[id])
+        delete S.homeOn[id];
+      else
+        S.homeOn[id] = 1;
+      hlRefresh();
+      return;
+    }
+    S.homeOff = S.homeOff || {};
     if (S.homeOff[id])
       delete S.homeOff[id];
     else
@@ -2991,6 +3116,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
   ACT['hl-reset'] = function () {
     delete S.homeLay;
     delete S.homeOff;
+    delete S.homeOn;
     hlRefresh();
     toast('Varsayılan düzen');
   };
@@ -3376,7 +3502,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     return '<button class="card firecard stack" data-act="open-fire" style="gap:10px"><span style="display:flex;align-items:center;gap:12px"><span class="sic" style="--c:var(--exp)">' + ic('fire') + '</span><span class="mid"><div class="t">Finansal özgürlük (FIRE)</div><div class="small muted">' + (m.custom ? 'Kendi belirlediğin hedef' : 'Harcamana göre hesaplanan hedef') + '</div></span>' + ic('r') + '</span>'
       + '<span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap"><span class="num" style="font-size:1.75rem;font-weight:700">%' + NUM2.format(m.prog) + '</span><span class="small muted num">' + DC0.format(Math.max(m.assets, 0)) + ' / ' + DC0.format(m.target) + '</span></span>'
       + '<span class="bar"><i style="width:' + m.prog + '%"></i></span>'
-      + '<span class="small muted">' + (m.n <= 0 ? 'Hedefe ulaştın' : 'Tahmini süre: <b>' + esc(fmtYears(m.n)) + '</b>' + (fireDate(m.n) ? ' · ' + esc(fireDate(m.n)) : '')) + '</span></button>';
+      + '<span class="small muted">' + esc(fireEta(m)) + '</span></button>';
   }
   var RNG = [['ay', 'Dönem'], ['gun', 'Bugün'], ['hafta', 'Hafta'], ['yil', 'Yıl'], ['ozel', 'Tarih']];
   function wkStart() {
@@ -3491,23 +3617,24 @@ document.addEventListener('securitypolicyviolation', function (e) {
     return a;
   }
   function health() {
-    var W = wealth(), ae = avgMonthly('exp'), cur = curP(), parts = [];
+    var W = wealth(), eb = expBase(), ae = eb.v, cur = curP(), parts = [];
     var ks = monthBase().ks.slice(0, 3).filter(function (k) {
-      return sum(monthTx(k), 'inc') > 0;
+      return sum(monthTx(k), 'inc') > 0 && sum(monthTx(k), 'exp') > 0;
     });
-    if (!ks.length && sum(monthTx(cur), 'inc') > 0)
+    /* 4.44: gider kaydı olmayan dönem tasarruf oranına katılmaz (yalnız gelir girilince %100 çıkıyordu) */
+    if (!ks.length && sum(monthTx(cur), 'inc') > 0 && sum(monthTx(cur), 'exp') > 0)
       ks = [cur];
     var sr = ks.length ? ks.reduce(function (a, k) {
       return a + pstat(k).rate;
     }, 0) / ks.length : null;
     parts.push({
-      k: 'Tasarruf oranı', v: sr == null ? '—' : (sr < 0 ? '−' : '') + '%' + Math.round(Math.abs(sr)), p: sr == null ? null : clamp(sr / 20, 0, 1), tip: sr == null ? 'Gelir kaydı yok.' : (sr >= 20 ? 'Gelirinin en az %20’sini biriktiriyorsun.' : 'Hedef: gelirin en az %20’si.')
+      k: 'Tasarruf oranı', v: sr == null ? '—' : (sr < 0 ? '−' : '') + '%' + Math.round(Math.abs(sr)), p: sr == null ? null : clamp(sr / 20, 0, 1), tip: sr == null ? 'Gelir ve gider kaydı olan dönem yok.' : (sr >= 20 ? 'Gelirinin en az %20’sini biriktiriyorsun.' : 'Hedef: gelirin en az %20’si.')
     });
     var eg = emGoal(), ef = eg ? goalSaved(eg) : Math.max(W.g.liquid, 0), em = ae > 0 ? ef / ae : null, six = ae > 0 ? ' 6 aylık gider: ' + TRY0.format(ae * 6) + '.' : '';
     parts.push({
-      k: 'Acil durum fonu', act: 'em-open', v: em == null ? (eg ? TRY0.format(ef) : '—') : NUM1.format(em) + ' ay', p: em == null ? null : clamp(em / 6, 0, 1),
-      tip: eg ? ('“' + eg.name + '” hedefinde ' + TRY0.format(ef) + ' var.' + (em == null ? ' Gider kaydı olunca kaç aylık gideri karşıladığı hesaplanır.' : six)) :
-        (em == null ? 'Gider kaydı yok. Acil durum fonunu girmek için dokun.' : 'Nakit, banka ve birikim toplamına göre.' + six + ' Ayrı bir acil durum fonu girmek için dokun.')
+      k: 'Acil durum fonu', act: em == null ? 'exp-set' : 'em-open', v: em == null ? (eg ? TRY0.format(ef) : '—') : (em > 99 ? '99+' : NUM1.format(em)) + ' ay', p: em == null ? null : clamp(em / 6, 0, 1),
+      tip: eg ? ('“' + eg.name + '” hedefinde ' + TRY0.format(ef) + ' var.' + (em == null ? ' Aylık giderini girmek için dokun; kaç aylık gideri karşıladığı hesaplanır.' : six + ' Gider tabanı: ' + expSrcTxt(eb) + '.')) :
+        (em == null ? 'Yeterli gider kaydı yok. Aylık giderini girmek için dokun.' : 'Nakit, banka ve birikim toplamı ÷ aylık gider (' + TRY0.format(ae) + ', ' + expSrcTxt(eb) + ').' + six + ' Ayrı bir acil durum fonu girmek için dokun.')
     });
     var dr = W.assets > 0 ? W.debt / W.assets : (W.debt > 0 ? 1 : 0);
     parts.push({
@@ -4081,14 +4208,14 @@ document.addEventListener('securitypolicyviolation', function (e) {
     var tgt = sec('Hedefin', '<div class="two" style="grid-template-columns:1fr auto;align-items:end">' + fld('FIRE hedef tutarı', 'fi-target', 'fire.target', 'auto', m.auto > 0 && rateOf(f.tccy) > 0 ? 'Otomatik: ' + NUM2.format(Math.round(m.auto / rateOf(f.tccy))) : 'Örn. 10.000.000') + '<div class="field"><label for="fi-tccy">Para birimi</label>' + ccySel('fi-tccy', f.tccy) + '</div></div>'
       + (m.noRate ? '<div class="small exp">' + esc(CCYN[f.tccy]) + ' kuru yok; hedef otomatik hesaplanıyor. Kurları güncelle.</div>' : '')
       + (+f.target > 0 ? '<button class="linkbtn" style="align-self:flex-start;padding-left:0" data-act="fire-auto">Otomatik hedefe dön</button>' : ''), 'Boş bırakırsan hedef, yıllık harcaman ÷ çekim oranı olarak hesaplanır. Hedefi dolar, euro ya da altın olarak girersen her gün güncel kurla TL’ye çevrilir.');
-    var assume = sec('Varsayımlar', fld('Aylık harcama (₺)', 'fi-exp', 'fire.exp', 'auto', 'Otomatik: ' + (m.autoE > 0 ? TRY0.format(m.autoE) : 'veri yok'))
+    var assume = sec('Varsayımlar', fld('Aylık harcama (₺)', 'fi-exp', 'fire.exp', 'auto', 'Otomatik: ' + (m.autoE > 0 ? TRY0.format(m.autoE) : 'yeterli kayıt yok'))
       + fld('Aylık birikim (₺)', 'fi-save', 'fire.save', 'auto', 'Otomatik: ' + TRY0.format(Math.max(m.autoS, 0)))
       + '<div class="two">' + fld('Yıllık reel getiri (%)', 'fi-ret', 'fire.ret', 'num', '4') + fld('Çekim oranı (%)', 'fi-wr', 'fire.wr', 'num', '4') + '</div>'
       + tgl('fire.acc', 'Hesapları ve borçları say', 'Nakit, banka ve kart bakiyelerin; kayıtlı borçların düşülür') + tgl('fire.pf', 'Yatırımları say', 'Hisse, fon, altın, döviz, kripto ve mevduat') + tgl('fire.ast', 'Diğer varlıkları say', 'Ev, araba gibi; genelde oturduğun ev sayılmaz')
       + fld('Ek yatırım varlığı (₺)', 'fi-extra', 'fire.extra', 'num', '0'), 'Boş bıraktığın alanlar geçmiş dönemlerdeki işlemlerinden otomatik hesaplanır. Reel getiri, enflasyondan arındırılmış yıllık getiridir.');
     if (!m.ok)
       return tgt + sec('', '<div class="empty" style="padding:8px">Hedef tutarını ya da aylık harcamanı gir; sonuçlar burada görünür.</div>') + assume;
-    h += '<div class="card hero"><div class="nwtop"><span class="lbl">FIRE ilerlemesi</span></div><p class="big">%' + NUM2.format(m.prog) + '</p><div class="bar"><i style="width:' + m.prog + '%"></i></div><div class="small muted" style="margin-top:8px">' + (m.n <= 0 ? 'Hedefe ulaştın.' : 'Tahmini süre <b>' + esc(fmtYears(m.n)) + '</b>' + (fireDate(m.n) ? ' · ' + esc(fireDate(m.n)) : '')) + '</div></div>';
+    h += '<div class="card hero"><div class="nwtop"><span class="lbl">FIRE ilerlemesi</span></div><p class="big">%' + NUM2.format(m.prog) + '</p><div class="bar"><i style="width:' + m.prog + '%"></i></div><div class="small muted" style="margin-top:8px">' + esc(fireEta(m)) + '</div>' + (!isFinite(m.n) && !(m.sv > 0) ? '<div class="small muted" style="margin-top:4px">Gelir ve gider kayıtların azsa aşağıdaki “Aylık birikim” alanına elle yaz.</div>' : '') + '</div>';
     h += tgt;
     h += sec('Özet', res([['FIRE hedefi' + (m.custom ? ' (senin)' : ' (otomatik)'), DC0.format(m.target), 1], ['Mevcut varlık', DC0.format(P)], ['Kalan', DC0.format(Math.max(m.target - P, 0))], ['Aylık birikim', DC0.format(m.sv)], ['Bugünkü varlığın aylık pasif geliri', DC0.format(m.passive)], ['Hedefin karşıladığı aylık harcama', DC0.format(m.target * m.wr / 12)]]), 'Tutarlar seçtiğin para biriminde güncel kurla gösterilir.');
     var sc = [['Sade yaşam (hedefin %70’i)', .7], ['Mevcut hedef', 1], ['Rahat yaşam (%130)', 1.3]];
@@ -5576,7 +5703,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     }
   }
   function gSheet(id, pre) {
-    var g = id ? byId(S.goals, id) : null, ae = avgMonthly('exp'), em = g ? isEm(g) : !!(pre && pre.em), nm = g ? g.name : (em ? 'Acil durum fonu' : ''), tg = g ? nv(g.target) : (em && ae > 0 ? nv(Math.ceil(ae * 6 / 1000) * 1000) : '');
+    var g = id ? byId(S.goals, id) : null, ae = expBase().v, em = g ? isEm(g) : !!(pre && pre.em), nm = g ? g.name : (em ? 'Acil durum fonu' : ''), tg = g ? nv(g.target) : (em && ae > 0 ? nv(Math.ceil(ae * 6 / 1000) * 1000) : '');
     openSheet('<h2>' + (g ? 'Hedefi düzenle' : 'Yeni hedef') + '</h2><div class="field"><label for="g-name">Ad</label><input id="g-name" placeholder="Örn. Yaz tatili" value="' + esc(nm) + '"></div><div class="two"><div class="field"><label for="g-target">Hedef tutar (₺)</label><input id="g-target" inputmode="decimal" value="' + tg + '"></div><div class="field" id="row-gsaved"><label for="g-saved">Biriken (₺)</label><input id="g-saved" inputmode="decimal" value="' + (g ? nv(g.saved || 0) : '0') + '"></div></div>'
       + '<div class="two"><div class="field"><label for="g-acct">Bağlı hesap</label><select id="g-acct">' + acctOpts(g ? g.acct || '' : '', 'Yok, elle takip et', function (a) {
       return acctType(a) === 'kart';
@@ -7037,6 +7164,32 @@ document.addEventListener('securitypolicyviolation', function (e) {
   /* hedefler */
   ACT['new-g'] = function () {
     gSheet();
+  };
+  /* 4.44: aylık gider elle girilir (acil durum fonu ve FIRE bu sayıyı kullanır) */
+  ACT['exp-set'] = function () {
+    var fx = S.fire.exp;
+    S.fire.exp = '';
+    var b = expBase();
+    S.fire.exp = fx;
+    openSheet('<h2>Aylık giderin</h2><p class="small muted" style="margin:0">Acil durum fonu ve finansal özgürlük (FIRE) hesabı bu tutarı kullanır. Boş bırakırsan ' + (b.v > 0 ? expSrcTxt(b) + ' kullanılır (' + TRY0.format(b.v) + ').' : 'yeterli gider kaydı oluşana kadar hesaplanmaz.') + '</p>'
+      + '<div class="field"><label for="ex-m">Aylık ortalama gider (₺)</label><input id="ex-m" inputmode="decimal" placeholder="' + (b.v > 0 ? 'Otomatik: ' + TRY0.format(b.v) : 'Örn. 35.000') + '" value="' + (+fx > 0 ? nv(+fx) : '') + '"></div>'
+      + '<div class="err" id="f-err"></div><button class="btn" data-act="exp-save">Kaydet</button>');
+  };
+  ACT['exp-save'] = function () {
+    var s0 = val('ex-m').trim(), v = num(s0);
+    if (s0 !== '' && !(v > 0)) {
+      ferr('Sıfırdan büyük bir tutar gir ya da boş bırak.');
+      return;
+    }
+    if (tooBig(v)) {
+      ferr('Tutar çok büyük.');
+      return;
+    }
+    S.fire.exp = s0 === '' ? '' : r2(v);
+    save();
+    closeSheet();
+    render();
+    toast(s0 === '' ? 'Otomatik hesaba dönüldü' : 'Aylık gider kaydedildi');
   };
   ACT['em-open'] = function () {
     var g = emGoal();
@@ -13340,8 +13493,8 @@ document.addEventListener('securitypolicyviolation', function (e) {
     var incN = ks.filter(function (k) {
       return sum(monthTx(k), 'inc') > 0;
     }).length;
-    var surplus = r2(inc - exp), sr = inc > 0 ? surplus / inc * 100 : null;
-    var eg = emGoal(), em = eg ? goalSaved(eg) : Math.max(W.g.liquid, 0), aex = avgMonthly('exp'), emM = aex > 0 ? em / aex : null;
+    var surplus = r2(inc - exp), sr = inc > 0 && exp > 0 ? surplus / inc * 100 : null; /* 4.44: gider kaydı yokken %100 tasarruf gösterilmez */
+    var eg = emGoal(), em = eg ? goalSaved(eg) : Math.max(W.g.liquid, 0), aex = expBase().v, emM = aex > 0 ? em / aex : null;
     /* vadesiz TL: nakit ve banka türü TL hesaplardaki artı bakiyeler (birikim hesapları faizli sayılır) */
     var vad = 0, buck = {
       tl: 0, fx: 0, gold: 0, eq: 0, fon: 0, kripto: 0, bes: 0, diger: 0
@@ -13540,8 +13693,9 @@ document.addEventListener('securitypolicyviolation', function (e) {
     })();
     /* 4. acil durum fonu */
     (function () {
-      var s = { id: 'acil', t: 'Acil durum fonu: 3–6 aylık gider', act: ['Acil durum fonu', 'em-open'] };
+      var s = { id: 'acil', t: 'Acil durum fonu: 3–6 aylık gider', act: ['Acil durum fonu', 'em-open'] }, G = expBase().v;
       if (!(G > 0)) {
+        s.act = ['Aylık giderini gir', 'exp-set'];
         s.st = 'need';
         s.sum = 'Aylık gider ortalaman yok.';
         s.body = 'Fon hedefi aylık giderine göre hesaplanır.';
@@ -13686,7 +13840,7 @@ document.addEventListener('securitypolicyviolation', function (e) {
     };
     h += '<div class="card kochead"><div class="ghead">' + ring + '<span class="mid"><h2 style="margin:0">Finansal durumun</h2><div class="small muted">' + (sc == null ? 'Puan için gelir-gider kaydı gerekli.' : scoreWord(sc) + ' · 100 üzerinden ' + sc) + '</div></span></div><div class="ktg">'
       + tile('Tasarruf oranı', D.sr == null ? '—' : (D.sr < 0 ? '−' : '') + '%' + Math.round(Math.abs(D.sr)), 'an-go', 'ozet')
-      + tile('Acil durum fonu', D.emM == null ? '—' : NUM1.format(D.emM) + ' ay', 'em-open')
+      + tile('Acil durum fonu', D.emM == null ? '—' : (D.emM > 99 ? '99+' : NUM1.format(D.emM)) + ' ay', D.emM == null ? 'exp-set' : 'em-open')
       + tile('Borç', D.cardDebt + D.debts.reduce(function (a, x) {
         return a + x.left;
       }, 0) > 0 ? compactT(D.cardDebt + D.debts.reduce(function (a, x) {

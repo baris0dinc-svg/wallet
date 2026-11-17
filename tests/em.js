@@ -9,7 +9,7 @@ const r=await p.evaluate(async()=>{const T=window.__T,F=[];const $=s=>document.q
  const click=s=>{const e=$(s);if(!e){F.push('yok: '+s);return false;}e.click();return true;};
  const em=()=>T.health().parts.filter(x=>x.k==='Acil durum fonu')[0];
  T.S=T.norm({fx,accounts:['Nakit','Banka'],opening:{Nakit:0,Banka:30000},tx:[
-  {id:'a',type:'inc',amt:40000,cat:'Maaş',acct:'Banka',date:m2+'-05'},{id:'b',type:'exp',amt:10000,cat:'Market',acct:'Banka',date:m2+'-10'},
+  {id:'a',type:'inc',amt:40000,cat:'Maaş',acct:'Banka',date:m2+'-05'},{id:'b',type:'exp',amt:6000,cat:'Market',acct:'Banka',date:m2+'-10'},{id:'b2',type:'exp',amt:4000,cat:'Market',acct:'Banka',date:m2+'-12'},
   {id:'c',type:'exp',amt:10000,cat:'Kira',acct:'Banka',date:m1+'-03'}]});T.save();
  T.ui.page=null;T.ui.sub='plan';T.ui.plan='koc';T.render();
  // fon yokken: likit paraya göre (50.000 / 10.000 = 5 ay), dokunulabilir

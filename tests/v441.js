@@ -49,6 +49,30 @@ const F=await p.evaluate(async()=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x
   T.ACT['edit-h'](null,'m1');await W(100);c($('#h-yd').value==='2025-05-06'&&$('#h-since').value==='2024-02-01','iki tarih ayrı ayrı korunur: '+$('#h-yd').value+' '+$('#h-since').value);
   $('.sheet [data-act="save-h"]').click();await W(150);{const m=S.holdings.find(z=>z.id==='m1');c(m.yd==='2025-05-06'&&m.since==='2024-02-01','dokunmadan kaydetmek tarihi değiştirmez');}
   S.holdings=S.holdings.filter(z=>z.id!=='m1');T.save();
+  // ---- 4.44: aylık gider tabanı, acil durum fonu, FIRE ----
+  {const keep=JSON.stringify(S);const d0=new Date();const iso=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+   S.tx=[{id:'e1',type:'exp',amt:120,acct:'Nakit',cat:'Market',date:iso(d0),note:''}];S.recurring=[];S.fire.exp='';S.fire.target='';S.goals=[];T.save();
+   c(T.expBase().v===0,'yarım dönemdeki tek gider taban sayılmaz: '+JSON.stringify(T.expBase()));
+   const em=T.health().parts.find(x=>x.k==='Acil durum fonu');c(em.v==='—'&&em.act==='exp-set','az veride acil durum fonu ay göstermez: '+em.v);
+   c(!T.fireModel().ok,'az veride FIRE hedefi uydurulmaz');
+   T.ACT['exp-set']();await W(100);set('ex-m','0');$('.sheet [data-act="exp-save"]').click();c(!!$('#ex-m'),'sıfır gider kabul edilmez');
+   set('ex-m','30000');$('.sheet [data-act="exp-save"]').click();await W(100);
+   c(T.expBase().v===30000&&T.expBase().src==='man','elle girilen gider kullanılır');const em2=T.health().parts.find(x=>x.k==='Acil durum fonu');
+   const liq=T.wealth().g.liquid;c(em2.act==='em-open'&&Math.abs(parseFloat(em2.v.replace(',','.'))-liq/30000)<0.06,'acil durum fonu = likit ÷ aylık gider: '+em2.v+' '+liq);
+   const fm=T.fireModel();c(fm.ok&&Math.abs(fm.target-30000*12/fm.wr)<1,'FIRE hedefi = yıllık gider ÷ çekim oranı');
+   S.fire.exp='';S.recurring=[{id:'r1',name:'Kira',amt:20000,day:5,cat:'Kira',acct:'Banka',every:1,start:T.curP?T.curP():iso(d0).slice(0,7)}];T.save();
+   c(T.expBase().src==='rec'&&T.expBase().v===20000,'kayıt azken düzenli ödemeler taban olur: '+JSON.stringify(T.expBase()));
+   S.fire.exp=1;T.save();const big=T.health().parts.find(x=>x.k==='Acil durum fonu');c(big.v==='99+ ay','çok büyük değer 99+ gösterilir: '+big.v);
+   const k2=JSON.parse(keep);Object.keys(S).forEach(k=>delete S[k]);Object.assign(S,T.norm(k2));T.save();T.render();}
+  // ---- 4.44: Portföy ve Gelişim kartları ana sayfada ----
+  {T.ui.sub='ev';T.render();const n0=document.querySelectorAll('#secbody > .card').length;
+   c(['pf','yat','yhist','saglik','hedef','fire','koc'].every(k=>T.homeOffs()[k]),'yeni kartlar ilk düzende kapalı');
+   T.ACT['home-edit']();await W(100);c(document.querySelectorAll('.sheet [data-act="hl-tog"]').length===14,'düzenle penceresinde 14 kart');
+   for(const k of ['pf','yat','yhist','saglik','hedef','fire','koc'])T.ACT['hl-tog'](null,k);T.closeSheet();await W(50);
+   const tx=$('#secbody').innerText;c(/Portföyüm/.test(tx)&&/Yatırımlarım/.test(tx)&&/Finansal sağlık/.test(tx)&&/Hedeflerim/.test(tx)&&/Finansal özgürlük/.test(tx)&&/Koç/.test(tx),'yeni kartlar ana sayfada');
+   c(/Net Servetim/.test($('#secbody > .card').innerText),'ilk kart Net Servetim');
+   const kk=T.norm(JSON.parse(JSON.stringify(S)));c(kk.homeOn&&kk.homeOn.pf===1,'açık kartlar yedekte korunur');
+   T.ACT['home-edit']();T.ACT['hl-reset']();T.closeSheet();await W(50);c(!S.homeOn&&document.querySelectorAll('#secbody > .card').length===n0,'varsayılan düzen eski hâline döner');}
   // ---- saklı özellikler ----
   T.ui.sub='ev';T.render();T.ACT['qa-more']();await W(100);
   for(const a of ['qa-fire','qa-koc','qa-takvim','qa-hist','qa-ekstre','qa-sms','qa-yedek','qa-duzen'])c(!!$('.sheet [data-act="'+a+'"]')&&typeof T.ACT[a]==='function',"Tümü'nde "+a);

@@ -927,18 +927,99 @@
         return homeWealth();
       }], piyasa: ['Takip listem', function () {
         return mStrip();
+      }],
+    /* 4.44: Portföy ve Gelişim kartları da ana sayfaya eklenebilir (ilk düzende kapalı; Ana sayfayı düzenle'den açılır) */
+    pf: ['Portföy özeti', function () {
+        return hwPf();
+      }], yat: ['Yatırımlarım', function () {
+        return hwYat();
+      }], yhist: ['Yatırım geçmişi', function () {
+        return histCard();
+      }], saglik: ['Finansal sağlık', function () {
+        return hwSaglik();
+      }], hedef: ['Hedeflerim', function () {
+        return hwHedef();
+      }], fire: ['Finansal özgürlük (FIRE)', function () {
+        return fireCard();
+      }], koc: ['Koç: sıradaki adım', function () {
+        return hwKoc();
       }]
   };
+  var HWOPT = ['pf', 'yat', 'yhist', 'saglik', 'hedef', 'fire', 'koc'];
+  var HWGRP = { pf: 'Portföy', yat: 'Portföy', yhist: 'Portföy', saglik: 'Gelişim', hedef: 'Gelişim', fire: 'Gelişim', koc: 'Gelişim' };
+  function hwHead(t, act, v, more) {
+    return '<div class="ghead"><h2 style="margin:0;flex:1">' + t + '</h2><button class="linkbtn" data-act="' + act + '"' + (v ? ' data-v="' + v + '"' : '') + '>' + (more || 'Tümü') + ' ›</button></div>';
+  }
+  function hwEmpty(t, txt, act, v, lb) {
+    return '<div class="card" style="padding-top:12px">' + hwHead(t, act, v, lb) + '<div class="small muted">' + txt + '</div></div>';
+  }
+  function hwPf() {
+    var inv = S.holdings.filter(function (x) {
+      return hKind(x) === 'inv';
+    });
+    if (!inv.length)
+      return hwEmpty('Portföyüm', 'Henüz yatırım yok. Hisse, fon, altın, döviz ya da mevduat ekle.', 'sub', 'portfoy', 'Portföy');
+    var pf = pfTotals('inv'), pl = pf.v - pf.c, plp = pf.c ? pl / pf.c * 100 : 0, pr = pfReal(inv), dd = pfDay();
+    return '<div class="card" style="padding-top:12px">' + hwHead('Portföyüm', 'sub', 'portfoy', 'Portföy')
+      + '<p class="big" style="margin:0">' + TRY0.format(pf.v) + '</p>'
+      + '<div class="row3" style="grid-template-columns:1fr 1fr"><div><div class="lbl">Kâr / zarar</div><span class="num ' + (pl >= 0 ? 'inc' : 'exp') + '">' + sgn(pl) + ' (' + (pl >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(plp)) + ')</span></div>'
+      + '<div><div class="lbl">' + (pr ? 'Reel getiri' : 'Bugün') + '</div><span class="num ' + ((pr ? pr.real : (dd ? dd.d : 0)) >= 0 ? 'inc' : 'exp') + '">' + (pr ? pctS(pr.real) : (dd ? sgn(dd.d) : '—')) + '</span></div></div></div>';
+  }
+  function hwYat() {
+    var inv = S.holdings.filter(function (x) {
+      return hKind(x) === 'inv';
+    }).sort(function (a, b) {
+      return hVal(b) - hVal(a);
+    });
+    if (!inv.length)
+      return hwEmpty('Yatırımlarım', 'Henüz yatırım yok.', 'sub', 'portfoy', 'Portföy');
+    return '<div class="card" style="padding-top:12px">' + hwHead('Yatırımlarım', 'sub', 'portfoy', inv.length > 4 ? 'Tümü (' + inv.length + ')' : 'Portföy') + '<div class="list">' + inv.slice(0, 4).map(function (x) {
+      var v = hVal(x), c = hCost(x), pl = v - c, p = c ? pl / c * 100 : 0;
+      return '<button class="item" data-act="edit-h" data-id="' + x.id + '">' + holdIc(x) + '<span class="mid"><div class="t ell">' + esc(x.name) + '</div><div class="small muted">' + esc(x.type) + '</div></span><span class="amt" style="text-align:right"><div class="num">' + TRY0.format(v) + '</div><div class="small num ' + (pl >= 0 ? 'inc' : 'exp') + '">' + (pl >= 0 ? '+' : '−') + '%' + NUM1.format(Math.abs(p)) + '</div></span></button>';
+    }).join('') + '</div></div>';
+  }
+  function hwSaglik() {
+    var H = health(), sc = H.score;
+    return '<div class="card" style="padding-top:12px">' + hwHead('Finansal sağlık', 'an', 'ozet', 'Gelişim')
+      + '<div style="display:flex;align-items:baseline;gap:10px"><span class="num" style="font-size:1.75rem;font-weight:700">' + (sc == null ? '—' : sc) + '</span><span class="small muted">' + (sc == null ? 'Puan için gelir ve gider kaydı gerekli' : '/ 100 · ' + scoreWord(sc)) + '</span></div>'
+      + (sc == null ? '' : '<span class="bar" style="display:block"><i style="width:' + sc + '%"></i></span>')
+      + '<div class="row3" style="grid-template-columns:repeat(' + Math.min(H.parts.length, 4) + ',1fr)">' + H.parts.slice(0, 4).map(function (p) {
+        return '<div><div class="lbl">' + p.k + '</div><span class="num">' + p.v + '</span></div>';
+      }).join('') + '</div></div>';
+  }
+  function hwHedef() {
+    if (!S.goals.length)
+      return hwEmpty('Hedeflerim', 'Henüz hedef yok. Tatil, acil durum fonu ya da büyük bir alışveriş için hedef koy.', 'plan', 'hedef', 'Hedef ekle');
+    return '<div class="card" style="padding-top:12px">' + hwHead('Hedeflerim', 'plan', 'hedef', S.goals.length > 3 ? 'Tümü (' + S.goals.length + ')' : 'Hedefler') + '<div class="stack" style="gap:12px">' + S.goals.slice(0, 3).map(function (g) {
+      var sv = goalSaved(g), p = +g.target > 0 ? clamp(sv / g.target * 100, 0, 100) : 0;
+      return '<button class="plain" style="display:block;width:100%;text-align:left" data-act="edit-g" data-id="' + g.id + '"><span style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><span class="t ell">' + esc(g.name) + '</span><span class="small muted num">' + TRY0.format(sv) + ' / ' + TRY0.format(+g.target || 0) + '</span></span><span class="bar" style="display:block;margin-top:6px"><i style="width:' + p + '%"></i></span></button>';
+    }).join('') + '</div></div>';
+  }
+  function hwKoc() {
+    var l = coachSteps(), i = coachCur(l), st = i >= 0 ? l[i] : null;
+    return '<div class="card" style="padding-top:12px">' + hwHead('Koç', 'plan', 'koc', 'Yol haritası')
+      + (st ? '<div class="t">' + (i + 1) + '. ' + esc(st.t) + '</div><div class="small muted">' + esc(st.sum || '') + '</div>' : '<div class="small muted">Bütün adımlar tamam. Yol haritasına göz at.</div>') + '</div>';
+  }
   var HWDEF = ['donem', 'odeme', 'butce', 'harcama', 'islem', 'piyasa', 'hesap'];
   /* 4.41: Takip listem ana sayfada yine açık gelir (4.38'de kapalı geliyordu); Ana sayfayı düzenle'den gizlenebilir */
   function homeOffs() {
-    return S.homeOff || {};
+    var o = {}, f = S.homeOff || {}, on = S.homeOn || {};
+    Object.keys(f).forEach(function (k) {
+      o[k] = f[k];
+    });
+    HWOPT.forEach(function (k) {
+      if (on[k])
+        delete o[k];
+      else
+        o[k] = 1;
+    });
+    return o;
   }
   function homeLay() {
     var l = (Array.isArray(S.homeLay) ? S.homeLay : []).filter(function (k, i, a) {
       return HW[k] && a.indexOf(k) === i;
     });
-    HWDEF.forEach(function (k) {
+    HWDEF.concat(HWOPT).forEach(function (k) {
       if (l.indexOf(k) < 0)
         l.push(k);
     });
@@ -946,8 +1027,8 @@
   }
   function homeEditHtml() {
     var l = homeLay(), off = homeOffs();
-    return '<h2>Ana sayfayı düzenle</h2><p class="small muted" style="margin-top:-6px">Net Servetim ve hızlı işlemler en üstte sabit. Diğer kartları sırala ya da gizle.</p><div class="list hlist">' + l.map(function (k, i) {
-      return '<div class="item"><span class="mid"><div class="t' + (off[k] ? ' muted' : '') + '">' + HW[k][0] + '</div></span><button class="icon-btn sm" data-act="hl-mv" data-id="' + k + '" data-v="-1" aria-label="' + HW[k][0] + ' yukarı"' + (i ? '' : ' disabled') + '>' + ic('l') + '</button><button class="icon-btn sm" data-act="hl-mv" data-id="' + k + '" data-v="1" aria-label="' + HW[k][0] + ' aşağı"' + (i < l.length - 1 ? '' : ' disabled') + '>' + ic('r') + '</button>'
+    return '<h2>Ana sayfayı düzenle</h2><p class="small muted" style="margin-top:-6px">Net Servetim ve hızlı işlemler en üstte sabit. Diğer kartları sırala ya da gizle. Portföy ve Gelişim kartlarını da buradan açabilirsin.</p><div class="list hlist">' + l.map(function (k, i) {
+      return '<div class="item"><span class="mid"><div class="t' + (off[k] ? ' muted' : '') + '">' + HW[k][0] + '</div>' + (HWGRP[k] ? '<div class="small muted">' + HWGRP[k] + '</div>' : '') + '</span><button class="icon-btn sm" data-act="hl-mv" data-id="' + k + '" data-v="-1" aria-label="' + HW[k][0] + ' yukarı"' + (i ? '' : ' disabled') + '>' + ic('l') + '</button><button class="icon-btn sm" data-act="hl-mv" data-id="' + k + '" data-v="1" aria-label="' + HW[k][0] + ' aşağı"' + (i < l.length - 1 ? '' : ' disabled') + '>' + ic('r') + '</button>'
         + '<button class="row-tgl hltg" data-act="hl-tog" data-id="' + k + '" role="switch" aria-checked="' + !off[k] + '" aria-label="' + HW[k][0] + ' görünsün"><span class="sw"></span></button></div>';
     }).join('') + '</div><button class="btn ghost" data-act="hl-reset">Varsayılan düzen</button>';
   }
@@ -973,7 +1054,16 @@
     hlRefresh();
   };
   ACT['hl-tog'] = function (el, id) {
-    S.homeOff = S.homeOff || homeOffs();
+    if (HWOPT.indexOf(id) >= 0) {
+      S.homeOn = S.homeOn || {};
+      if (S.homeOn[id])
+        delete S.homeOn[id];
+      else
+        S.homeOn[id] = 1;
+      hlRefresh();
+      return;
+    }
+    S.homeOff = S.homeOff || {};
     if (S.homeOff[id])
       delete S.homeOff[id];
     else
@@ -983,6 +1073,7 @@
   ACT['hl-reset'] = function () {
     delete S.homeLay;
     delete S.homeOff;
+    delete S.homeOn;
     hlRefresh();
     toast('Varsayılan düzen');
   };
@@ -1368,7 +1459,7 @@
     return '<button class="card firecard stack" data-act="open-fire" style="gap:10px"><span style="display:flex;align-items:center;gap:12px"><span class="sic" style="--c:var(--exp)">' + ic('fire') + '</span><span class="mid"><div class="t">Finansal özgürlük (FIRE)</div><div class="small muted">' + (m.custom ? 'Kendi belirlediğin hedef' : 'Harcamana göre hesaplanan hedef') + '</div></span>' + ic('r') + '</span>'
       + '<span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap"><span class="num" style="font-size:1.75rem;font-weight:700">%' + NUM2.format(m.prog) + '</span><span class="small muted num">' + DC0.format(Math.max(m.assets, 0)) + ' / ' + DC0.format(m.target) + '</span></span>'
       + '<span class="bar"><i style="width:' + m.prog + '%"></i></span>'
-      + '<span class="small muted">' + (m.n <= 0 ? 'Hedefe ulaştın' : 'Tahmini süre: <b>' + esc(fmtYears(m.n)) + '</b>' + (fireDate(m.n) ? ' · ' + esc(fireDate(m.n)) : '')) + '</span></button>';
+      + '<span class="small muted">' + esc(fireEta(m)) + '</span></button>';
   }
   var RNG = [['ay', 'Dönem'], ['gun', 'Bugün'], ['hafta', 'Hafta'], ['yil', 'Yıl'], ['ozel', 'Tarih']];
   function wkStart() {

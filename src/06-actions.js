@@ -1218,6 +1218,32 @@
   ACT['new-g'] = function () {
     gSheet();
   };
+  /* 4.44: aylık gider elle girilir (acil durum fonu ve FIRE bu sayıyı kullanır) */
+  ACT['exp-set'] = function () {
+    var fx = S.fire.exp;
+    S.fire.exp = '';
+    var b = expBase();
+    S.fire.exp = fx;
+    openSheet('<h2>Aylık giderin</h2><p class="small muted" style="margin:0">Acil durum fonu ve finansal özgürlük (FIRE) hesabı bu tutarı kullanır. Boş bırakırsan ' + (b.v > 0 ? expSrcTxt(b) + ' kullanılır (' + TRY0.format(b.v) + ').' : 'yeterli gider kaydı oluşana kadar hesaplanmaz.') + '</p>'
+      + '<div class="field"><label for="ex-m">Aylık ortalama gider (₺)</label><input id="ex-m" inputmode="decimal" placeholder="' + (b.v > 0 ? 'Otomatik: ' + TRY0.format(b.v) : 'Örn. 35.000') + '" value="' + (+fx > 0 ? nv(+fx) : '') + '"></div>'
+      + '<div class="err" id="f-err"></div><button class="btn" data-act="exp-save">Kaydet</button>');
+  };
+  ACT['exp-save'] = function () {
+    var s0 = val('ex-m').trim(), v = num(s0);
+    if (s0 !== '' && !(v > 0)) {
+      ferr('Sıfırdan büyük bir tutar gir ya da boş bırak.');
+      return;
+    }
+    if (tooBig(v)) {
+      ferr('Tutar çok büyük.');
+      return;
+    }
+    S.fire.exp = s0 === '' ? '' : r2(v);
+    save();
+    closeSheet();
+    render();
+    toast(s0 === '' ? 'Otomatik hesaba dönüldü' : 'Aylık gider kaydedildi');
+  };
   ACT['em-open'] = function () {
     var g = emGoal();
     if (g)

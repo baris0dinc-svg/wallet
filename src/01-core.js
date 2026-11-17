@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.43';
+  var KEY = 'kumbara-v1', UIKEY = 'wallet-ui', VER = '4.44';
   var D_EXP = ['Market', 'Fatura', 'Kira', 'Ulaşım', 'Yeme-İçme', 'Sağlık', 'Eğlence', 'Giyim', 'Eğitim', 'Diğer'];
   var D_INC = ['Maaş', 'Ek gelir', 'Yatırım getirisi', 'Diğer gelir'];
   var D_ACC = ['Nakit', 'Banka', 'Kredi kartı'];
@@ -1909,6 +1909,30 @@
       return a + b;
     }, 0) / v.length : 0;
   }
+  /* 4.44: güvenilir aylık gider tabanı (acil durum fonu ve FIRE aynı sayıyı kullanır).
+     Sıra: kullanıcının girdiği aylık harcama → tamamlanmış dönemlerin ortalaması (en az 3 gider kaydı) → düzenli ödemeler toplamı.
+     Yarım dönemdeki birkaç kayıt taban sayılmaz: gideri olduğundan küçük, fonu "126 ay" gibi gösteriyordu. */
+  function expBase() {
+    var man = +S.fire.exp > 0 ? +S.fire.exp : 0, rec = recMonthlyTot();
+    if (man)
+      return { v: man, src: 'man', rec: rec };
+    var B = monthBase(), n = 0;
+    B.ks.forEach(function (k) {
+      monthTx(k).forEach(function (t) {
+        if (t.type === 'exp')
+          n++;
+      });
+    });
+    var avg = !B.part && n >= 3 ? avgMonthly('exp') : 0;
+    if (avg > 0 && avg >= rec)
+      return { v: avg, src: 'avg', rec: rec, n: n };
+    if (rec > 0)
+      return { v: rec, src: 'rec', rec: rec, n: n };
+    return { v: avg, src: avg > 0 ? 'avg' : '', rec: rec, n: n };
+  }
+  function expSrcTxt(b) {
+    return b.src === 'man' ? 'girdiğin aylık gider' : (b.src === 'avg' ? 'geçmiş dönemlerin ortalaması' : (b.src === 'rec' ? 'düzenli ödemelerin toplamı' : ''));
+  }
   /* ---------- FIRE ---------- */
   function monthsToFI(P, C, rm, T) {
     if (P >= T)
@@ -1926,8 +1950,11 @@
     return t > 0 ? t * rateOf(f.tccy || 'TRY') : 0;
   }
   function fireModel() {
-    var f = S.fire, autoE = avgMonthly('exp'), autoS = avgSave();
+    var f = S.fire, autoE = (function () { var fx = S.fire.exp; S.fire.exp = ''; var b = expBase(); S.fire.exp = fx; return b.v; })(), autoS = avgSave();
     var exp = (+f.exp > 0) ? +f.exp : autoE;
+    /* aylık harcama elle girildiyse otomatik birikim de ona göre: ortalama gelir − girilen harcama */
+    if (+f.exp > 0 && avgMonthly('inc') > 0)
+      autoS = avgMonthly('inc') - (+f.exp);
     var sv = (f.save !== '' && f.save != null) ? +f.save : Math.max(autoS, 0);
     var assets = (f.acc ? accTotal() - debtManual() : 0) + (f.pf ? pfTotals('inv').v : 0) + (f.ast ? pfTotals('asset').v : 0) + (+f.extra || 0);
     var wr = Math.max(+f.wr, 0.1) / 100, rm = Math.pow(1 + (+f.ret) / 100, 1 / 12) - 1, custom = fireTargetTL();
@@ -1954,6 +1981,14 @@
       mo = 0;
     }
     return ((y ? y + ' yıl ' : '') + (mo ? mo + ' ay' : '')).trim() || '1 ay';
+  }
+  /* 4.44: süre metni; birikim yokken "100 yıldan fazla" yerine nedenini söyler */
+  function fireEta(m) {
+    if (m.n <= 0)
+      return 'Hedefe ulaştın';
+    if (!isFinite(m.n) && !(m.sv > 0))
+      return 'Aylık birikim yok; süre hesaplanamıyor';
+    return 'Tahmini süre: ' + fmtYears(m.n) + (fireDate(m.n) ? ' · ' + fireDate(m.n) : '');
   }
   function fireDate(n) {
     if (!isFinite(n) || n > 1200 || n <= 0)

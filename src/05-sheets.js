@@ -915,7 +915,7 @@
     }
   }
   function gSheet(id, pre) {
-    var g = id ? byId(S.goals, id) : null, ae = avgMonthly('exp'), em = g ? isEm(g) : !!(pre && pre.em), nm = g ? g.name : (em ? 'Acil durum fonu' : ''), tg = g ? nv(g.target) : (em && ae > 0 ? nv(Math.ceil(ae * 6 / 1000) * 1000) : '');
+    var g = id ? byId(S.goals, id) : null, ae = expBase().v, em = g ? isEm(g) : !!(pre && pre.em), nm = g ? g.name : (em ? 'Acil durum fonu' : ''), tg = g ? nv(g.target) : (em && ae > 0 ? nv(Math.ceil(ae * 6 / 1000) * 1000) : '');
     openSheet('<h2>' + (g ? 'Hedefi düzenle' : 'Yeni hedef') + '</h2><div class="field"><label for="g-name">Ad</label><input id="g-name" placeholder="Örn. Yaz tatili" value="' + esc(nm) + '"></div><div class="two"><div class="field"><label for="g-target">Hedef tutar (₺)</label><input id="g-target" inputmode="decimal" value="' + tg + '"></div><div class="field" id="row-gsaved"><label for="g-saved">Biriken (₺)</label><input id="g-saved" inputmode="decimal" value="' + (g ? nv(g.saved || 0) : '0') + '"></div></div>'
       + '<div class="two"><div class="field"><label for="g-acct">Bağlı hesap</label><select id="g-acct">' + acctOpts(g ? g.acct || '' : '', 'Yok, elle takip et', function (a) {
       return acctType(a) === 'kart';

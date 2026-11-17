@@ -915,6 +915,12 @@
       var sn = val('h-since');
       if (/^\d{4}-\d{2}-\d{2}$/.test(sn) && sn <= todayS())
         h.since = sn;
+      else {
+        /* 4.43: oran girilmeden yalnız "başlangıç" tarihi seçildiyse kaybolmasın; ilk alış tarihi olarak saklanır */
+        var yd0 = val('h-yd');
+        if (!(num(val('h-yr')) > 0) && yShow(h.type, h.mk) && /^\d{4}-\d{2}-\d{2}$/.test(yd0) && yd0 < todayS())
+          h.since = yd0;
+      }
     }
     if (v !== 'asset') {
       var ye = yRead(h, x);

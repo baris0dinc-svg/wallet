@@ -70,7 +70,7 @@
     var dep = type === 'Mevduat', on = x && +x.yr > 0;
     return '<div id="row-yield" class="stack" style="gap:10px"' + (yShow(type, x && x.mk) ? '' : ' hidden') + '>'
       + '<div class="two"><div class="field"><label for="h-yr" id="lb-hyr">' + (dep ? 'Yıllık brüt faiz (%)' : 'Tahmini yıllık getiri (%)') + '</label><input id="h-yr" inputmode="decimal" placeholder="İsteğe bağlı, örn. 40" value="' + (on ? nv(x.yr) : '') + '"></div>'
-      + '<div class="field"><label for="h-yd">Başlangıç</label><input id="h-yd" type="date" value="' + esc(on && x.yd ? x.yd : todayS()) + '"></div></div>'
+      + '<div class="field"><label for="h-yd" id="lb-hyd">' + (dep ? 'Faiz başlangıcı' : 'Getiri başlangıcı') + '</label><input id="h-yd" type="date" max="' + todayS() + '" value="' + esc(on && x.yd ? x.yd : ((x && hSince(x)) || todayS())) + '"></div></div>'
       + '<div class="two" id="row-dep"' + (dep ? '' : ' hidden') + '><div class="field"><label for="h-vd">Vade (gün)</label><input id="h-vd" inputmode="numeric" maxlength="4" placeholder="Günlükse boş" value="' + (x && +x.vd > 0 ? x.vd : '') + '"></div>'
       + '<div class="field"><label for="h-tax">Stopaj (%)</label><input id="h-tax" inputmode="decimal" placeholder="' + NUM1.format(depTax(x && +x.vd || 0)) + '" value="' + (x && x.tax != null && x.tax !== '' ? nv(x.tax) : '') + '"></div></div>'
       + '<label class="chk" id="row-roll"' + (dep ? '' : ' hidden') + '><input type="checkbox" id="h-roll"' + (x && x.roll === false ? '' : ' checked') + '> Vade sonunda faiziyle birlikte yenilensin</label>'
@@ -93,6 +93,9 @@
     var l = document.getElementById('lb-hyr');
     if (l)
       l.textContent = dep ? 'Yıllık brüt faiz (%)' : 'Tahmini yıllık getiri (%)';
+    var ld = document.getElementById('lb-hyd');
+    if (ld)
+      ld.textContent = dep ? 'Faiz başlangıcı' : 'Getiri başlangıcı';
     var tx = document.getElementById('h-tax');
     if (tx)
       tx.placeholder = NUM1.format(depTax(+num(val('h-vd')) || 0));

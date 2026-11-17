@@ -41,6 +41,14 @@ const F=await p.evaluate(async()=>{const T=window.__T,o=[];const c=(x,m)=>{if(!x
   c(/Yatırım geçmişi/.test(sb)&&/Reel getiri/.test(sb)&&/reel/.test($('.hcard').innerText)&&!!$('.hcard [data-act="inv-hist"]'),'Portföyde geçmiş ve reel getiri');
   T.ACT['inv-hist'](null,'f1');await W(100);c(/Alış/.test($('.sheet').innerText)&&/Satış/.test($('.sheet').innerText),'geçmiş penceresi');T.closeSheet();
   const k=T.norm(JSON.parse(JSON.stringify(S)));c(k.hlog.length===2&&k.accx.Kart.blk===3500&&k.holdings[0].since==='2025-01-10','yedekten dönüşte korunur');
+  // ---- 4.43: düzenlemede tarih bugüne dönmez ----
+  S.holdings.push({id:'m1',name:'Birikim fonu',type:'Fon',kind:'inv',ccy:'',qty:10,cost:100,price:100});T.save();
+  T.ACT['edit-h'](null,'m1');await W(100);set('h-yd','2025-03-04');$('.sheet [data-act="save-h"]').click();await W(150);
+  T.ACT['edit-h'](null,'m1');await W(100);c($('#h-yd').value==='2025-03-04'&&$('#h-since').value==='2025-03-04','oransız başlangıç tarihi korunur: '+$('#h-yd').value+' '+$('#h-since').value);
+  set('h-since','2024-02-01');set('h-yr','30');set('h-yd','2025-05-06');$('.sheet [data-act="save-h"]').click();await W(150);
+  T.ACT['edit-h'](null,'m1');await W(100);c($('#h-yd').value==='2025-05-06'&&$('#h-since').value==='2024-02-01','iki tarih ayrı ayrı korunur: '+$('#h-yd').value+' '+$('#h-since').value);
+  $('.sheet [data-act="save-h"]').click();await W(150);{const m=S.holdings.find(z=>z.id==='m1');c(m.yd==='2025-05-06'&&m.since==='2024-02-01','dokunmadan kaydetmek tarihi değiştirmez');}
+  S.holdings=S.holdings.filter(z=>z.id!=='m1');T.save();
   // ---- saklı özellikler ----
   T.ui.sub='ev';T.render();T.ACT['qa-more']();await W(100);
   for(const a of ['qa-fire','qa-koc','qa-takvim','qa-hist','qa-ekstre','qa-sms','qa-yedek','qa-duzen'])c(!!$('.sheet [data-act="'+a+'"]')&&typeof T.ACT[a]==='function',"Tümü'nde "+a);
